@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/publication_provider.dart';
 import '../widgets/publication_card.dart';
 import 'dashboard_screen.dart';
@@ -18,6 +18,18 @@ class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _topicController = TextEditingController();
   final TextEditingController _fromYearController = TextEditingController();
   final TextEditingController _toYearController = TextEditingController();
+
+  Future<void> _openZoteroLibrary() async {
+    final uri = Uri.parse('https://www.zotero.org/baonoob101/library');
+
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cannot open Zotero library.')),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -52,7 +64,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Journal Trend Analyzer'),
+        // FIX: rút gọn title để đủ chỗ cho 3 icon
+        title: const Text('Trend Analyzer', overflow: TextOverflow.ellipsis),
         actions: [
           IconButton(
             tooltip: 'Trend Analysis',
@@ -67,6 +80,12 @@ class _SearchScreenState extends State<SearchScreen> {
                     );
                   },
             icon: const Icon(Icons.show_chart),
+          ),
+          // FIX: Zotero icon — luôn enabled, không phụ thuộc publications
+          IconButton(
+            tooltip: 'My Zotero Library',
+            onPressed: _openZoteroLibrary,
+            icon: const Icon(Icons.library_books),
           ),
           IconButton(
             tooltip: 'Dashboard',
@@ -84,18 +103,19 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          _SearchHeader(
-            topicController: _topicController,
-            fromYearController: _fromYearController,
-            toYearController: _toYearController,
-            onSearch: provider.isLoading ? null : _search,
-          ),
-          Expanded(
-            child: _SearchResultView(provider: provider),
-          ),
-        ],
+      // FIX: bọc body trong SafeArea để tránh bị che bởi status bar / notch
+      body: SafeArea(
+        child: Column(
+          children: [
+            _SearchHeader(
+              topicController: _topicController,
+              fromYearController: _fromYearController,
+              toYearController: _toYearController,
+              onSearch: provider.isLoading ? null : _search,
+            ),
+            Expanded(child: _SearchResultView(provider: provider)),
+          ],
+        ),
       ),
     );
   }
@@ -118,9 +138,14 @@ class _SearchHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.all(16),
+      // FIX: thêm clipBehavior để card không tràn ra ngoài
+      clipBehavior: Clip.hardEdge,
       child: Padding(
         padding: const EdgeInsets.all(16),
+        // FIX: bọc Column trong IntrinsicWidth để constrain đúng chiều ngang
         child: Column(
+          // FIX: stretch để các widget con full width theo card
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextField(
               controller: topicController,
@@ -133,41 +158,44 @@ class _SearchHeader extends StatelessWidget {
               onSubmitted: (_) => onSearch?.call(),
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: fromYearController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'From year',
-                      hintText: '2020',
-                      border: OutlineInputBorder(),
+            // FIX: dùng LayoutBuilder để Row biết chính xác width có sẵn
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: fromYearController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'From year',
+                          hintText: '2020',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: toYearController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'To year',
-                      hintText: '2026',
-                      border: OutlineInputBorder(),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: toYearController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'To year',
+                          hintText: '2026',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ],
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: onSearch,
-                icon: const Icon(Icons.analytics),
-                label: const Text('Analyze Topic'),
-              ),
+            // FIX: bỏ SizedBox width double.infinity, dùng crossAxisAlignment.stretch thay thế
+            FilledButton.icon(
+              onPressed: onSearch,
+              icon: const Icon(Icons.analytics),
+              label: const Text('Analyze Topic'),
             ),
           ],
         ),
@@ -179,26 +207,19 @@ class _SearchHeader extends StatelessWidget {
 class _SearchResultView extends StatelessWidget {
   final PublicationProvider provider;
 
-  const _SearchResultView({
-    required this.provider,
-  });
+  const _SearchResultView({required this.provider});
 
   @override
   Widget build(BuildContext context) {
     if (provider.isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (provider.errorMessage != null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text(
-            provider.errorMessage!,
-            textAlign: TextAlign.center,
-          ),
+          child: Text(provider.errorMessage!, textAlign: TextAlign.center),
         ),
       );
     }
@@ -224,9 +245,8 @@ class _SearchResultView extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => PublicationDetailScreen(
-                  publication: publication,
-                ),
+                builder: (_) =>
+                    PublicationDetailScreen(publication: publication),
               ),
             );
           },
