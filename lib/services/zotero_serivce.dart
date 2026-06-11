@@ -6,8 +6,14 @@ import 'package:openalex/models/publication.dart';
 import 'package:openalex/mappers/ZoteroMapper.dart';
 
 class ZoteroService {
-  final String apiKey = dotenv.env['ZOTERO_API_KEY'] ?? '';
-  final String userId = dotenv.env['ZOTERO_USER_ID'] ?? '';
+  final String apiKey;
+  final String userId;
+  final http.Client _client;
+
+  ZoteroService({String? apiKey, String? userId, http.Client? client})
+    : apiKey = apiKey ?? dotenv.env['ZOTERO_API_KEY'] ?? '',
+      userId = userId ?? dotenv.env['ZOTERO_USER_ID'] ?? '',
+      _client = client ?? http.Client();
 
   Future<String> savePublicationToZotero(Publication publication) async {
     if (apiKey.isEmpty || userId.isEmpty) {
@@ -16,7 +22,7 @@ class ZoteroService {
 
     final zoteroItem = ZoteroMapper.fromPublication(publication);
 
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('https://api.zotero.org/users/$userId/items'),
       headers: {
         'Content-Type': 'application/json',

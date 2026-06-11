@@ -6,6 +6,9 @@ import '../models/publication.dart';
 
 class OpenAlexService {
   static const String _baseUrl = 'https://api.openalex.org';
+  final http.Client _client;
+
+  OpenAlexService({http.Client? client}) : _client = client ?? http.Client();
 
   Future<List<Publication>> searchPublications({
     required String keyword,
@@ -40,11 +43,11 @@ class OpenAlexService {
       queryParameters['filter'] = filters.join(',');
     }
 
-    final uri = Uri.parse('$_baseUrl/works').replace(
-      queryParameters: queryParameters,
-    );
+    final uri = Uri.parse(
+      '$_baseUrl/works',
+    ).replace(queryParameters: queryParameters);
 
-    final response = await http.get(uri);
+    final response = await _client.get(uri);
 
     if (response.statusCode != 200) {
       throw Exception(
