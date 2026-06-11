@@ -1,0 +1,297 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:openalex/main.dart';
+import 'package:openalex/models/publication.dart';
+import 'package:openalex/providers/publication_provider.dart';
+import 'package:openalex/screens/dashboard_screen.dart';
+import 'package:openalex/screens/publication_detail_screen.dart'
+    as screen_detail;
+import 'package:openalex/screens/search_screen.dart';
+import 'package:openalex/screens/trend_analysis_screen.dart';
+import 'package:openalex/services/openalex_service.dart';
+import 'package:openalex/widgets/publication_card.dart';
+import 'package:openalex/widgets/publication_detail_screen.dart'
+    as widget_detail;
+import 'package:openalex/widgets/summary_card.dart';
+import 'package:openalex/widgets/trend_chart.dart';
+import 'package:provider/provider.dart';
+
+class FakeOpenAlexService extends OpenAlexService {
+  FakeOpenAlexService(this.results);
+
+  final List<Publication> results;
+
+  @override
+  Future<List<Publication>> searchPublications({
+    required String keyword,
+    int perPage = 50,
+    String sort = 'cited_by_count:desc',
+    int? fromYear,
+    int? toYear,
+  }) async {
+    return results;
+  }
+}
+
+Publication publication({
+  String title = 'Test Publication',
+  int citations = 12,
+  int? year = 2024,
+  String? journal = 'Journal of Widgets',
+  String? doi = 'https://doi.org/10.1000/widget',
+  String? abstractText = 'A useful abstract.',
+  List<String> authors = const ['Ada Lovelace', 'Grace Hopper'],
+}) {
+  return Publication(
+    id: title,
+    title: title,
+    publicationYear: year,
+    citedByCount: citations,
+    journalName: journal,
+    doi: doi,
+    abstractText: abstractText,
+    authors: authors,
+  );
+}
+
+Future<PublicationProvider> seededProvider(
+  List<Publication> publications,
+) async {
+  final provider = PublicationProvider(FakeOpenAlexService(publications));
+  await provider.searchPublications(keyword: 'AI');
+  return provider;
+}
+
+Widget appWithProvider(Widget child, PublicationProvider provider) {
+  return ChangeNotifierProvider.value(
+    value: provider,
+    child: MaterialApp(home: child),
+  );
+}
+
+void main() {
+  testWidgets('MyHomePage counter still increments', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: MyHomePage(title: 'Counter')),
+    );
+
+    expect(find.text('0'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pump();
+
+    expect(find.text('1'), findsOneWidget);
+  });
+
+  testWidgets('MyApp shows the search experience', (tester) async {
+    await tester.pumpWidget(const MyApp());
+
+    expect(find.text('Trend Analyzer'), findsOneWidget);
+    expect(find.text('Research topic'), findsOneWidget);
+    expect(find.text('Analyze Topic'), findsOneWidget);
+    expect(
+      find.text('Enter a research topic and tap Analyze Topic.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('SearchScreen submits filters and renders results', (
+    tester,
+  ) async {
+    final provider = PublicationProvider(
+      FakeOpenAlexService([publication(title: 'Search Result', citations: 9)]),
+    );
+
+    await tester.pumpWidget(appWithProvider(const SearchScreen(), provider));
+    await tester.enterText(find.byType(TextField).at(1), '2020');
+    await tester.enterText(find.byType(TextField).at(2), '2024');
+    await tester.tap(find.text('Analyze Topic'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Search Result'), findsOneWidget);
+    expect(find.byTooltip('Trend Analysis'), findsOneWidget);
+    expect(find.byTooltip('Dashboard'), findsOneWidget);
+  });
+
+  testWidgets('SummaryCard and PublicationCard render and handle taps', (
+    tester,
+  ) async {
+    var tapped = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Column(
+            children: [
+              const SummaryCard(
+                title: 'Total Publications',
+                value: '3',
+                icon: Icons.article,
+              ),
+              PublicationCard(
+                publication: publication(title: 'Card Paper'),
+                onTap: () => tapped = true,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Total Publications'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('Card Paper'), findsOneWidget);
+
+    await tester.tap(find.text('Card Paper'));
+    expect(tapped, isTrue);
+  });
+
+  testWidgets('TrendChart shows empty state and chart state', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: TrendChart(data: {})),
+      ),
+    );
+    expect(find.text('No trend data available.'), findsOneWidget);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: TrendChart(data: {2022: 1, 2023: 3})),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('2022'), findsWidgets);
+    expect(find.text('2023'), findsWidgets);
+  });
+
+  testWidgets('DashboardScreen shows empty and populated states', (
+    tester,
+  ) async {
+    final emptyProvider = PublicationProvider(FakeOpenAlexService([]));
+    await tester.pumpWidget(
+      appWithProvider(const DashboardScreen(), emptyProvider),
+    );
+    expect(
+      find.text('Search a topic first to view dashboard.'),
+      findsOneWidget,
+    );
+
+    final provider = await seededProvider([
+      publication(title: 'Top Paper', citations: 20, year: 2024),
+      publication(title: 'Other Paper', citations: 4, year: 2023),
+    ]);
+    await tester.pumpWidget(appWithProvider(const DashboardScreen(), provider));
+
+    expect(find.text('Dashboard: AI'), findsOneWidget);
+    expect(find.text('Total Publications'), findsOneWidget);
+    expect(find.text('Average Citation Count'), findsOneWidget);
+    expect(find.text('Most Influential Paper'), findsOneWidget);
+    expect(find.text('Top Paper'), findsOneWidget);
+  });
+
+  testWidgets('TrendAnalysisScreen shows lists and opens detail', (
+    tester,
+  ) async {
+    final provider = await seededProvider([
+      publication(title: 'Influential', citations: 30, year: 2024),
+      publication(title: 'Less Influential', citations: 2, year: 2023),
+    ]);
+
+    await tester.pumpWidget(
+      appWithProvider(const TrendAnalysisScreen(), provider),
+    );
+
+    expect(find.text('Publication Trend: AI'), findsOneWidget);
+    expect(find.text('Top Influential Papers'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Top Research Journals'),
+      300,
+      scrollable: find.byType(Scrollable),
+    );
+    expect(find.text('Top Research Journals'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Top Contributing Authors'),
+      300,
+      scrollable: find.byType(Scrollable),
+    );
+    expect(find.text('Top Contributing Authors'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('Influential'),
+      -300,
+      scrollable: find.byType(Scrollable),
+    );
+    await tester.tap(find.text('Influential'));
+    await tester.pumpAndSettle();
+    expect(find.text('Publication Detail'), findsOneWidget);
+  });
+
+  testWidgets(
+    'screen PublicationDetailScreen renders fallbacks and Zotero error',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: screen_detail.PublicationDetailScreen(
+            publication: publication(
+              title: 'Detail Paper',
+              doi: null,
+              abstractText: null,
+              authors: const [],
+              journal: null,
+              year: null,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Detail Paper'), findsOneWidget);
+      expect(find.text('Unknown authors'), findsOneWidget);
+      expect(find.text('Unknown year'), findsOneWidget);
+      expect(find.text('Unknown journal'), findsOneWidget);
+      expect(find.text('No DOI available'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('No abstract available for this publication.'),
+        300,
+        scrollable: find.byType(Scrollable),
+      );
+      expect(
+        find.text('No abstract available for this publication.'),
+        findsOneWidget,
+      );
+
+      await tester.scrollUntilVisible(
+        find.text('Save to Zotero'),
+        -300,
+        scrollable: find.byType(Scrollable),
+      );
+      await tester.tap(find.text('Save to Zotero'));
+      await tester.pump();
+      expect(find.textContaining('Failed to save:'), findsOneWidget);
+    },
+  );
+
+  testWidgets('widget PublicationDetailScreen renders DOI button', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: widget_detail.PublicationDetailScreen(
+          publication: publication(title: 'Widget Detail Paper'),
+        ),
+      ),
+    );
+
+    expect(find.text('Widget Detail Paper'), findsOneWidget);
+    expect(find.text('Ada Lovelace, Grace Hopper'), findsOneWidget);
+    expect(find.text('Open DOI'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.text('A useful abstract.'),
+      300,
+      scrollable: find.byType(Scrollable),
+    );
+    expect(find.text('A useful abstract.'), findsOneWidget);
+  });
+}
