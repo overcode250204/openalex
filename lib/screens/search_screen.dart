@@ -1,4 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:openalex/models/search_filter.dart';
+import 'package:openalex/widgets/filter_bottom_sheet.dart';
+import 'package:openalex/widgets/related_keyworks_bar.dart';
+import 'package:openalex/widgets/search_suggestion_overlay.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/publication_provider.dart';
@@ -16,9 +22,10 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _topicController = TextEditingController();
-  final TextEditingController _fromYearController = TextEditingController();
-  final TextEditingController _toYearController = TextEditingController();
+   Timer? _debounce;
 
+   
+   
   Future<void> _openZoteroLibrary() async {
     final uri = Uri.parse('https://www.zotero.org/baonoob101/library');
 
@@ -35,28 +42,30 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _topicController.text = 'Artificial Intelligence';
+    context.read<PublicationProvider>().loadHistory();
   }
 
   @override
   void dispose() {
     _topicController.dispose();
-    _fromYearController.dispose();
-    _toYearController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
   Future<void> _search() async {
-    final provider = context.read<PublicationProvider>();
-
-    final fromYear = int.tryParse(_fromYearController.text.trim());
-    final toYear = int.tryParse(_toYearController.text.trim());
-
-    await provider.searchPublications(
-      keyword: _topicController.text,
-      fromYear: fromYear,
-      toYear: toYear,
-    );
+     final keyword = _topicController.text.trim();
+    if (keyword.isEmpty) return;
+    FocusScope.of(context).unfocus();
+    context.read<PublicationProvider>().searchPublications(keyword: keyword);
   }
+
+  void _onQueryChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      context.read<PublicationProvider>().onQueryChanged(value);
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +76,40 @@ class _SearchScreenState extends State<SearchScreen> {
         // FIX: rút gọn title để đủ chỗ cho 3 icon
         title: const Text('Trend Analyzer', overflow: TextOverflow.ellipsis),
         actions: [
+           Consumer<PublicationProvider>(
+              builder: (context, provider, _){
+                final hasFilter = provider.filter.yearFrom != null ||
+                provider.filter.isOpenAccess != null ||
+                provider.filter.documentType != DocumentType.all ||
+                provider.filter.sortOption != SortOption.relevance;
+                return Stack(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.tune),
+                      onPressed: () => showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                        ),
+                        builder: (_) => const FilterBottomSheet(),
+                      ),                    
+                    ),
+                    if (hasFilter)
+                      Positioned(
+                        right: 8, top: 8,
+                        child: Container(
+                          width: 8, height: 8,
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
+                ); 
+
+              } ,),
           IconButton(
             tooltip: 'Trend Analysis',
             onPressed: provider.publications.isEmpty
@@ -81,7 +124,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   },
             icon: const Icon(Icons.show_chart),
           ),
-          // FIX: Zotero icon — luôn enabled, không phụ thuộc publications
+         
           IconButton(
             tooltip: 'My Zotero Library',
             onPressed: _openZoteroLibrary,
@@ -103,19 +146,28 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ],
       ),
-      // FIX: bọc body trong SafeArea để tránh bị che bởi status bar / notch
-      body: SafeArea(
-        child: Column(
-          children: [
-            _SearchHeader(
-              topicController: _topicController,
-              fromYearController: _fromYearController,
-              toYearController: _toYearController,
-              onSearch: provider.isLoading ? null : _search,
-            ),
-            Expanded(child: _SearchResultView(provider: provider)),
-          ],
-        ),
+   
+      body: Column(
+        children: [
+          _SearchHeader(
+            topicController: _topicController,
+            onSearch: provider.isLoading ? null : _search,
+            onQueryChanged: provider.isLoading? null :_onQueryChanged,
+          ),
+         
+          Consumer<PublicationProvider>(
+            builder: (context, provider, _) => provider.totalResults > 0
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Text(
+                    '${provider.totalResults} results',
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                )
+              : const SizedBox(),
+          ),
+          Expanded(child: _SearchResultView(provider: provider)),
+        ],
       ),
     );
   }
@@ -123,28 +175,24 @@ class _SearchScreenState extends State<SearchScreen> {
 
 class _SearchHeader extends StatelessWidget {
   final TextEditingController topicController;
-  final TextEditingController fromYearController;
-  final TextEditingController toYearController;
   final VoidCallback? onSearch;
+  final ValueChanged<String>? onQueryChanged;
+
+  
 
   const _SearchHeader({
     required this.topicController,
-    required this.fromYearController,
-    required this.toYearController,
-    required this.onSearch,
+    required this.onSearch, 
+    required this.onQueryChanged,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.all(16),
-      // FIX: thêm clipBehavior để card không tràn ra ngoài
-      clipBehavior: Clip.hardEdge,
+      margin: const EdgeInsets.all(16),   
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        // FIX: bọc Column trong IntrinsicWidth để constrain đúng chiều ngang
+        padding: const EdgeInsets.all(16),     
         child: Column(
-          // FIX: stretch để các widget con full width theo card
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextField(
@@ -156,42 +204,27 @@ class _SearchHeader extends StatelessWidget {
                 prefixIcon: Icon(Icons.search),
               ),
               onSubmitted: (_) => onSearch?.call(),
+              onChanged: onQueryChanged,
+              onTap: () => context.read<PublicationProvider>().onQueryChanged(topicController.text),
+              
             ),
-            const SizedBox(height: 12),
-            // FIX: dùng LayoutBuilder để Row biết chính xác width có sẵn
-            LayoutBuilder(
-              builder: (context, constraints) {
-                return Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: fromYearController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'From year',
-                          hintText: '2020',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: toYearController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'To year',
-                          hintText: '2026',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
+            TapRegion(
+              onTapOutside: (event) => {
+                context.read<PublicationProvider>().hideSuggestions()
               },
+              child: SearchSuggestionOverlay(
+                controller: topicController,
+                onSearch:onSearch),
             ),
+             RelatedKeywordsBar(
+            onKeywordTap: (keyword) {
+              topicController.text = keyword;
+              onSearch?.call();
+            },
+          ),
+            
             const SizedBox(height: 12),
-            // FIX: bỏ SizedBox width double.infinity, dùng crossAxisAlignment.stretch thay thế
+
             FilledButton.icon(
               onPressed: onSearch,
               icon: const Icon(Icons.analytics),
@@ -233,25 +266,36 @@ class _SearchResultView extends StatelessWidget {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      itemCount: provider.publications.length,
-      itemBuilder: (context, index) {
-        final publication = provider.publications[index];
-
-        return PublicationCard(
-          publication: publication,
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) =>
-                    PublicationDetailScreen(publication: publication),
-              ),
-            );
-          },
-        );
+    return NotificationListener<ScrollNotification>(
+      onNotification: (scroll) {
+        if(scroll.metrics.pixels >= scroll.metrics.maxScrollExtent - 200){
+          provider.loadMore();
+        }
+        return false;
       },
+      child: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        itemCount: provider.publications.length + (provider.isLoadingMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          
+          if(index == provider.publications.length){
+            return const Center(child: CircularProgressIndicator());
+          }
+          final publication = provider.publications[index];
+          return PublicationCard(
+            publication: publication,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      PublicationDetailScreen(publication: publication),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }

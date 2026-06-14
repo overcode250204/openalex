@@ -48,7 +48,7 @@ class OpenAlexService {
     ).replace(queryParameters: queryParameters);
 
     final response = await _client.get(uri);
-
+    
     if (response.statusCode != 200) {
       throw Exception(
         'OpenAlex request failed with status code ${response.statusCode}',
@@ -61,5 +61,25 @@ class OpenAlexService {
     return results
         .map((item) => Publication.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<(int total, List<Publication> publications)> searchWithFilter(Map<String,String> params) async {
+ 
+    final uri = Uri.https('api.openalex.org', '/works', params);
+    final response = await http.get(uri);
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'OpenAlex request failed with status code ${response.statusCode}',
+      );
+    }
+
+    final Map<String, dynamic> body = jsonDecode(response.body);
+    final results = body['results'] as List<dynamic>? ?? [];
+    final int totalResult = body['meta']['count'] ?? 0;
+    
+    return (totalResult, results
+        .map((item) => Publication.fromJson(item as Map<String, dynamic>))
+        .toList());
   }
 }
