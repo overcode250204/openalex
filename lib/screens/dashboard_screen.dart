@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/publication_provider.dart';
+import '../services/trend_report_export_service.dart';
 import '../widgets/summary_card.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -60,8 +61,76 @@ class DashboardScreen extends StatelessWidget {
                   value: mostInfluentialPaper?.title ?? 'N/A',
                   icon: Icons.workspace_premium,
                 ),
+                const SizedBox(height: 16),
+                _ExportTrendReportButton(provider: provider),
               ],
             ),
+    );
+  }
+}
+
+class _ExportTrendReportButton extends StatefulWidget {
+  final PublicationProvider provider;
+
+  const _ExportTrendReportButton({
+    required this.provider,
+  });
+
+  @override
+  State<_ExportTrendReportButton> createState() =>
+      _ExportTrendReportButtonState();
+}
+
+class _ExportTrendReportButtonState extends State<_ExportTrendReportButton> {
+  static const TrendReportExportService _exportService =
+      TrendReportExportService();
+
+  bool _isExporting = false;
+
+  Future<void> _exportReport() async {
+    setState(() {
+      _isExporting = true;
+    });
+
+    try {
+      final result = await _exportService.exportMarkdownReport(
+        widget.provider.trendReportSnapshot,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Trend report exported: ${result.file.path}'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Cannot export trend report: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isExporting = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: _isExporting ? null : _exportReport,
+      icon: _isExporting
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.description),
+      label: Text(_isExporting ? 'Exporting Report' : 'Export Trend Report'),
     );
   }
 }

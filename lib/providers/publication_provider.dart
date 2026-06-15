@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/publication.dart';
+import '../models/trend_report_snapshot.dart';
 import '../services/openalex_service.dart';
 
 class PublicationProvider extends ChangeNotifier {
@@ -141,7 +142,11 @@ class PublicationProvider extends ChangeNotifier {
       return null;
     }
 
-    return data.entries.first.key;
+    final knownJournal = data.entries
+        .where((entry) => entry.key.trim().toLowerCase() != 'unknown journal')
+        .firstOrNull;
+
+    return knownJournal?.key ?? data.entries.first.key;
   }
 
   String? get topAuthor {
@@ -160,5 +165,22 @@ class PublicationProvider extends ChangeNotifier {
     }
 
     return topInfluentialPapers.first;
+  }
+
+  TrendReportSnapshot get trendReportSnapshot {
+    return TrendReportSnapshot(
+      topic: _currentTopic,
+      publications: _publications,
+      publicationCountByYear: publicationCountByYear,
+      topInfluentialPapers: topInfluentialPapers,
+      topJournals: topJournals,
+      topAuthors: topAuthors,
+      totalPublications: totalPublications,
+      averageCitationCount: averageCitationCount,
+      mostActiveYear: mostActiveYear,
+      topJournal: topJournal,
+      topAuthor: topAuthor,
+      mostInfluentialPaper: mostInfluentialPaper,
+    );
   }
 }
