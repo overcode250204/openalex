@@ -8,7 +8,9 @@ import 'package:openalex/screens/publication_detail_screen.dart'
     as screen_detail;
 import 'package:openalex/screens/search_screen.dart';
 import 'package:openalex/screens/trend_analysis_screen.dart';
+import 'package:openalex/services/history_service.dart';
 import 'package:openalex/services/openalex_service.dart';
+import 'package:openalex/services/suggestion_service.dart';
 import 'package:openalex/widgets/publication_card.dart';
 import 'package:openalex/widgets/publication_detail_screen.dart'
     as widget_detail;
@@ -31,6 +33,38 @@ class FakeOpenAlexService extends OpenAlexService {
   }) async {
     return results;
   }
+}
+
+class FakeSearchHistoryService extends SearchHistoryService {
+  @override
+  Future<List<String>> getHistory() async {
+    return [];
+  }
+
+  @override
+  Future<void> addHistory(String keyword) async {}
+}
+
+class FakeSuggestionService extends SuggestionService {
+  @override
+  Future<List<Map<String, String>>> fetchConceptSuggestions(
+    String query,
+  ) async {
+    return [];
+  }
+
+  @override
+  Future<List<String>> fetchRelatedKeywords(String keyword) async {
+    return [];
+  }
+}
+
+PublicationProvider testProvider(OpenAlexService service) {
+  return PublicationProvider(
+    service,
+    historyService: FakeSearchHistoryService(),
+    suggestionService: FakeSuggestionService(),
+  );
 }
 
 Publication publication({
@@ -57,7 +91,7 @@ Publication publication({
 Future<PublicationProvider> seededProvider(
   List<Publication> publications,
 ) async {
-  final provider = PublicationProvider(FakeOpenAlexService(publications));
+  final provider = testProvider(FakeOpenAlexService(publications));
   await provider.searchPublications(keyword: 'AI');
   return provider;
 }
@@ -97,13 +131,11 @@ void main() {
   testWidgets('SearchScreen submits filters and renders results', (
     tester,
   ) async {
-    final provider = PublicationProvider(
+    final provider = testProvider(
       FakeOpenAlexService([publication(title: 'Search Result', citations: 9)]),
     );
 
     await tester.pumpWidget(appWithProvider(const SearchScreen(), provider));
-    await tester.enterText(find.byType(TextField).at(1), '2020');
-    await tester.enterText(find.byType(TextField).at(2), '2024');
     await tester.tap(find.text('Analyze Topic'));
     await tester.pumpAndSettle();
 

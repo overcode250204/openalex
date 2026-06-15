@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/models/publication.dart';
 import 'package:openalex/providers/publication_provider.dart';
+import 'package:openalex/services/history_service.dart';
 import 'package:openalex/services/openalex_service.dart';
+import 'package:openalex/services/suggestion_service.dart';
 
 class FakeOpenAlexService extends OpenAlexService {
   FakeOpenAlexService({this.results = const [], this.error});
@@ -32,6 +34,36 @@ class FakeOpenAlexService extends OpenAlexService {
   }
 }
 
+class FakeSearchHistoryService extends SearchHistoryService {
+  final List<String> _history = [];
+
+  @override
+  Future<void> addHistory(String keyword) async {
+    _history.remove(keyword);
+    _history.insert(0, keyword);
+  }
+
+  @override
+  Future<List<String>> getHistory() async {
+    return List<String>.from(_history);
+  }
+}
+
+class FakeSuggestionService extends SuggestionService {
+  @override
+  Future<List<String>> fetchRelatedKeywords(String keyword) async {
+    return [];
+  }
+}
+
+PublicationProvider testProvider(OpenAlexService service) {
+  return PublicationProvider(
+    service,
+    historyService: FakeSearchHistoryService(),
+    suggestionService: FakeSuggestionService(),
+  );
+}
+
 Publication publication({
   required String title,
   required int citations,
@@ -54,7 +86,7 @@ Publication publication({
 void main() {
   test('rejects empty search term without calling the service', () async {
     final service = FakeOpenAlexService();
-    final provider = PublicationProvider(service);
+    final provider = testProvider(service);
     var notifications = 0;
     provider.addListener(() => notifications++);
 
@@ -93,7 +125,7 @@ void main() {
         ),
       ],
     );
-    final provider = PublicationProvider(service);
+    final provider = testProvider(service);
     final loadingStates = <bool>[];
     provider.addListener(() => loadingStates.add(provider.isLoading));
 
@@ -128,7 +160,7 @@ void main() {
   test(
     'clears publications and exposes friendly message on service failure',
     () async {
-      final provider = PublicationProvider(
+      final provider = testProvider(
         FakeOpenAlexService(error: Exception('boom')),
       );
 
