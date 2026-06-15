@@ -11,7 +11,6 @@ class TrendReportExportResult {
 }
 
 class TrendReportExportService {
-  static const String preferredExportDirectoryPath = r'D:\FPT\Ki8\PRM392';
 
   const TrendReportExportService();
 
@@ -46,6 +45,12 @@ class TrendReportExportService {
     buffer.writeln(
       '- Average citation count: '
       '${report.averageCitationCount.toStringAsFixed(2)}',
+    );
+    buffer.writeln('- Citation median: ${report.citationMedian}');
+    buffer.writeln(
+      '- Publication growth rate: '
+      '${report.publicationGrowthRate >= 0 ? '+' : ''}'
+      '${report.publicationGrowthRate.toStringAsFixed(1)}%',
     );
     buffer.writeln(
       '- Most active publication year: ${report.mostActiveYear ?? 'N/A'}',
@@ -176,13 +181,19 @@ class TrendReportExportService {
     );
     buffer.writeln(
       '- The average citation count is '
-      '${report.averageCitationCount.toStringAsFixed(2)}.',
+      '${report.averageCitationCount.toStringAsFixed(2)}, '
+      'with a median of ${report.citationMedian}.',
     );
     buffer.writeln(
       '- The most active publication year is '
       '${report.mostActiveYear ?? 'N/A'}.',
     );
     buffer.writeln('- The publication trend is $trendDirection.');
+    buffer.writeln(
+      '- Publication growth rate from first to last year: '
+      '${report.publicationGrowthRate >= 0 ? '+' : ''}'
+      '${report.publicationGrowthRate.toStringAsFixed(1)}%.',
+    );
 
     final mostInfluentialPaper = report.mostInfluentialPaper;
     if (mostInfluentialPaper != null) {
@@ -195,9 +206,16 @@ class TrendReportExportService {
   }
 
   static Future<Directory> _resolveExportDirectory() async {
-    final preferredDirectory = Directory(preferredExportDirectoryPath);
+    String dirPath;
 
-    return preferredDirectory.create(recursive: true);
+    if (Platform.isWindows) {
+      dirPath = '${Platform.environment['USERPROFILE'] ?? r'C:\Users\Public'}\\Downloads';
+    } else {
+      dirPath = '${Platform.environment['HOME'] ?? '/tmp'}/Downloads';
+    }
+
+    final directory = Directory(dirPath);
+    return directory.create(recursive: true);
   }
 
   static String _trendDirection(Map<int, int> data) {

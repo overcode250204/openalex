@@ -13,6 +13,7 @@ class OpenAlexService {
   Future<List<Publication>> searchPublications({
     required String keyword,
     int perPage = 50,
+    int page = 1,
     String sort = 'cited_by_count:desc',
     int? fromYear,
     int? toYear,
@@ -26,6 +27,7 @@ class OpenAlexService {
     final Map<String, String> queryParameters = {
       'search': trimmedKeyword,
       'per-page': perPage.toString(),
+      'page': page.toString(),
       'sort': sort,
     };
 
