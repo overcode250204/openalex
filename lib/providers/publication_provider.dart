@@ -22,25 +22,21 @@ class PublicationProvider extends ChangeNotifier {
   List<Publication> _publications = [];
   bool _isLoading = false;
   bool _isLoadingMore = false;
-  bool _hasMoreData = true;
-  int _currentPage = 1;
   String? _errorMessage;
   String _currentTopic = '';
   SearchFilter _filter = const SearchFilter();
+  int _currentPage = 1;
   bool _hasMore = true;
   int _totalResults = 0;
   List<String> _searchHistory = [];
   List<Map<String, String>> _conceptSuggestions = [];
   List<String> _relatedKeywords = [];
   bool _showSuggestions = false;
-  int? _lastFromYear;
-  int? _lastToYear;
 
   List<Publication> get publications => _publications;
 
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
-  bool get hasMoreData => _hasMoreData;
 
   String? get errorMessage => _errorMessage;
 
@@ -73,10 +69,6 @@ class PublicationProvider extends ChangeNotifier {
     _isLoading = true;
     _errorMessage = null;
     _currentTopic = keyword.trim();
-    _currentPage = 1;
-    _hasMoreData = true;
-    _lastFromYear = fromYear;
-    _lastToYear = toYear;
     notifyListeners();
 
     try {
@@ -85,7 +77,6 @@ class PublicationProvider extends ChangeNotifier {
         fromYear: fromYear,
         toYear: toYear,
       );
-      if (_publications.length < 50) _hasMoreData = false;
     } catch (error) {
       _publications = [];
       _errorMessage = 'Cannot load publications. Please try again.';
@@ -93,35 +84,6 @@ class PublicationProvider extends ChangeNotifier {
       _isLoading = false;
       // fetch related keyword
       _relatedKeywords = await _suggestionService.fetchRelatedKeywords(keyword);
-      notifyListeners();
-    }
-  }
-
-  Future<void> loadMorePublications() async {
-    if (_isLoadingMore || !_hasMoreData || _currentTopic.isEmpty) return;
-
-    _isLoadingMore = true;
-    notifyListeners();
-
-    try {
-      _currentPage++;
-      final more = await _openAlexService.searchPublications(
-        keyword: _currentTopic,
-        page: _currentPage,
-        fromYear: _lastFromYear,
-        toYear: _lastToYear,
-      );
-
-      if (more.isEmpty) {
-        _hasMoreData = false;
-      } else {
-        _publications = [..._publications, ...more];
-        if (more.length < 50) _hasMoreData = false;
-      }
-    } catch (error) {
-      _currentPage--;
-    } finally {
-      _isLoadingMore = false;
       notifyListeners();
     }
   }
