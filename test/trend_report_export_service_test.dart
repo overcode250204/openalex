@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/models/publication.dart';
 import 'package:openalex/providers/publication_provider.dart';
+import 'package:openalex/services/history_service.dart';
 import 'package:openalex/services/openalex_service.dart';
+import 'package:openalex/services/suggestion_service.dart';
 import 'package:openalex/services/trend_report_export_service.dart';
 
 class FakeOpenAlexService extends OpenAlexService {
@@ -19,6 +21,31 @@ class FakeOpenAlexService extends OpenAlexService {
   }) async {
     return results;
   }
+}
+
+class FakeSearchHistoryService extends SearchHistoryService {
+  @override
+  Future<void> addHistory(String keyword) async {}
+
+  @override
+  Future<List<String>> getHistory() async {
+    return [];
+  }
+}
+
+class FakeSuggestionService extends SuggestionService {
+  @override
+  Future<List<String>> fetchRelatedKeywords(String keyword) async {
+    return [];
+  }
+}
+
+PublicationProvider testProvider(OpenAlexService service) {
+  return PublicationProvider(
+    service,
+    historyService: FakeSearchHistoryService(),
+    suggestionService: FakeSuggestionService(),
+  );
 }
 
 Publication publication({
@@ -42,7 +69,7 @@ Publication publication({
 
 void main() {
   test('builds a markdown trend report from provider analytics', () async {
-    final provider = PublicationProvider(
+    final provider = testProvider(
       FakeOpenAlexService([
         publication(
           title: 'High Impact Paper',
@@ -82,7 +109,7 @@ void main() {
   });
 
   test('cleans exported report values for presentation quality', () async {
-    final provider = PublicationProvider(
+    final provider = testProvider(
       FakeOpenAlexService([
         publication(
           title: '',

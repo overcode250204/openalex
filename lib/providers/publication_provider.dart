@@ -9,8 +9,15 @@ import '../services/openalex_service.dart';
 
 class PublicationProvider extends ChangeNotifier {
   final OpenAlexService _openAlexService;
+  final SearchHistoryService _historyService;
+  final SuggestionService _suggestionService;
 
-  PublicationProvider(this._openAlexService);
+  PublicationProvider(
+    this._openAlexService, {
+    SearchHistoryService? historyService,
+    SuggestionService? suggestionService,
+  }) : _historyService = historyService ?? SearchHistoryService(),
+       _suggestionService = suggestionService ?? SuggestionService();
 
   List<Publication> _publications = [];
   bool _isLoading = false;
@@ -21,9 +28,6 @@ class PublicationProvider extends ChangeNotifier {
   bool _hasMore = true;
   bool _isLoadingMore = false;
   int _totalResults = 0;
-  final _historyService = SearchHistoryService();
-  final _suggestionService = SuggestionService();
-
   List<String> _searchHistory = [];
   List<Map<String, String>> _conceptSuggestions = [];
   List<String> _relatedKeywords = [];
@@ -46,8 +50,7 @@ class PublicationProvider extends ChangeNotifier {
   List<String> get relatedKeywords => _relatedKeywords;
   bool get showSuggestions => _showSuggestions;
 
-
-// Search By Topic
+  // Search By Topic
   Future<void> searchPublications({
     required String keyword,
     int? fromYear,
@@ -80,8 +83,8 @@ class PublicationProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       // fetch related keyword
-       _relatedKeywords = await _suggestionService.fetchRelatedKeywords(keyword);
-        notifyListeners();
+      _relatedKeywords = await _suggestionService.fetchRelatedKeywords(keyword);
+      notifyListeners();
     }
   }
 
@@ -216,22 +219,22 @@ class PublicationProvider extends ChangeNotifier {
     );
   }
 
-// Apply filter
-  Future<void> updateFilter(SearchFilter newFilter) async{
+  // Apply filter
+  Future<void> updateFilter(SearchFilter newFilter) async {
     _filter = newFilter;
-    if(_currentTopic.isNotEmpty){
+    if (_currentTopic.isNotEmpty) {
       searchWithFilter(_currentTopic, resetPage: true);
     }
     notifyListeners();
   }
 
   Future<void> searchWithFilter(String keyword, {bool resetPage = true}) async {
-    if(resetPage){
+    if (resetPage) {
       _currentPage = 1;
       _publications = [];
       _isLoading = true;
     }
-    if(!resetPage){
+    if (!resetPage) {
       _isLoadingMore = true;
     }
 
@@ -239,28 +242,26 @@ class PublicationProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    try{
+    try {
       final params = _filter.toQueryParams(keyword);
       params['page'] = _currentPage.toString();
       int total;
       List<Publication> result;
-      
-      ( total, result ) = await _openAlexService.searchWithFilter(params);
-        _totalResults = total;
-        if(resetPage){
-          _publications = result;
-        }else{
-          _publications.addAll(result);
-        }
 
-        _hasMore = result.length >= 50;
-        _currentPage++;
-      
-    } catch (_){
-       _publications = [];
+      (total, result) = await _openAlexService.searchWithFilter(params);
+      _totalResults = total;
+      if (resetPage) {
+        _publications = result;
+      } else {
+        _publications.addAll(result);
+      }
+
+      _hasMore = result.length >= 50;
+      _currentPage++;
+    } catch (_) {
+      _publications = [];
       _errorMessage = 'Cannot load publications. Please try again.';
-    }
-    finally {
+    } finally {
       _isLoading = false;
       _isLoadingMore = false;
       notifyListeners();
@@ -268,7 +269,7 @@ class PublicationProvider extends ChangeNotifier {
   }
 
   Future<void> loadMore() async {
-    if(!_hasMore || _isLoading) return;
+    if (!_hasMore || _isLoading) return;
     await searchWithFilter(_currentTopic, resetPage: false);
   }
 
@@ -277,30 +278,32 @@ class PublicationProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-// HISTORY - SUGGESTION
-Future<void> loadHistory() async {
+  // HISTORY - SUGGESTION
+  Future<void> loadHistory() async {
     _searchHistory = await _historyService.getHistory();
     notifyListeners();
   }
 
-Future<void> onQueryChanged(String query) async {
+  Future<void> onQueryChanged(String query) async {
     if (query.trim().isEmpty) {
       _conceptSuggestions = [];
-      _showSuggestions = true; 
+      _showSuggestions = true;
       notifyListeners();
       return;
     }
     _showSuggestions = true;
-    _conceptSuggestions = await _suggestionService.fetchConceptSuggestions(query);
+    _conceptSuggestions = await _suggestionService.fetchConceptSuggestions(
+      query,
+    );
     notifyListeners();
   }
 
- void hideSuggestions() {
+  void hideSuggestions() {
     _showSuggestions = false;
     notifyListeners();
   }
-  
- Future<void> removeHistory(String keyword) async {
+
+  Future<void> removeHistory(String keyword) async {
     await _historyService.removeHistory(keyword);
     _searchHistory = await _historyService.getHistory();
     notifyListeners();
@@ -310,5 +313,5 @@ Future<void> onQueryChanged(String query) async {
     await _historyService.clearHistory();
     _searchHistory = [];
     notifyListeners();
-  } 
+  }
 }
