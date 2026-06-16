@@ -6,11 +6,13 @@ import 'package:openalex/services/suggestion_service.dart';
 import '../models/publication.dart';
 import '../models/trend_report_snapshot.dart';
 import '../services/openalex_service.dart';
+import 'analytics_provider.dart';
 
 class PublicationProvider extends ChangeNotifier {
   final OpenAlexService _openAlexService;
   final SearchHistoryService _historyService;
   final SuggestionService _suggestionService;
+  AnalyticsProvider? _analyticsProvider;
 
   PublicationProvider(
     this._openAlexService, {
@@ -18,6 +20,16 @@ class PublicationProvider extends ChangeNotifier {
     SuggestionService? suggestionService,
   }) : _historyService = historyService ?? SearchHistoryService(),
        _suggestionService = suggestionService ?? SuggestionService();
+
+  void setAnalyticsProvider(AnalyticsProvider provider) {
+    _analyticsProvider = provider;
+  }
+
+  void _triggerAnalytics() {
+    if (_analyticsProvider == null || _currentTopic.isEmpty) return;
+    // Fire and forget — analytics updates independently via notifyListeners
+    _analyticsProvider!.fetchAnalytics(_currentTopic, _filter, _publications);
+  }
 
   List<Publication> _publications = [];
   bool _isLoading = false;
@@ -72,16 +84,19 @@ class PublicationProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _publications = await _openAlexService.searchPublications(
+      final result = await _openAlexService.searchPublications(
         keyword: keyword,
         fromYear: fromYear,
         toYear: toYear,
       );
+      _totalResults = result.$1;
+      _publications = result.$2;
     } catch (error) {
       _publications = [];
       _errorMessage = 'Cannot load publications. Please try again.';
     } finally {
       _isLoading = false;
+      _triggerAnalytics();
       // fetch related keyword
       _relatedKeywords = await _suggestionService.fetchRelatedKeywords(keyword);
       notifyListeners();
@@ -284,12 +299,13 @@ class PublicationProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       _isLoadingMore = false;
+      _triggerAnalytics();
       notifyListeners();
     }
   }
 
   Future<void> loadMore() async {
-    if (!_hasMore || _isLoading) return;
+    if (!_hasMore || _isLoading || _isLoadingMore) return;
     await searchWithFilter(_currentTopic, resetPage: false);
   }
 

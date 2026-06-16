@@ -1,11 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../providers/analytics_provider.dart';
 import '../providers/publication_provider.dart';
 import '../services/trend_report_export_service.dart';
+import '../widgets/analytics/author_impact_chart.dart';
+import '../widgets/analytics/citation_trend_chart.dart';
+import '../widgets/analytics/country_output_chart.dart';
+import '../widgets/analytics/institution_ranking_chart.dart';
+import '../widgets/analytics/top_keywords_chart.dart';
 import '../widgets/summary_card.dart';
 import '../widgets/top_journals_bar_chart.dart';
 import 'publication_detail_screen.dart';
+
+String _fmtCount(int n) {
+  if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
+  if (n >= 1000) return '${(n / 1000).toStringAsFixed(0)}k';
+  return n.toString();
+}
+
+// Peak year from full analytics trend; falls back to loaded-paper data
+String _peakYear(Map<int, int> trend, PublicationProvider provider) {
+  if (trend.isNotEmpty) {
+    final peak = trend.entries.reduce((a, b) => a.value >= b.value ? a : b);
+    return peak.key.toString();
+  }
+  return provider.mostActiveYear?.toString() ?? 'N/A';
+}
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -13,6 +34,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PublicationProvider>();
+    final analytics = context.watch<AnalyticsProvider>();
 
     return Scaffold(
       appBar: AppBar(
@@ -33,7 +55,7 @@ class DashboardScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${provider.totalPublications} publications analysed',
+                  '${_fmtCount(provider.totalResults)} publications in OpenAlex · ${provider.totalPublications} loaded',
                   style: Theme.of(context)
                       .textTheme
                       .bodyMedium
@@ -52,24 +74,24 @@ class DashboardScreen extends StatelessWidget {
                   children: [
                     SummaryCard(
                       title: 'Total Publications',
-                      value: provider.totalPublications.toString(),
+                      value: _fmtCount(provider.totalResults),
                       icon: Icons.article,
                       color: Colors.blue,
-                      subtitle: 'papers found',
+                      subtitle: 'in OpenAlex',
                     ),
                     SummaryCard(
                       title: 'Total Citations',
-                      value: provider.totalCitations.toString(),
+                      value: _fmtCount(provider.totalCitations),
                       icon: Icons.format_quote,
                       color: Colors.orange,
-                      subtitle: 'across all papers',
+                      subtitle: '${provider.totalPublications} loaded papers',
                     ),
                     SummaryCard(
                       title: 'Avg Citations',
                       value: provider.averageCitationCount.toStringAsFixed(1),
                       icon: Icons.analytics,
                       color: Colors.green,
-                      subtitle: 'per paper',
+                      subtitle: 'per loaded paper',
                     ),
                     SummaryCard(
                       title: 'Citation Median',
@@ -80,18 +102,21 @@ class DashboardScreen extends StatelessWidget {
                     ),
                     SummaryCard(
                       title: 'Peak Year',
-                      value: provider.mostActiveYear?.toString() ?? 'N/A',
+                      value: _peakYear(analytics.publicationTrend, provider),
                       icon: Icons.calendar_month,
                       color: Colors.purple,
                       subtitle: 'most publications',
                     ),
                     SummaryCard(
                       title: 'Growth Rate',
-                      value:
-                          '${provider.publicationGrowthRate >= 0 ? '+' : ''}${provider.publicationGrowthRate.toStringAsFixed(1)}%',
+                      value: analytics.isLoading
+                          ? '…'
+                          : '${analytics.publicationGrowthRate >= 0 ? '+' : ''}${analytics.publicationGrowthRate.toStringAsFixed(1)}%',
                       icon: Icons.trending_up,
                       color: Colors.red,
-                      subtitle: 'first → last year',
+                      subtitle: analytics.latestCompleteYear != null
+                          ? '${analytics.latestCompleteYear! - 1} → ${analytics.latestCompleteYear}'
+                          : 'year over year',
                     ),
                   ],
                 ),
@@ -130,6 +155,19 @@ class DashboardScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+
+                const SizedBox(height: 20),
+
+                // --- Section E: Analytics Charts ---
+                const CitationTrendChart(),
+                const SizedBox(height: 16),
+                const TopKeywordsChart(),
+                const SizedBox(height: 16),
+                const InstitutionRankingChart(),
+                const SizedBox(height: 16),
+                const CountryOutputChart(),
+                const SizedBox(height: 16),
+                const AuthorImpactChart(),
 
                 const SizedBox(height: 20),
 

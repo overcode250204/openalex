@@ -265,7 +265,9 @@ class _SearchResultView extends StatelessWidget {
 
     return NotificationListener<ScrollNotification>(
       onNotification: (scroll) {
-        if(scroll.metrics.pixels >= scroll.metrics.maxScrollExtent - 200){
+        if (scroll.metrics.pixels >= scroll.metrics.maxScrollExtent - 200
+            && !provider.isLoadingMore
+            && !provider.isLoading) {
           provider.loadMore();
         }
         return false;

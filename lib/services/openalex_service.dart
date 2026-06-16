@@ -10,7 +10,7 @@ class OpenAlexService {
 
   OpenAlexService({http.Client? client}) : _client = client ?? http.Client();
 
-  Future<List<Publication>> searchPublications({
+  Future<(int total, List<Publication> publications)> searchPublications({
     required String keyword,
     int perPage = 50,
     int page = 1,
@@ -21,7 +21,7 @@ class OpenAlexService {
     final trimmedKeyword = keyword.trim();
 
     if (trimmedKeyword.isEmpty) {
-      return [];
+      return (0, <Publication>[]);
     }
 
     final Map<String, String> queryParameters = {
@@ -50,7 +50,7 @@ class OpenAlexService {
     ).replace(queryParameters: queryParameters);
 
     final response = await _client.get(uri);
-    
+
     if (response.statusCode != 200) {
       throw Exception(
         'OpenAlex request failed with status code ${response.statusCode}',
@@ -58,11 +58,12 @@ class OpenAlexService {
     }
 
     final Map<String, dynamic> body = jsonDecode(response.body);
+    final int total = (body['meta']?['count'] as num? ?? 0).toInt();
     final List<dynamic> results = body['results'] as List<dynamic>? ?? [];
 
-    return results
+    return (total, results
         .map((item) => Publication.fromJson(item as Map<String, dynamic>))
-        .toList();
+        .toList());
   }
 
   Future<(int total, List<Publication> publications)> searchWithFilter(Map<String,String> params) async {
