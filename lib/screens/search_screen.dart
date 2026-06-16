@@ -41,7 +41,6 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
-    _topicController.text = 'Artificial Intelligence';
     context.read<PublicationProvider>().loadHistory();
   }
 
@@ -205,8 +204,6 @@ class _SearchHeader extends StatelessWidget {
               ),
               onSubmitted: (_) => onSearch?.call(),
               onChanged: onQueryChanged,
-              onTap: () => context.read<PublicationProvider>().onQueryChanged(topicController.text),
-              
             ),
             TapRegion(
               onTapOutside: (event) => {

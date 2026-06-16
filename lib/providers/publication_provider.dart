@@ -306,16 +306,23 @@ class PublicationProvider extends ChangeNotifier {
 
   Future<void> onQueryChanged(String query) async {
     if (query.trim().isEmpty) {
-      _conceptSuggestions = [];
-      _showSuggestions = true;
-      notifyListeners();
+      if (_conceptSuggestions.isNotEmpty) {
+        _conceptSuggestions = [];
+        _showSuggestions = true;
+        notifyListeners();
+      }
       return;
     }
     _showSuggestions = true;
-    _conceptSuggestions = await _suggestionService.fetchConceptSuggestions(
-      query,
-    );
-    notifyListeners();
+    try {
+      final newSuggestions = await _suggestionService.fetchConceptSuggestions(query);
+      if (_conceptSuggestions != newSuggestions) {
+        _conceptSuggestions = newSuggestions;
+        notifyListeners();
+      }
+    } catch (e) {
+      notifyListeners();
+    }
   }
 
   void hideSuggestions() {
