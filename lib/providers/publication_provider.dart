@@ -230,7 +230,7 @@ class PublicationProvider extends ChangeNotifier {
   Future<void> updateFilter(SearchFilter newFilter) async {
     _filter = newFilter;
     if (_currentTopic.isNotEmpty) {
-      searchWithFilter(_currentTopic, null, resetPage: true);
+      await searchWithFilter(_currentTopic, null, resetPage: true);
     }
     notifyListeners();
   }

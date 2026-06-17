@@ -243,15 +243,12 @@ class _InfoSection extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            if (pub.authors.isNotEmpty)
-              _InfoTile(icon: Icons.people,title: 'Authors', value:  pub.authors.join(', ')),
-            if (pub.publicationYear != null)
-              _InfoTile(icon: Icons.calendar_today,title: 'Publication year',value: 'pub.publicationYear'),
-            if (pub.journalName != null)
-              _InfoTile(icon: Icons.menu_book, title: 'Journal',value: pub.journalName!),
+       
+            _InfoTile(icon: Icons.people,title: 'Authors', value: pub.authors.isNotEmpty ? pub.authors.join(', ') : "Unknown authors"),
+            _InfoTile(icon: Icons.calendar_today,title: 'Publication year',value: pub.publicationYear != null ? pub.publicationYear!.toString() :  'Unknown year'),
+            _InfoTile(icon: Icons.menu_book, title: 'Journal',value: pub.journalName != null ? pub.journalName! : "Unknown journal"),
             _InfoTile(icon: Icons.format_quote,title: 'Cited',value: '${pub.citedByCount}'),
-            if (pub.doi != null)
-              _InfoTile(icon: Icons.link,title: 'DOI', value: pub.doi!),
+            _InfoTile(icon: Icons.link,title: 'DOI', value: pub.doi != null ? pub.doi! : "No DOI available"),
           ],
         ),
       ),

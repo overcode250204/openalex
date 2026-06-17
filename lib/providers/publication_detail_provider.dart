@@ -5,7 +5,11 @@ import '../models/publication.dart';
 enum DetailState { idle, loading, success, error }
 
 class PublicationDetailProvider extends ChangeNotifier {
-  final _service = OpenAlexService();
+  final _service;
+
+  PublicationDetailProvider({
+    OpenAlexService? service,
+  }) : _service = service ?? OpenAlexService();
 
   Publication? _publication;
   DetailState _state = DetailState.idle;

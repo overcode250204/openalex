@@ -128,6 +128,9 @@ void main() {
           doi: '10.1000/mapped',
           abstractText: 'A clear abstract.',
           authors: ['Ada Lovelace', 'Plato'],
+          referencedWorkIds: ["1", "2"],
+          relatedWorkIds:  ["1", "2"],
+          oaUrl: "123",
         ),
       );
 
@@ -145,6 +148,7 @@ void main() {
         {'tag': 'OpenAlex'},
         {'tag': 'RIPQMS'},
       ]);
+
     });
 
     test('removes empty optional fields and empty creator list', () {
@@ -158,6 +162,9 @@ void main() {
           doi: '',
           abstractText: null,
           authors: [],
+          referencedWorkIds: List.empty(),
+          relatedWorkIds: List.empty(),
+          oaUrl: "",
         ),
       );
 
