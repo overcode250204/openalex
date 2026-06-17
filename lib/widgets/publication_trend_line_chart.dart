@@ -14,7 +14,7 @@ class PublicationTrendLineChart extends StatelessWidget {
   Widget build(BuildContext context) {
     if (data.isEmpty) {
       return const SizedBox(
-        height: 240,
+        height: 280,
         child: Center(
           child: Text('No trend data available.'),
         ),
@@ -43,7 +43,7 @@ class PublicationTrendLineChart extends StatelessWidget {
         .toList();
 
     return SizedBox(
-      height: 240,
+      height: 280,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -56,8 +56,15 @@ class PublicationTrendLineChart extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Expanded(
-            child: LineChart(
-              LineChartData(
+            child: Padding(
+              padding: const EdgeInsets.only(
+                left: 8,
+                right: 8,
+                top: 8,
+                bottom: 20,
+              ),
+              child: LineChart(
+                LineChartData(
                 minX: minYear,
                 maxX: maxYear,
                 minY: 0,
@@ -85,7 +92,7 @@ class PublicationTrendLineChart extends StatelessWidget {
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 30,
+                      reservedSize: 36,
                       interval: maxCount > 5 ? (maxCount / 5).ceilToDouble() : 1,
                       getTitlesWidget: (value, TitleMeta meta) {
                         if (value % 1 != 0) {
@@ -104,7 +111,7 @@ class PublicationTrendLineChart extends StatelessWidget {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 22,
+                      reservedSize: 36,
                       interval: 1,
                       getTitlesWidget: (value, TitleMeta meta) {
                         final year = value.toInt();
@@ -113,12 +120,10 @@ class PublicationTrendLineChart extends StatelessWidget {
                         }
                         return SideTitleWidget(
                           axisSide: meta.axisSide,
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              year.toString(),
-                              style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
-                            ),
+                          space: 10,
+                          child: Text(
+                            year.toString(),
+                            style: const TextStyle(fontSize: 11, color: Colors.black54),
                           ),
                         );
                       },
@@ -162,7 +167,8 @@ class PublicationTrendLineChart extends StatelessWidget {
                     )
                   ]);
                 }).toList(),
-                lineBarsData: lineBarsData,
+                  lineBarsData: lineBarsData,
+                ),
               ),
             ),
           ),

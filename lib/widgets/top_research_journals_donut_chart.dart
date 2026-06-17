@@ -37,26 +37,13 @@ class _TopResearchJournalsDonutChartState extends State<TopResearchJournalsDonut
       );
     }
 
-    // Process data: Top 6 and Others
-    final entries = widget.journalsData.entries.toList();
-    entries.sort((a, b) => b.value.compareTo(a.value));
+    final donutEntries = widget.journalsData.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
 
-    List<MapEntry<String, int>> processedEntries = [];
-    int otherCount = 0;
-
-    for (int i = 0; i < entries.length; i++) {
-      if (i < 6) {
-        processedEntries.add(entries[i]);
-      } else {
-        otherCount += entries[i].value;
-      }
-    }
-
-    if (otherCount > 0) {
-      processedEntries.add(MapEntry('Others', otherCount));
-    }
-
-    final totalPapers = processedEntries.fold(0, (sum, entry) => sum + entry.value);
+    final totalPapers = donutEntries.fold<int>(
+      0,
+      (sum, entry) => sum + entry.value,
+    );
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -86,15 +73,16 @@ class _TopResearchJournalsDonutChartState extends State<TopResearchJournalsDonut
                   borderData: FlBorderData(show: false),
                   sectionsSpace: 2,
                   centerSpaceRadius: 40,
-                  sections: List.generate(processedEntries.length, (i) {
+                  sections: List.generate(donutEntries.length, (i) {
                     final isTouched = i == touchedIndex;
                     final fontSize = isTouched ? 14.0 : 12.0;
                     final radius = isTouched ? 60.0 : 50.0;
-                    final entry = processedEntries[i];
-                    final percentage = (entry.value / totalPapers) * 100;
+                    final entry = donutEntries[i];
+                    final percentage = totalPapers > 0 ? (entry.value / totalPapers) * 100 : 0.0;
+                    final color = entry.key == 'Others' ? Colors.grey.shade300 : chartColors[i % chartColors.length];
                     
                     return PieChartSectionData(
-                      color: chartColors[i % chartColors.length],
+                      color: color,
                       value: entry.value.toDouble(),
                       title: '${percentage.toStringAsFixed(1)}%',
                       radius: radius,
@@ -111,7 +99,7 @@ class _TopResearchJournalsDonutChartState extends State<TopResearchJournalsDonut
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '${widget.journalsData.length}',
+                    '${donutEntries.length}',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -133,8 +121,9 @@ class _TopResearchJournalsDonutChartState extends State<TopResearchJournalsDonut
         final legendWidget = Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: List.generate(processedEntries.length, (index) {
-            final entry = processedEntries[index];
+          children: List.generate(donutEntries.length, (index) {
+            final entry = donutEntries[index];
+            final color = chartColors[index % chartColors.length];
             return Padding(
               padding: const EdgeInsets.only(bottom: 8.0),
               child: Row(
@@ -145,7 +134,7 @@ class _TopResearchJournalsDonutChartState extends State<TopResearchJournalsDonut
                     height: 10,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: chartColors[index % chartColors.length],
+                      color: color,
                     ),
                   ),
                   const SizedBox(width: 8),

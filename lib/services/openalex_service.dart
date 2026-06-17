@@ -241,5 +241,82 @@ Future<List<Publication>> fetchCitedBy(
     return results.map((item) => Publication.fromJson(item as Map<String, dynamic>)).toList();
   }
 
+  Future<Map<String, int>> fetchTopResearchJournals({
+    required String keyword,
+    int? limit,
+  }) async {
+    final queryParams = {
+      'search': keyword,
+      'sort': 'cited_by_count:desc',
+      'per-page': '200',
+      'mailto': 'truongtuan20042004@gmail.com'
+    };
 
+    final uri = Uri.https('api.openalex.org', '/works', queryParams);
+    final response = await _client.get(uri);
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load top research journals');
+    }
+
+    final Map<String, dynamic> body = jsonDecode(response.body);
+    final List<dynamic> results = body['results'] as List<dynamic>? ?? [];
+
+    final Map<String, int> journals = {};
+    for (final work in results) {
+      final journalName = work['primary_location']?['source']?['display_name'] ?? 'Unknown Journal';
+      journals[journalName] = (journals[journalName] ?? 0) + 1;
+    }
+
+    final sortedEntries = journals.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final selectedEntries = limit == null
+        ? sortedEntries
+        : sortedEntries.take(limit).toList();
+        
+    return Map.fromEntries(selectedEntries);
+  }
+
+  Future<Map<String, int>> fetchTopContributingAuthors({
+    required String keyword,
+    int? limit,
+  }) async {
+    final queryParams = {
+      'search': keyword,
+      'sort': 'cited_by_count:desc',
+      'per-page': '200',
+      'mailto': 'truongtuan20042004@gmail.com'
+    };
+
+    final uri = Uri.https('api.openalex.org', '/works', queryParams);
+    final response = await _client.get(uri);
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load top contributing authors');
+    }
+
+    final Map<String, dynamic> body = jsonDecode(response.body);
+    final List<dynamic> results = body['results'] as List<dynamic>? ?? [];
+
+    final Map<String, int> authors = {};
+    for (final work in results) {
+      final authorships = work['authorships'] as List<dynamic>? ?? [];
+      for (final authorship in authorships) {
+        final name = authorship['author']?['display_name'];
+        if (name != null) {
+          authors[name] = (authors[name] ?? 0) + 1;
+        }
+      }
+    }
+
+    final sortedEntries = authors.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final selectedEntries = limit == null
+        ? sortedEntries
+        : sortedEntries.take(limit).toList();
+        
+    return Map.fromEntries(selectedEntries);
+  }
 }
