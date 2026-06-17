@@ -217,5 +217,29 @@ Future<List<Publication>> fetchCitedBy(
     return id.replaceAll('https://openalex.org/', '');
   }
 
+  Future<List<Publication>> fetchInfluentialPapers({
+    required String keyword,
+    int? limit,
+  }) async {
+    final queryParams = {
+      'search': keyword,
+      'sort': 'cited_by_count:desc',
+      'per-page': limit == null ? '200' : limit.toString(),
+      'mailto': 'truongtuan20042004@gmail.com'
+    };
+
+    final uri = Uri.https('api.openalex.org', '/works', queryParams);
+    final response = await _client.get(uri);
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load influential papers');
+    }
+
+    final Map<String, dynamic> body = jsonDecode(response.body);
+    final List<dynamic> results = body['results'] as List<dynamic>? ?? [];
+
+    return results.map((item) => Publication.fromJson(item as Map<String, dynamic>)).toList();
+  }
+
 
 }

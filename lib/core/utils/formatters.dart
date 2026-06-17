@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 class Formatters {
   static String truncateText(String text, int maxLength) {
     if (text.length <= maxLength) return text;
@@ -5,10 +7,7 @@ class Formatters {
   }
 
   static String formatCitation(int value) {
-    return value.toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
+    return NumberFormat.decimalPattern().format(value);
   }
 
   static String formatCompactAxis(int value) {

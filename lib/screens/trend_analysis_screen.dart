@@ -8,8 +8,63 @@ import '../widgets/top_influential_papers_horizontal_chart.dart';
 import '../widgets/top_research_journals_donut_chart.dart';
 import '../widgets/top_contributing_authors_column_chart.dart';
 
-class TrendAnalysisScreen extends StatelessWidget {
+import '../models/publication.dart';
+import '../services/openalex_service.dart';
+import '../widgets/top_selector_dropdown.dart';
+
+class TrendAnalysisScreen extends StatefulWidget {
   const TrendAnalysisScreen({super.key});
+
+  @override
+  State<TrendAnalysisScreen> createState() => _TrendAnalysisScreenState();
+}
+
+class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
+  int? selectedTopPapers = 5;
+  bool isLoadingPapers = false;
+  bool hasErrorPapers = false;
+  List<Publication>? fetchedPapers;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInfluentialPapers(limit: selectedTopPapers);
+    });
+  }
+
+  Future<void> _loadInfluentialPapers({int? limit}) async {
+    final provider = context.read<PublicationProvider>();
+    final keyword = provider.currentTopic;
+    if (keyword.trim().isEmpty) return;
+
+    setState(() {
+      isLoadingPapers = true;
+      hasErrorPapers = false;
+    });
+
+    try {
+      final service = OpenAlexService();
+      final result = await service.fetchInfluentialPapers(
+        keyword: keyword,
+        limit: limit,
+      );
+
+      if (mounted) {
+        setState(() {
+          fetchedPapers = result;
+          isLoadingPapers = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          hasErrorPapers = true;
+          isLoadingPapers = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,10 +127,47 @@ class TrendAnalysisScreen extends StatelessWidget {
                     AnalyticsChartCard(
                       title: 'Top Influential Papers',
                       showInfoIcon: true,
-                      dropdownText: 'Top 5',
-                      child: TopInfluentialPapersHorizontalChart(
-                        papers: provider.topInfluentialPapers,
+                      customDropdown: TopSelectorDropdown(
+                        value: selectedTopPapers,
+                        onChanged: (value) async {
+                          setState(() {
+                            selectedTopPapers = value;
+                          });
+                          await _loadInfluentialPapers(limit: value);
+                        },
                       ),
+                      child: isLoadingPapers || fetchedPapers == null
+                          ? const SizedBox(
+                              height: 260,
+                              child: Center(child: CircularProgressIndicator()),
+                            )
+                          : hasErrorPapers
+                              ? SizedBox(
+                                  height: 260,
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Text('Failed to load influential papers.'),
+                                        const SizedBox(height: 16),
+                                        ElevatedButton(
+                                          onPressed: () => _loadInfluentialPapers(limit: selectedTopPapers),
+                                          child: const Text('Retry'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : fetchedPapers!.isEmpty
+                                  ? const SizedBox(
+                                      height: 260,
+                                      child: Center(
+                                        child: Text('No influential papers available.'),
+                                      ),
+                                    )
+                                  : TopInfluentialPapersHorizontalChart(
+                                      papers: fetchedPapers!,
+                                    ),
                     ),
                     const SizedBox(height: 16),
                     AnalyticsChartCard(
