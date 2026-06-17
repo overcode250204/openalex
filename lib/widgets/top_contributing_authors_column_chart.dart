@@ -14,9 +14,7 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
     if (authorsData.isEmpty) {
       return const SizedBox(
         height: 230,
-        child: Center(
-          child: Text('No contributing authors data available.'),
-        ),
+        child: Center(child: Text('No contributing authors data available.')),
       );
     }
 
@@ -30,45 +28,48 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
       if (entry.value > maxCountValue) maxCountValue = entry.value;
     }
     final maxCount = maxCountValue.toDouble();
+    final maxY = maxCount + 1.0;
 
     return SizedBox(
-      height: 230,
+      height: 260,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Number of Papers',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 24),
           Expanded(
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
-                maxY: maxCount + (maxCount * 0.2), // Add padding on top for the text
+                maxY: maxY,
                 barTouchData: BarTouchData(
                   enabled: true,
                   touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (group) => const Color(0xFF546A76),
+                    tooltipRoundedRadius: 6,
+                    tooltipPadding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                     getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      final index = group.x.toInt();
+
+                      if (index < 0 || index >= topEntries.length) {
+                        return null;
+                      }
+
+                      final authorName = topEntries[index].key;
+
                       return BarTooltipItem(
-                        '${topEntries[group.x.toInt()].key}\n',
+                        '$authorName\n${rod.toY.toInt()} papers',
                         const TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
                         ),
-                        children: <TextSpan>[
-                          TextSpan(
-                            text: '${rod.toY.toInt()} papers',
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                              fontWeight: FontWeight.normal,
-                            ),
-                          ),
-                        ],
                       );
                     },
                   ),
@@ -78,53 +79,30 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 42,
+                      reservedSize: 56,
                       getTitlesWidget: (double value, TitleMeta meta) {
                         final index = value.toInt();
                         if (index < 0 || index >= topEntries.length) {
                           return const SizedBox.shrink();
                         }
-                        
+
                         final authorName = topEntries[index].key;
-                        // Attempt to split name for better fitting
-                        final parts = authorName.split(' ');
-                        String displayLine1 = '';
-                        String displayLine2 = '';
-                        
-                        if (parts.length >= 2) {
-                          displayLine1 = parts[0];
-                          displayLine2 = parts.sublist(1).join(' ');
-                          if (displayLine2.length > 10) {
-                             displayLine2 = '${displayLine2.substring(0, 8)}...';
-                          }
-                        } else {
-                           displayLine1 = authorName;
-                        }
+                        final label = _formatAuthorLabel(authorName);
 
                         return SideTitleWidget(
                           axisSide: meta.axisSide,
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Column(
-                              children: [
-                                Text(
-                                  displayLine1,
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 9,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                if (displayLine2.isNotEmpty)
-                                  Text(
-                                    displayLine2,
-                                    style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 9,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                              ],
+                          space: 8,
+                          child: SizedBox(
+                            width: 64,
+                            child: Text(
+                              label,
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.black54,
+                              ),
                             ),
                           ),
                         );
@@ -134,8 +112,8 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 28,
-                      interval: maxCount > 5 ? (maxCount / 5).ceilToDouble() : 1,
+                      reservedSize: 32,
+                      interval: 1,
                       getTitlesWidget: (double value, TitleMeta meta) {
                         if (value % 1 != 0) {
                           return const SizedBox.shrink();
@@ -144,8 +122,8 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
                           axisSide: meta.axisSide,
                           child: Text(
                             value.toInt().toString(),
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
+                            style: const TextStyle(
+                              color: Colors.black54,
                               fontSize: 10,
                             ),
                           ),
@@ -163,7 +141,9 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval: maxCount > 5 ? (maxCount / 5).ceilToDouble() : 1,
+                  horizontalInterval: maxCount > 5
+                      ? (maxCount / 5).ceilToDouble()
+                      : 1,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
                       color: Colors.grey.shade200,
@@ -189,15 +169,11 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
                     barRods: [
                       BarChartRodData(
                         toY: count,
-                        color: Colors.purple.shade400,
-                        width: 16,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(4),
-                          topRight: Radius.circular(4),
-                        ),
+                        color: const Color(0xFF9C27B0),
+                        width: 12,
+                        borderRadius: BorderRadius.circular(4),
                       ),
                     ],
-                    showingTooltipIndicators: [0],
                   );
                 }).toList(),
               ),
@@ -206,5 +182,23 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatAuthorLabel(String name) {
+    final parts = name.trim().split(RegExp(r'\s+'));
+
+    if (parts.length <= 2) {
+      return name;
+    }
+
+    final firstLine = parts.take(parts.length - 1).join(' ');
+    final lastLine = parts.last;
+
+    String shortFirstLine = firstLine;
+    if (shortFirstLine.length > 10) {
+      shortFirstLine = '${shortFirstLine.substring(0, 10)}...';
+    }
+
+    return '$shortFirstLine\n$lastLine';
   }
 }
