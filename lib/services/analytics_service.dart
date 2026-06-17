@@ -60,7 +60,7 @@ class AnalyticsService {
     String keyword,
     SearchFilter filter,
   ) async {
-    final baseParams = filter.toQueryParams(keyword);
+    final baseParams = filter.toQueryParams(keyword, []);
 
     final results = await Future.wait([
       _fetchGroupBy(baseParams, 'publication_year'),

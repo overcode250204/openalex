@@ -6,32 +6,33 @@ import 'package:openalex/services/openalex_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
 
 class FakeOpenAlexService extends OpenAlexService {
-  FakeOpenAlexService({this.results = const [], this.error});
+  FakeOpenAlexService({this.results = const [], this.error, this.total = 0});
 
   final List<Publication> results;
+  int total;
   final Object? error;
   String? requestedKeyword;
   int? requestedFromYear;
   int? requestedToYear;
 
   @override
-  Future<List<Publication>> searchPublications({
+  Future<(int total, List<Publication> publications)> searchPublications({
     required String keyword,
     int perPage = 50,
+    int page = 1,
     String sort = 'cited_by_count:desc',
-    int? fromYear,
-    int? toYear,
+    List<String>? topicIds
   }) async {
     requestedKeyword = keyword;
-    requestedFromYear = fromYear;
-    requestedToYear = toYear;
 
     if (error != null) {
       throw error!;
     }
 
-    return results;
+    return (total, results);
   }
+
+  
 }
 
 class FakeSearchHistoryService extends SearchHistoryService {
@@ -80,6 +81,9 @@ Publication publication({
     doi: null,
     abstractText: null,
     authors: authors,
+    referencedWorkIds: List.empty(),
+    relatedWorkIds: List.empty(),
+    oaUrl: ""
   );
 }
 
@@ -131,13 +135,9 @@ void main() {
 
     await provider.searchPublications(
       keyword: '  AI  ',
-      fromYear: 2020,
-      toYear: 2024,
     );
 
     expect(service.requestedKeyword, '  AI  ');
-    expect(service.requestedFromYear, 2020);
-    expect(service.requestedToYear, 2024);
     expect(loadingStates, [true, false]);
     expect(provider.currentTopic, 'AI');
     expect(provider.errorMessage, isNull);

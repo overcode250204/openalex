@@ -195,7 +195,7 @@ class _MostInfluentialPaperCard extends StatelessWidget {
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => PublicationDetailScreen(publication: paper),
+            builder: (_) => PublicationDetailScreen(workId: paper.id),
           ),
         ),
         child: Padding(

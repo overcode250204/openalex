@@ -21,9 +21,12 @@ void main() {
           }),
         );
 
-        final results = await service.searchPublications(keyword: '   ');
+        final (total, results) = await service.searchPublications(
+          keyword: '   ',
+        );
 
         expect(results, isEmpty);
+        expect(total, 0);
         expect(called, isFalse);
       },
     );
@@ -36,6 +39,7 @@ void main() {
 
           return http.Response(
             jsonEncode({
+              'meta': {'count': 1},
               'results': [
                 {
                   'id': 'W1',
@@ -54,21 +58,15 @@ void main() {
         keyword: '  machine learning  ',
         perPage: 25,
         sort: 'publication_year:desc',
-        fromYear: 2020,
-        toYear: 2024,
       );
 
       expect(requestedUri.toString(), contains('/works'));
       expect(requestedUri?.queryParameters['search'], 'machine learning');
       expect(requestedUri?.queryParameters['per-page'], '25');
       expect(requestedUri?.queryParameters['sort'], 'publication_year:desc');
-      expect(
-        requestedUri?.queryParameters['filter'],
-        'from_publication_date:2020-01-01,to_publication_date:2024-12-31',
-      );
-      expect(results.single.title, 'Network Paper');
-      expect(results.single.publicationYear, 2024);
-      expect(results.single.citedByCount, 8);
+      expect(results.$2.single.title, 'Network Paper');
+      expect(results.$2.single.publicationYear, 2024);
+      expect(results.$2.single.citedByCount, 8);
     });
 
     test('supports one-sided year filters and empty result payloads', () async {
@@ -76,29 +74,26 @@ void main() {
       final service = OpenAlexService(
         client: MockClient((request) async {
           requestedUris.add(request.url);
-          return http.Response(jsonEncode({}), 200);
+          return http.Response(
+            jsonEncode({
+              "meta": {"count": 0},
+              "results": [
+      
+            ]
+          }),
+            200,
+          );
         }),
       );
 
-      final fromResults = await service.searchPublications(
-        keyword: 'AI',
-        fromYear: 2021,
-      );
-      final toResults = await service.searchPublications(
-        keyword: 'AI',
-        toYear: 2022,
-      );
+      final fromResults = await service.searchPublications(keyword: 'AI');
+      final toResults = await service.searchPublications(keyword: 'AI');
 
-      expect(fromResults, isEmpty);
-      expect(toResults, isEmpty);
-      expect(
-        requestedUris.first.queryParameters['filter'],
-        'from_publication_date:2021-01-01',
-      );
-      expect(
-        requestedUris.last.queryParameters['filter'],
-        'to_publication_date:2022-12-31',
-      );
+      expect(fromResults.$1, 0);
+      expect(fromResults.$2, isEmpty);
+
+      expect(toResults.$1, 0);
+      expect(toResults.$2, isEmpty);
     });
 
     test('throws when OpenAlex responds with an error status', () {
@@ -207,5 +202,8 @@ Publication samplePublication() {
     doi: '10.1000/paper',
     abstractText: 'Abstract',
     authors: const ['Ada Lovelace'],
+    referencedWorkIds: ["1", "2"],
+    relatedWorkIds: ["1", "2"],
+    oaUrl: "123",
   );
 }

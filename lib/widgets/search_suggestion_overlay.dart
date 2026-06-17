@@ -1,13 +1,14 @@
 
 
 import 'package:flutter/material.dart';
+import 'package:openalex/models/topic.dart';
 import 'package:openalex/providers/publication_provider.dart';
 import 'package:provider/provider.dart';
 
 
 class SearchSuggestionOverlay extends StatelessWidget {
   final TextEditingController controller;
-  final VoidCallback? onSearch;
+  final ValueChanged<TopicSuggestion?>? onSearch;
 
   const SearchSuggestionOverlay({
     super.key,
@@ -52,7 +53,7 @@ class SearchSuggestionOverlay extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Lịch sử tìm kiếm',
+                        const Text('Search history',
                             style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -62,7 +63,7 @@ class SearchSuggestionOverlay extends StatelessWidget {
                           style: TextButton.styleFrom(
                               padding: EdgeInsets.zero,
                               minimumSize: Size.zero),
-                          child: const Text('Xóa tất cả',
+                          child: const Text('Clear all',
                               style: TextStyle(fontSize: 12)),
                         ),
                       ],
@@ -73,7 +74,7 @@ class SearchSuggestionOverlay extends StatelessWidget {
                         onTap: () {
                           controller.text = h;
                           provider.hideSuggestions();
-                          onSearch?.call();
+                          onSearch!(null);
                         },
                         onDelete: () => provider.removeHistory(h),
                       )),
@@ -83,19 +84,19 @@ class SearchSuggestionOverlay extends StatelessWidget {
                 if (query.isNotEmpty && hasSuggestions) ...[
                   const Padding(
                     padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: Text('Gợi ý chủ đề',
+                    child: Text('Suggestion',
                         style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: Colors.grey)),
                   ),
                   ...provider.conceptSuggestions.map((s) => _SuggestionItem(
-                        name: s['name']!,
-                        subtitle: s['count']!,
+                      name: s.displayName,
+                        subtitle: s.workCount.toString(),
                         onTap: () {
-                          controller.text = s['name']!;
+                          controller.text = s.displayName;
                           provider.hideSuggestions();
-                          onSearch?.call();
+                          onSearch?.call(s);
                         },
                       )),
                 ],
