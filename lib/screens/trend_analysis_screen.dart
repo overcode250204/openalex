@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/publication_provider.dart';
-import '../widgets/trend_chart.dart';
-import 'publication_detail_screen.dart';
+import '../widgets/analytics_chart_card.dart';
+import '../widgets/publication_trend_line_chart.dart';
+import '../widgets/top_influential_papers_horizontal_chart.dart';
+import '../widgets/top_research_journals_donut_chart.dart';
+import '../widgets/top_contributing_authors_column_chart.dart';
 
 class TrendAnalysisScreen extends StatelessWidget {
   const TrendAnalysisScreen({super.key});
@@ -13,114 +16,89 @@ class TrendAnalysisScreen extends StatelessWidget {
     final provider = context.watch<PublicationProvider>();
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F9FC),
       appBar: AppBar(
-        title: const Text('Trend Analysis'),
+        title: const Text(
+          'Trend Analysis',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            onPressed: () {
+              // Share action
+            },
+          ),
+        ],
       ),
-      body: provider.publications.isEmpty
+      body: provider.isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : provider.publications.isEmpty && provider.errorMessage == null
           ? const Center(
               child: Text('Search a topic first to view trend analysis.'),
             )
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Text(
-                  'Publication Trend: ${provider.currentTopic}',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+          : provider.errorMessage != null
+          ? Center(
+              child: Text(
+                provider.errorMessage!,
+                style: const TextStyle(color: Colors.red),
+              ),
+            )
+          : SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 16,
+                  bottom: 100, // Padding bottom for the fixed bottom navigation
                 ),
-                const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: TrendChart(
-                      data: provider.publicationCountByYear,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                _SectionTitle(title: 'Top Influential Papers'),
-                const SizedBox(height: 8),
-                ...provider.topInfluentialPapers.map(
-                  (publication) => Card(
-                    child: ListTile(
-                      title: Text(
-                        publication.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Text(
-                        '${publication.displayYear} • ${publication.displayJournal}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: Text(
-                        '${publication.citedByCount} citations',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => PublicationDetailScreen(
-                              workId: publication.id,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                _SectionTitle(title: 'Top Research Journals'),
-                const SizedBox(height: 8),
-                ...provider.topJournals.entries.map(
-                  (entry) => Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.menu_book),
-                      title: Text(entry.key),
-                      trailing: Text(
-                        '${entry.value} papers',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                child: Column(
+                  children: [
+                    AnalyticsChartCard(
+                      title: 'Publication Trend: ${provider.currentTopic.isNotEmpty ? provider.currentTopic : "Topic"}',
+                      dropdownText: 'Yearly',
+                      child: PublicationTrendLineChart(
+                        data: provider.publicationCountByYear,
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                _SectionTitle(title: 'Top Contributing Authors'),
-                const SizedBox(height: 8),
-                ...provider.topAuthors.entries.map(
-                  (entry) => Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.person),
-                      title: Text(entry.key),
-                      trailing: Text(
-                        '${entry.value} papers',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                    const SizedBox(height: 16),
+                    AnalyticsChartCard(
+                      title: 'Top Influential Papers',
+                      showInfoIcon: true,
+                      dropdownText: 'Top 5',
+                      child: TopInfluentialPapersHorizontalChart(
+                        papers: provider.topInfluentialPapers,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    AnalyticsChartCard(
+                      title: 'Top Research Journals',
+                      showInfoIcon: true,
+                      dropdownText: 'Top 6',
+                      child: TopResearchJournalsDonutChart(
+                        journalsData: provider.topJournals,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    AnalyticsChartCard(
+                      title: 'Top Contributing Authors',
+                      showInfoIcon: true,
+                      dropdownText: 'Top 10',
+                      child: TopContributingAuthorsColumnChart(
+                        authorsData: provider.topAuthors,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String title;
-
-  const _SectionTitle({
-    required this.title,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
     );
   }
 }
