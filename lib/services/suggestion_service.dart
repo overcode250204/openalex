@@ -1,29 +1,25 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:openalex/models/topic.dart';
 
 class SuggestionService {
 
-  Future<List<Map<String, String>>> fetchConceptSuggestions(String query) async {
+  Future<List<TopicSuggestion>> fetchTopicSuggestions(String query) async {
     if (query.trim().length < 2) return [];
 
     try {
-      final uri = Uri.https('api.openalex.org', '/concepts', {
+      final uri = Uri.https('api.openalex.org', '/topics', {
         'search': query,
         'per-page': '5',
-        'select': 'display_name,works_count',
+        'select': 'id,display_name,works_count',
         'mailto': 'truongtuan20042004@gmail.com',
       });
 
       final response = await http.get(uri);
       if (response.statusCode != 200) return [];
-
       final data = jsonDecode(response.body);
-      final results = data['results'] as List;
-
-      return results.map<Map<String, String>>((c) => {
-        'name': c['display_name'] ?? '',
-        'count': '${c['works_count'] ?? 0} bài báo',
-      }).toList();
+      final results = data['results'] as List<dynamic>;
+      return results.map((c) => TopicSuggestion.fromJson(c as Map<String, dynamic>)).toList();
     } catch (_) {
       return [];
     }

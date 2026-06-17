@@ -63,7 +63,7 @@ class TrendAnalysisScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (_) => PublicationDetailScreen(
-                              publication: publication,
+                              workId: publication.id,
                             ),
                           ),
                         );

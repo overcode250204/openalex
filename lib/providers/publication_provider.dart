@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:openalex/models/search_filter.dart';
+import 'package:openalex/models/topic.dart';
 import 'package:openalex/services/history_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
 
@@ -29,7 +30,7 @@ class PublicationProvider extends ChangeNotifier {
   bool _isLoadingMore = false;
   int _totalResults = 0;
   List<String> _searchHistory = [];
-  List<Map<String, String>> _conceptSuggestions = [];
+  List<TopicSuggestion> _conceptSuggestions = [];
   List<String> _relatedKeywords = [];
   bool _showSuggestions = false;
 
@@ -46,15 +47,14 @@ class PublicationProvider extends ChangeNotifier {
   int get totalResults => _totalResults;
   bool get isLoadingMore => _isLoadingMore;
   List<String> get searchHistory => _searchHistory;
-  List<Map<String, String>> get conceptSuggestions => _conceptSuggestions;
+  List<TopicSuggestion> get conceptSuggestions => _conceptSuggestions;
   List<String> get relatedKeywords => _relatedKeywords;
   bool get showSuggestions => _showSuggestions;
 
   // Search By Topic
   Future<void> searchPublications({
     required String keyword,
-    int? fromYear,
-    int? toYear,
+    TopicSuggestion? topic
   }) async {
     if (keyword.trim().isEmpty) {
       _errorMessage = 'Please enter a research topic.';
@@ -72,11 +72,18 @@ class PublicationProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _publications = await _openAlexService.searchPublications(
-        keyword: keyword,
-        fromYear: fromYear,
-        toYear: toYear,
-      );
+      int total;
+      List<Publication> result;
+      if(topic != null){
+          (total ,result) = await _openAlexService.searchPublications( keyword: keyword, topicIds: [topic.id.replaceAll('https://openalex.org/', '')]);
+          _totalResults = total;
+          _publications = result;
+      } else{
+        final topicIds = await _openAlexService.getTopicIdsFromKeyword(keyword);
+        (total ,result) = await _openAlexService.searchPublications( keyword: keyword, topicIds: topicIds);
+        _totalResults = total;
+        _publications = result;
+      }
     } catch (error) {
       _publications = [];
       _errorMessage = 'Cannot load publications. Please try again.';
@@ -223,12 +230,12 @@ class PublicationProvider extends ChangeNotifier {
   Future<void> updateFilter(SearchFilter newFilter) async {
     _filter = newFilter;
     if (_currentTopic.isNotEmpty) {
-      searchWithFilter(_currentTopic, resetPage: true);
+      searchWithFilter(_currentTopic, null, resetPage: true);
     }
     notifyListeners();
   }
 
-  Future<void> searchWithFilter(String keyword, {bool resetPage = true}) async {
+  Future<void> searchWithFilter(String keyword, TopicSuggestion? topic, {bool resetPage = true}) async {
     if (resetPage) {
       _currentPage = 1;
       _publications = [];
@@ -243,13 +250,20 @@ class PublicationProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final params = _filter.toQueryParams(keyword);
-      params['page'] = _currentPage.toString();
       int total;
       List<Publication> result;
-
-      (total, result) = await _openAlexService.searchWithFilter(params);
-      _totalResults = total;
+      if(topic != null){
+        final params = _filter.toQueryParams(keyword, [topic.id..replaceAll('https://openalex.org/', '')]);
+        params['page'] = _currentPage.toString();
+        (total ,result) = await _openAlexService.searchWithFilter(params);
+            _totalResults = total;
+      }else{
+          final topicIds = await _openAlexService.getTopicIdsFromKeyword(keyword);
+          final params = _filter.toQueryParams(keyword, topicIds);
+          params['page'] = _currentPage.toString();
+          (total, result) = await _openAlexService.searchWithFilter(params);
+          _totalResults = total;
+      }
       if (resetPage) {
         _publications = result;
       } else {
@@ -270,7 +284,7 @@ class PublicationProvider extends ChangeNotifier {
 
   Future<void> loadMore() async {
     if (!_hasMore || _isLoading) return;
-    await searchWithFilter(_currentTopic, resetPage: false);
+    await searchWithFilter(_currentTopic, null, resetPage: false);
   }
 
   void resetFilter() {
@@ -292,7 +306,7 @@ class PublicationProvider extends ChangeNotifier {
       return;
     }
     _showSuggestions = true;
-    _conceptSuggestions = await _suggestionService.fetchConceptSuggestions(
+    _conceptSuggestions = await _suggestionService.fetchTopicSuggestions(
       query,
     );
     notifyListeners();

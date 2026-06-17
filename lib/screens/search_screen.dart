@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:openalex/models/search_filter.dart';
+import 'package:openalex/models/topic.dart';
 import 'package:openalex/widgets/filter_bottom_sheet.dart';
 import 'package:openalex/widgets/related_keyworks_bar.dart';
 import 'package:openalex/widgets/search_suggestion_overlay.dart';
@@ -52,11 +53,11 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  Future<void> _search() async {
+  Future<void> _search(TopicSuggestion? topic) async {
      final keyword = _topicController.text.trim();
     if (keyword.isEmpty) return;
     FocusScope.of(context).unfocus();
-    context.read<PublicationProvider>().searchPublications(keyword: keyword);
+    context.read<PublicationProvider>().searchPublications(keyword: keyword, topic: topic );
   }
 
   void _onQueryChanged(String value) {
@@ -73,7 +74,6 @@ class _SearchScreenState extends State<SearchScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        // FIX: rút gọn title để đủ chỗ cho 3 icon
         title: const Text('Trend Analyzer', overflow: TextOverflow.ellipsis),
         actions: [
            Consumer<PublicationProvider>(
@@ -175,7 +175,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
 class _SearchHeader extends StatelessWidget {
   final TextEditingController topicController;
-  final VoidCallback? onSearch;
+  final ValueChanged<TopicSuggestion?>? onSearch;
   final ValueChanged<String>? onQueryChanged;
 
   
@@ -203,7 +203,7 @@ class _SearchHeader extends StatelessWidget {
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.search),
               ),
-              onSubmitted: (_) => onSearch?.call(),
+              onSubmitted: (_) => onSearch?.call(null),
               onChanged: onQueryChanged,
               onTap: () => context.read<PublicationProvider>().onQueryChanged(topicController.text),
               
@@ -214,19 +214,19 @@ class _SearchHeader extends StatelessWidget {
               },
               child: SearchSuggestionOverlay(
                 controller: topicController,
-                onSearch:onSearch),
+                onSearch:(topic) => onSearch?.call(topic)),
             ),
              RelatedKeywordsBar(
             onKeywordTap: (keyword) {
               topicController.text = keyword;
-              onSearch?.call();
+              onSearch?.call(null);
             },
           ),
             
             const SizedBox(height: 12),
 
             FilledButton.icon(
-              onPressed: onSearch,
+              onPressed: () =>{ onSearch?.call(null)},
               icon: const Icon(Icons.analytics),
               label: const Text('Analyze Topic'),
             ),
@@ -289,7 +289,7 @@ class _SearchResultView extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (_) =>
-                      PublicationDetailScreen(publication: publication),
+                      PublicationDetailScreen(workId: publication.id),
                 ),
               );
             },
