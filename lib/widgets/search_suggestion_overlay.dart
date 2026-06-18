@@ -1,10 +1,7 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:openalex/models/topic.dart';
 import 'package:openalex/providers/publication_provider.dart';
 import 'package:provider/provider.dart';
-
 
 class SearchSuggestionOverlay extends StatelessWidget {
   final TextEditingController controller;
@@ -22,13 +19,13 @@ class SearchSuggestionOverlay extends StatelessWidget {
       child: Consumer<PublicationProvider>(
         builder: (context, provider, _) {
           if (!provider.showSuggestions) return const SizedBox();
-      
+
           final query = controller.text.trim();
           final hasHistory = provider.searchHistory.isNotEmpty;
           final hasSuggestions = provider.conceptSuggestions.isNotEmpty;
-      
+
           if (!hasHistory && !hasSuggestions) return const SizedBox();
-      
+
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
@@ -36,7 +33,7 @@ class SearchSuggestionOverlay extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -46,61 +43,74 @@ class SearchSuggestionOverlay extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // History 
+                // History
                 if (query.isEmpty && hasHistory) ...[
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Search history',
-                            style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey)),
+                        const Text(
+                          'Search history',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey,
+                          ),
+                        ),
                         TextButton(
                           onPressed: () => provider.clearHistory(),
                           style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.zero),
-                          child: const Text('Clear all',
-                              style: TextStyle(fontSize: 12)),
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                          ),
+                          child: const Text(
+                            'Clear all',
+                            style: TextStyle(fontSize: 12),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  ...provider.searchHistory.map((h) => _HistoryItem(
-                        keyword: h,
-                        onTap: () {
-                          controller.text = h;
-                          provider.hideSuggestions();
-                          onSearch!(null);
-                        },
-                        onDelete: () => provider.removeHistory(h),
-                      )),
+                  ...provider.searchHistory.map(
+                    (h) => _HistoryItem(
+                      keyword: h,
+                      onTap: () {
+                        controller.text = h;
+                        provider.hideSuggestions();
+                        onSearch!(null);
+                      },
+                      onDelete: () => provider.removeHistory(h),
+                    ),
+                  ),
                 ],
-          
+
                 // suggestion from openalex
                 if (query.isNotEmpty && hasSuggestions) ...[
                   const Padding(
                     padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: Text('Suggestion',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey)),
+                    child: Text(
+                      'Suggestion',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey,
+                      ),
+                    ),
                   ),
-                  ...provider.conceptSuggestions.map((s) => _SuggestionItem(
+                  ...provider.conceptSuggestions.map(
+                    (s) => _SuggestionItem(
                       name: s.displayName,
-                        subtitle: s.workCount.toString(),
-                        onTap: () {
-                          controller.text = s.displayName;
-                          provider.hideSuggestions();
-                          onSearch?.call(s);
-                        },
-                      )),
+                      subtitle: s.workCount.toString(),
+                      onTap: () {
+                        controller.text = s.displayName;
+                        provider.hideSuggestions();
+                        onSearch?.call(s);
+                      },
+                    ),
+                  ),
                 ],
-          
+
                 const SizedBox(height: 8),
               ],
             ),
@@ -156,8 +166,10 @@ class _SuggestionItem extends StatelessWidget {
       dense: true,
       leading: const Icon(Icons.search, size: 18, color: Colors.grey),
       title: Text(name, style: const TextStyle(fontSize: 14)),
-      subtitle: Text(subtitle,
-          style: const TextStyle(fontSize: 11, color: Colors.grey)),
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(fontSize: 11, color: Colors.grey),
+      ),
       onTap: onTap,
     );
   }

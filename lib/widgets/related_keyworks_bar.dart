@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:openalex/providers/publication_provider.dart';
 import 'package:provider/provider.dart';
 
-
 class RelatedKeywordsBar extends StatelessWidget {
   final Function(String) onKeywordTap;
 
@@ -19,8 +18,10 @@ class RelatedKeywordsBar extends StatelessWidget {
           children: [
             const Padding(
               padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
-              child: Text('Related Topic',
-                  style: TextStyle(fontSize: 12, color: Colors.grey)),
+              child: Text(
+                'Related Topic',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
             ),
             SizedBox(
               height: 36,
@@ -28,17 +29,18 @@ class RelatedKeywordsBar extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: provider.relatedKeywords.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (context, index) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final keyword = provider.relatedKeywords[index];
                   return ActionChip(
-                    label: Text(keyword,
-                        style: const TextStyle(fontSize: 12)),
+                    label: Text(keyword, style: const TextStyle(fontSize: 12)),
                     onPressed: () => onKeywordTap(keyword),
-                    backgroundColor:
-                        Theme.of(context).colorScheme.primaryContainer,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer,
                     labelStyle: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimaryContainer),
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
                   );
                 },
               ),

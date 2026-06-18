@@ -37,7 +37,10 @@ class AppDrawer extends StatelessWidget {
             SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20.0,
+                  vertical: 24.0,
+                ),
                 child: Row(
                   children: [
                     // Mock logo icon
@@ -60,7 +63,7 @@ class AppDrawer extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // 2. Navigation groups
             Expanded(
               child: ListView(
@@ -70,7 +73,8 @@ class AppDrawer extends StatelessWidget {
                     context: context,
                     title: 'Home',
                     icon: Icons.home_outlined,
-                    initiallyExpanded: true, // Always expand this group for easy access
+                    initiallyExpanded:
+                        true, // Always expand this group for easy access
                     children: [
                       _buildNavItem(
                         title: 'Search Topic',
@@ -99,7 +103,9 @@ class AppDrawer extends StatelessWidget {
                     context: context,
                     title: 'Journal',
                     icon: Icons.menu_book_outlined,
-                    initiallyExpanded: selectedPage == AppPage.publications || selectedPage == AppPage.details,
+                    initiallyExpanded:
+                        selectedPage == AppPage.publications ||
+                        selectedPage == AppPage.details,
                     children: [
                       _buildNavItem(
                         title: 'Publications',
@@ -128,7 +134,10 @@ class AppDrawer extends StatelessWidget {
                     context: context,
                     title: 'Keywords',
                     icon: Icons.local_offer_outlined,
-                    initiallyExpanded: selectedPage == AppPage.trends || selectedPage == AppPage.authors || selectedPage == AppPage.journals,
+                    initiallyExpanded:
+                        selectedPage == AppPage.trends ||
+                        selectedPage == AppPage.authors ||
+                        selectedPage == AppPage.journals,
                     children: [
                       _buildNavItem(
                         title: 'Trends',
@@ -166,7 +175,9 @@ class AppDrawer extends StatelessWidget {
                     context: context,
                     title: 'Profile',
                     icon: Icons.person_outline,
-                    initiallyExpanded: selectedPage == AppPage.settings || selectedPage == AppPage.about,
+                    initiallyExpanded:
+                        selectedPage == AppPage.settings ||
+                        selectedPage == AppPage.about,
                     children: [
                       _buildNavItem(
                         title: 'Settings',
@@ -208,9 +219,12 @@ class AppDrawer extends StatelessWidget {
                 child: Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor: primaryColor.withOpacity(0.2),
+                      backgroundColor: primaryColor.withValues(alpha: 0.2),
                       foregroundColor: primaryColor,
-                      child: const Text('AR', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'AR',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -226,10 +240,7 @@ class AppDrawer extends StatelessWidget {
                           ),
                           Text(
                             'researcher@example.com',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: mutedColor,
-                            ),
+                            style: TextStyle(fontSize: 12, color: mutedColor),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
@@ -256,7 +267,9 @@ class AppDrawer extends StatelessWidget {
     required Color mutedColor,
   }) {
     return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent), // Remove expansion tile border
+      data: Theme.of(context).copyWith(
+        dividerColor: Colors.transparent,
+      ), // Remove expansion tile border
       child: ExpansionTile(
         initiallyExpanded: initiallyExpanded,
         tilePadding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -286,7 +299,7 @@ class AppDrawer extends StatelessWidget {
     required Color mutedColor,
     required Color textColor,
   }) {
-    // Treat home and searchTopic as active for 'Search Topic' if they map together, 
+    // Treat home and searchTopic as active for 'Search Topic' if they map together,
     // but the user's prompt says: "Nếu selectedPage là home hoặc searchTopic thì Home/Search Topic active."
     bool isActive = selectedPage == page;
     if (page == AppPage.searchTopic && selectedPage == AppPage.home) {
@@ -294,13 +307,25 @@ class AppDrawer extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(left: 16.0, right: 8.0, top: 4.0, bottom: 4.0),
+      padding: const EdgeInsets.only(
+        left: 16.0,
+        right: 8.0,
+        top: 4.0,
+        bottom: 4.0,
+      ),
       child: ListTile(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         tileColor: isActive ? activeBgColor : null,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16.0,
+          vertical: 0.0,
+        ),
         dense: true,
-        leading: Icon(icon, color: isActive ? primaryColor : mutedColor, size: 20),
+        leading: Icon(
+          icon,
+          color: isActive ? primaryColor : mutedColor,
+          size: 20,
+        ),
         title: Text(
           title,
           style: TextStyle(

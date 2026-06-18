@@ -3,7 +3,9 @@ import 'package:openalex/providers/publication_list_provider.dart';
 import 'package:openalex/providers/publication_provider.dart';
 import 'package:openalex/providers/publication_detail_provider.dart';
 import 'package:openalex/screens/app_shell.dart';
+import 'package:openalex/services/openalex_keyword_service.dart';
 import 'package:openalex/services/openalex_service.dart';
+import 'package:openalex/viewmodels/keyword_analyzer_view_model.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -22,29 +24,26 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-        providers: [
-            ChangeNotifierProvider(
-              create: (_) => PublicationProvider(OpenAlexService()),
-            ),
-
-            ChangeNotifierProvider(
-              create: (_) => PublicationListProvider(),
-            ),
-
-            ChangeNotifierProvider(
-              create: (_) => PublicationDetailProvider(),
-            ),
-          ],
-
-        child: MaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: 'Journal Trend Analyzer',
-          theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
-          home: const AppShell(),
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => PublicationProvider(OpenAlexService()),
         ),
-      );
+
+        ChangeNotifierProvider(create: (_) => PublicationListProvider()),
+
+        ChangeNotifierProvider(create: (_) => PublicationDetailProvider()),
+
+        ChangeNotifierProvider(
+          create: (_) => KeywordAnalyzerViewModel(OpenAlexKeywordService()),
+        ),
+      ],
+
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Journal Trend Analyzer',
+        theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
+        home: const AppShell(),
+      ),
+    );
   }
 }
-
-
-

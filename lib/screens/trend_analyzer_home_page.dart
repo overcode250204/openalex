@@ -25,10 +25,8 @@ class TrendAnalyzerHomePage extends StatefulWidget {
 
 class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
   final TextEditingController _topicController = TextEditingController();
-   Timer? _debounce;
+  Timer? _debounce;
 
-   
-   
   Future<void> _openZoteroLibrary() async {
     final uri = Uri.parse('https://www.zotero.org/baonoob101/library');
 
@@ -56,10 +54,13 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
   }
 
   Future<void> _search(TopicSuggestion? topic) async {
-     final keyword = _topicController.text.trim();
+    final keyword = _topicController.text.trim();
     if (keyword.isEmpty) return;
     FocusScope.of(context).unfocus();
-    context.read<PublicationProvider>().searchPublications(keyword: keyword, topic: topic );
+    context.read<PublicationProvider>().searchPublications(
+      keyword: keyword,
+      topic: topic,
+    );
   }
 
   void _onQueryChanged(String value) {
@@ -68,7 +69,6 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
       context.read<PublicationProvider>().onQueryChanged(value);
     });
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -85,40 +85,45 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
           },
         ),
         actions: [
-           Consumer<PublicationProvider>(
-              builder: (context, provider, _){
-                final hasFilter = provider.filter.yearFrom != null ||
-                provider.filter.isOpenAccess != null ||
-                provider.filter.documentType != DocumentType.all ||
-                provider.filter.sortOption != SortOption.relevance;
-                return Stack(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.tune),
-                      onPressed: () => showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                        ),
-                        builder: (_) => const FilterBottomSheet(),
-                      ),                    
-                    ),
-                    if (hasFilter)
-                      Positioned(
-                        right: 8, top: 8,
-                        child: Container(
-                          width: 8, height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
+          Consumer<PublicationProvider>(
+            builder: (context, provider, _) {
+              final hasFilter =
+                  provider.filter.yearFrom != null ||
+                  provider.filter.isOpenAccess != null ||
+                  provider.filter.documentType != DocumentType.all ||
+                  provider.filter.sortOption != SortOption.relevance;
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.tune),
+                    onPressed: () => showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(20),
                         ),
                       ),
-                  ],
-                ); 
-
-              } ,),
+                      builder: (_) => const FilterBottomSheet(),
+                    ),
+                  ),
+                  if (hasFilter)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           IconButton(
             tooltip: 'Trend Analysis',
             onPressed: provider.publications.isEmpty
@@ -133,7 +138,7 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
                   },
             icon: const Icon(Icons.show_chart),
           ),
-         
+
           IconButton(
             tooltip: 'My Zotero Library',
             onPressed: _openZoteroLibrary,
@@ -155,25 +160,28 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
           ),
         ],
       ),
-   
+
       body: Column(
         children: [
           _SearchHeader(
             topicController: _topicController,
             onSearch: provider.isLoading ? null : _search,
-            onQueryChanged: provider.isLoading? null :_onQueryChanged,
+            onQueryChanged: provider.isLoading ? null : _onQueryChanged,
           ),
-         
+
           Consumer<PublicationProvider>(
             builder: (context, provider, _) => provider.totalResults > 0
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  child: Text(
-                    '${provider.totalResults} results',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                )
-              : const SizedBox(),
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    child: Text(
+                      '${provider.totalResults} results',
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  )
+                : const SizedBox(),
           ),
           Expanded(child: _SearchResultView(provider: provider)),
         ],
@@ -187,20 +195,18 @@ class _SearchHeader extends StatelessWidget {
   final ValueChanged<TopicSuggestion?>? onSearch;
   final ValueChanged<String>? onQueryChanged;
 
-  
-
   const _SearchHeader({
     required this.topicController,
-    required this.onSearch, 
+    required this.onSearch,
     required this.onQueryChanged,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.all(16),   
+      margin: const EdgeInsets.all(16),
       child: Padding(
-        padding: const EdgeInsets.all(16),     
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -214,28 +220,30 @@ class _SearchHeader extends StatelessWidget {
               ),
               onSubmitted: (_) => onSearch?.call(null),
               onChanged: onQueryChanged,
-              onTap: () => context.read<PublicationProvider>().onQueryChanged(topicController.text),
-              
+              onTap: () => context.read<PublicationProvider>().onQueryChanged(
+                topicController.text,
+              ),
             ),
             TapRegion(
               onTapOutside: (event) => {
-                context.read<PublicationProvider>().hideSuggestions()
+                context.read<PublicationProvider>().hideSuggestions(),
               },
               child: SearchSuggestionOverlay(
                 controller: topicController,
-                onSearch:(topic) => onSearch?.call(topic)),
+                onSearch: (topic) => onSearch?.call(topic),
+              ),
             ),
-             RelatedKeywordsBar(
-            onKeywordTap: (keyword) {
-              topicController.text = keyword;
-              onSearch?.call(null);
-            },
-          ),
-            
+            RelatedKeywordsBar(
+              onKeywordTap: (keyword) {
+                topicController.text = keyword;
+                onSearch?.call(null);
+              },
+            ),
+
             const SizedBox(height: 12),
 
             FilledButton.icon(
-              onPressed: () =>{ onSearch?.call(null)},
+              onPressed: () => {onSearch?.call(null)},
               icon: const Icon(Icons.analytics),
               label: const Text('Analyze Topic'),
             ),
@@ -277,17 +285,17 @@ class _SearchResultView extends StatelessWidget {
 
     return NotificationListener<ScrollNotification>(
       onNotification: (scroll) {
-        if(scroll.metrics.pixels >= scroll.metrics.maxScrollExtent - 200){
+        if (scroll.metrics.pixels >= scroll.metrics.maxScrollExtent - 200) {
           provider.loadMore();
         }
         return false;
       },
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        itemCount: provider.publications.length + (provider.isLoadingMore ? 1 : 0),
+        itemCount:
+            provider.publications.length + (provider.isLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
-          
-          if(index == provider.publications.length){
+          if (index == provider.publications.length) {
             return const Center(child: CircularProgressIndicator());
           }
           final publication = provider.publications[index];

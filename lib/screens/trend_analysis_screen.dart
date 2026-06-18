@@ -20,6 +20,7 @@ class TrendAnalysisScreen extends StatefulWidget {
 }
 
 class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
+  bool _seededInitialAnalytics = false;
   int? selectedTopPapers = 5;
   bool isLoadingPapers = false;
   bool hasErrorPapers = false;
@@ -36,15 +37,32 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
   Map<String, int>? fetchedAuthorsData;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.wait([
-        _loadInfluentialPapers(limit: selectedTopPapers),
-        _loadTopResearchJournals(limit: selectedTopJournals),
-        _loadTopContributingAuthors(limit: selectedTopAuthors),
-      ]);
-    });
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_seededInitialAnalytics) {
+      _seedAnalyticsFromProvider();
+      _seededInitialAnalytics = true;
+    }
+  }
+
+  void _seedAnalyticsFromProvider() {
+    final provider = context.read<PublicationProvider>();
+
+    if (provider.currentTopic.trim().isEmpty) return;
+
+    fetchedPapers = provider.topInfluentialPapers
+        .take(selectedTopPapers ?? provider.topInfluentialPapers.length)
+        .toList();
+    fetchedJournalsData = Map.fromEntries(
+      provider.topJournals.entries.take(
+        selectedTopJournals ?? provider.topJournals.length,
+      ),
+    );
+    fetchedAuthorsData = Map.fromEntries(
+      provider.topAuthors.entries.take(
+        selectedTopAuthors ?? provider.topAuthors.length,
+      ),
+    );
   }
 
   Future<void> _loadInfluentialPapers({int? limit}) async {
@@ -173,7 +191,7 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
           ),
         ],
       ),
-      body: provider.isLoading 
+      body: provider.isLoading
           ? const Center(child: CircularProgressIndicator())
           : provider.publications.isEmpty && provider.errorMessage == null
           ? const Center(
@@ -197,7 +215,8 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
                 child: Column(
                   children: [
                     AnalyticsChartCard(
-                      title: 'Publication Trend: ${provider.currentTopic.isNotEmpty ? provider.currentTopic : "Topic"}',
+                      title:
+                          'Publication Trend: ${provider.currentTopic.isNotEmpty ? provider.currentTopic : "Topic"}',
                       dropdownText: 'Yearly',
                       child: PublicationTrendLineChart(
                         data: provider.publicationCountByYear,
@@ -222,32 +241,36 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
                               child: Center(child: CircularProgressIndicator()),
                             )
                           : hasErrorPapers
-                              ? SizedBox(
-                                  height: 260,
-                                  child: Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Text('Failed to load influential papers.'),
-                                        const SizedBox(height: 16),
-                                        ElevatedButton(
-                                          onPressed: () => _loadInfluentialPapers(limit: selectedTopPapers),
-                                          child: const Text('Retry'),
-                                        ),
-                                      ],
+                          ? SizedBox(
+                              height: 260,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text(
+                                      'Failed to load influential papers.',
                                     ),
-                                  ),
-                                )
-                              : fetchedPapers!.isEmpty
-                                  ? const SizedBox(
-                                      height: 260,
-                                      child: Center(
-                                        child: Text('No influential papers available.'),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: () => _loadInfluentialPapers(
+                                        limit: selectedTopPapers,
                                       ),
-                                    )
-                                  : TopInfluentialPapersHorizontalChart(
-                                      papers: fetchedPapers!,
+                                      child: const Text('Retry'),
                                     ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : fetchedPapers!.isEmpty
+                          ? const SizedBox(
+                              height: 260,
+                              child: Center(
+                                child: Text('No influential papers available.'),
+                              ),
+                            )
+                          : TopInfluentialPapersHorizontalChart(
+                              papers: fetchedPapers!,
+                            ),
                     ),
                     const SizedBox(height: 16),
                     AnalyticsChartCard(
@@ -268,32 +291,36 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
                               child: Center(child: CircularProgressIndicator()),
                             )
                           : hasErrorJournals
-                              ? SizedBox(
-                                  height: 260,
-                                  child: Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Text('Failed to load research journals.'),
-                                        const SizedBox(height: 16),
-                                        ElevatedButton(
-                                          onPressed: () => _loadTopResearchJournals(limit: selectedTopJournals),
-                                          child: const Text('Retry'),
-                                        ),
-                                      ],
+                          ? SizedBox(
+                              height: 260,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text(
+                                      'Failed to load research journals.',
                                     ),
-                                  ),
-                                )
-                              : fetchedJournalsData!.isEmpty
-                                  ? const SizedBox(
-                                      height: 260,
-                                      child: Center(
-                                        child: Text('No research journals available.'),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: () => _loadTopResearchJournals(
+                                        limit: selectedTopJournals,
                                       ),
-                                    )
-                                  : TopResearchJournalsDonutChart(
-                                      journalsData: fetchedJournalsData!,
+                                      child: const Text('Retry'),
                                     ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : fetchedJournalsData!.isEmpty
+                          ? const SizedBox(
+                              height: 260,
+                              child: Center(
+                                child: Text('No research journals available.'),
+                              ),
+                            )
+                          : TopResearchJournalsDonutChart(
+                              journalsData: fetchedJournalsData!,
+                            ),
                     ),
                     const SizedBox(height: 16),
                     AnalyticsChartCard(
@@ -314,32 +341,39 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
                               child: Center(child: CircularProgressIndicator()),
                             )
                           : hasErrorAuthors
-                              ? SizedBox(
-                                  height: 260,
-                                  child: Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Text('Failed to load contributing authors.'),
-                                        const SizedBox(height: 16),
-                                        ElevatedButton(
-                                          onPressed: () => _loadTopContributingAuthors(limit: selectedTopAuthors),
-                                          child: const Text('Retry'),
-                                        ),
-                                      ],
+                          ? SizedBox(
+                              height: 260,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text(
+                                      'Failed to load contributing authors.',
                                     ),
-                                  ),
-                                )
-                              : fetchedAuthorsData!.isEmpty
-                                  ? const SizedBox(
-                                      height: 260,
-                                      child: Center(
-                                        child: Text('No contributing authors available.'),
-                                      ),
-                                    )
-                                  : TopContributingAuthorsColumnChart(
-                                      authorsData: fetchedAuthorsData!,
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: () =>
+                                          _loadTopContributingAuthors(
+                                            limit: selectedTopAuthors,
+                                          ),
+                                      child: const Text('Retry'),
                                     ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : fetchedAuthorsData!.isEmpty
+                          ? const SizedBox(
+                              height: 260,
+                              child: Center(
+                                child: Text(
+                                  'No contributing authors available.',
+                                ),
+                              ),
+                            )
+                          : TopContributingAuthorsColumnChart(
+                              authorsData: fetchedAuthorsData!,
+                            ),
                     ),
                   ],
                 ),

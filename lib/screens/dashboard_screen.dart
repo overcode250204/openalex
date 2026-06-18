@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../providers/publication_provider.dart';
 import '../services/trend_report_export_service.dart';
-import '../widgets/app_drawer.dart';
 import '../widgets/summary_card.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -15,21 +14,17 @@ class DashboardScreen extends StatelessWidget {
     final mostInfluentialPaper = provider.mostInfluentialPaper;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Research Dashboard'),
-      ),
+      appBar: AppBar(title: const Text('Research Dashboard')),
       body: provider.publications.isEmpty
-          ? const Center(
-              child: Text('Search a topic first to view dashboard.'),
-            )
+          ? const Center(child: Text('Search a topic first to view dashboard.'))
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
                 Text(
                   'Dashboard: ${provider.currentTopic}',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
                 SummaryCard(
@@ -73,9 +68,7 @@ class DashboardScreen extends StatelessWidget {
 class _ExportTrendReportButton extends StatefulWidget {
   final PublicationProvider provider;
 
-  const _ExportTrendReportButton({
-    required this.provider,
-  });
+  const _ExportTrendReportButton({required this.provider});
 
   @override
   State<_ExportTrendReportButton> createState() =>
@@ -101,9 +94,7 @@ class _ExportTrendReportButtonState extends State<_ExportTrendReportButton> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Trend report exported: ${result.file.path}'),
-        ),
+        SnackBar(content: Text('Trend report exported: ${result.file.path}')),
       );
     } catch (error) {
       if (!mounted) return;

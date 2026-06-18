@@ -8,20 +8,21 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:openalex/services/zotero_serivce.dart';
 import '../models/publication.dart';
 
-
 class PublicationDetailScreen extends StatefulWidget {
-  const PublicationDetailScreen({super.key, required this.workId, this.initialTitle});
+  const PublicationDetailScreen({
+    super.key,
+    required this.workId,
+    this.initialTitle,
+  });
   final String workId;
   final String? initialTitle;
 
   @override
-  State<PublicationDetailScreen> createState() => _PublicationDetailScreenState();
+  State<PublicationDetailScreen> createState() =>
+      _PublicationDetailScreenState();
 }
 
 class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
-
- 
-  
   @override
   void initState() {
     super.initState();
@@ -32,23 +33,23 @@ class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    
-
     return Scaffold(
       body: Consumer<PublicationDetailProvider>(
-         builder: (context, provider, _) {
-          final abstractText =provider.publication?.abstractText ?? 'No abstract available for this publication.';
+        builder: (context, provider, _) {
+          final abstractText =
+              provider.publication?.abstractText ??
+              'No abstract available for this publication.';
 
           if (provider.state == DetailState.loading) {
             return CustomScrollView(
               slivers: [
                 SliverAppBar(
                   pinned: true,
-                   title: Text(
-                  widget.initialTitle ?? "",
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                  title: Text(
+                    widget.initialTitle ?? "",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   // expandedHeight: 120,
                   // flexibleSpace: FlexibleSpaceBar(
                   //   title: Text(widget.initialTitle ?? '',
@@ -62,24 +63,22 @@ class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
               ],
             );
           }
-           if (provider.state == DetailState.error) {
+          if (provider.state == DetailState.error) {
             return Scaffold(
               appBar: AppBar(),
               body: Center(child: Text(provider.error ?? 'Unknown error')),
             );
           }
           if (provider.publication == null) {
-              return const Scaffold(
-                body: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
 
           final pub = provider.publication!;
           return CustomScrollView(
             slivers: [
-             SliverAppBar(
+              SliverAppBar(
                 // expandedHeight: 160,
                 pinned: true,
                 title: Text(
@@ -105,39 +104,33 @@ class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _ActionButtons(pub: pub),
-                      const SizedBox(height: 20,),
+                      const SizedBox(height: 20),
                       _InfoSection(pub: pub),
-                      const SizedBox(height: 20,),
-                       if (pub.abstractText != null) ...[
+                      const SizedBox(height: 20),
+                      if (pub.abstractText != null) ...[
                         _AbstractSection(abstract: pub.abstractText!),
                         const SizedBox(height: 20),
                       ] else
-                        Text(
-                          abstractText,
-                          textAlign: TextAlign.justify,
-                        ),
-    
+                        Text(abstractText, textAlign: TextAlign.justify),
 
                       // Navigate buttons
                       _NavigateSection(pub: pub),
                     ],
                   ),
-                  ),
-              )
+                ),
+              ),
             ],
-            );
+          );
         },
       ),
     );
   }
 }
 
-
-
 class _ActionButtons extends StatelessWidget {
   final Publication pub;
   const _ActionButtons({required this.pub});
- Future<void> _openDoi(BuildContext context) async {
+  Future<void> _openDoi(BuildContext context) async {
     final doi = context.read<PublicationDetailProvider>().publication?.doi;
 
     if (doi == null || doi.isEmpty) {
@@ -157,6 +150,7 @@ class _ActionButtons extends StatelessWidget {
       ).showSnackBar(const SnackBar(content: Text('Cannot open DOI link.')));
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Wrap(
@@ -172,64 +166,64 @@ class _ActionButtons extends StatelessWidget {
             style: FilledButton.styleFrom(backgroundColor: Colors.green),
           ),
         if (pub.doi != null)
-                  OutlinedButton.icon(
-                    onPressed: () => _launch(pub.doi!),
-                    icon: const Icon(Icons.open_in_new, size: 16),
-                    label: const Text('Origin Page'),
-                  ),
+          OutlinedButton.icon(
+            onPressed: () => _launch(pub.doi!),
+            icon: const Icon(Icons.open_in_new, size: 16),
+            label: const Text('Origin Page'),
+          ),
 
-                // Copy DOI
-                if (pub.doi != null)
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: pub.doi!));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Already copy DOI')),
-                      );
-                    },
-                    icon: const Icon(Icons.copy, size: 16),
-                    label: const Text('Copy DOI'),
-                  ),
-               FilledButton.icon(
-                onPressed: () async {
-                  try {
-                    final key = await ZoteroService().savePublicationToZotero(
-                      pub,
-                    );
-          
-                    if (!context.mounted) return;
-          
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Saved to Zotero successfully. Key: $key'),
-                      ),
-                    );
-                  } catch (e) {
-                    if (!context.mounted) return;
-          
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('Failed to save: $e')));
-                  }
-                },
-                icon: const Icon(Icons.bookmark_add),
-                label: const Text('Save to Zotero'),
-              ),
-               if (pub.doi != null)
-                FilledButton.icon(
-                  onPressed: () => {_openDoi(context)},
-                  icon: const Icon(Icons.open_in_browser),
-                  label: const Text('Open DOI'),
+        // Copy DOI
+        if (pub.doi != null)
+          OutlinedButton.icon(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: pub.doi!));
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Already copy DOI')));
+            },
+            icon: const Icon(Icons.copy, size: 16),
+            label: const Text('Copy DOI'),
+          ),
+        FilledButton.icon(
+          onPressed: () async {
+            try {
+              final key = await ZoteroService().savePublicationToZotero(pub);
+
+              if (!context.mounted) return;
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Saved to Zotero successfully. Key: $key'),
                 ),
-              ],
-            );
+              );
+            } catch (e) {
+              if (!context.mounted) return;
+
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Failed to save: $e')));
+            }
+          },
+          icon: const Icon(Icons.bookmark_add),
+          label: const Text('Save to Zotero'),
+        ),
+        if (pub.doi != null)
+          FilledButton.icon(
+            onPressed: () => {_openDoi(context)},
+            icon: const Icon(Icons.open_in_browser),
+            label: const Text('Open DOI'),
+          ),
+      ],
+    );
   }
+
   Future<void> _launch(String url) async {
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (await canLaunchUrl(uri)) {
+      launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }
-
 
 class _InfoSection extends StatelessWidget {
   final Publication pub;
@@ -243,12 +237,37 @@ class _InfoSection extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-       
-            _InfoTile(icon: Icons.people,title: 'Authors', value: pub.authors.isNotEmpty ? pub.authors.join(', ') : "Unknown authors"),
-            _InfoTile(icon: Icons.calendar_today,title: 'Publication year',value: pub.publicationYear != null ? pub.publicationYear!.toString() :  'Unknown year'),
-            _InfoTile(icon: Icons.menu_book, title: 'Journal',value: pub.journalName != null ? pub.journalName! : "Unknown journal"),
-            _InfoTile(icon: Icons.format_quote,title: 'Cited',value: '${pub.citedByCount}'),
-            _InfoTile(icon: Icons.link,title: 'DOI', value: pub.doi != null ? pub.doi! : "No DOI available"),
+            _InfoTile(
+              icon: Icons.people,
+              title: 'Authors',
+              value: pub.authors.isNotEmpty
+                  ? pub.authors.join(', ')
+                  : "Unknown authors",
+            ),
+            _InfoTile(
+              icon: Icons.calendar_today,
+              title: 'Publication year',
+              value: pub.publicationYear != null
+                  ? pub.publicationYear!.toString()
+                  : 'Unknown year',
+            ),
+            _InfoTile(
+              icon: Icons.menu_book,
+              title: 'Journal',
+              value: pub.journalName != null
+                  ? pub.journalName!
+                  : "Unknown journal",
+            ),
+            _InfoTile(
+              icon: Icons.format_quote,
+              title: 'Cited',
+              value: '${pub.citedByCount}',
+            ),
+            _InfoTile(
+              icon: Icons.link,
+              title: 'DOI',
+              value: pub.doi != null ? pub.doi! : "No DOI available",
+            ),
           ],
         ),
       ),
@@ -279,7 +298,6 @@ class _InfoTile extends StatelessWidget {
   }
 }
 
-
 class _AbstractSection extends StatefulWidget {
   final String abstract;
   const _AbstractSection({required this.abstract});
@@ -296,8 +314,10 @@ class _AbstractSectionState extends State<_AbstractSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Abstract',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const Text(
+          'Abstract',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 8),
         Text(
           widget.abstract,
@@ -314,9 +334,6 @@ class _AbstractSectionState extends State<_AbstractSection> {
   }
 }
 
-
-
-
 class _NavigateSection extends StatelessWidget {
   final Publication pub;
   const _NavigateSection({required this.pub});
@@ -326,43 +343,39 @@ class _NavigateSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Discovery More',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        const Text(
+          'Discovery More',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 12),
         _NavCard(
           icon: Icons.auto_stories,
           title: 'Related Articles',
           subtitle: '${pub.relatedWorkIds.length} papers',
           color: Colors.blue,
-          onTap: pub.relatedWorkIds.isEmpty ? null : () => _navigate(
-            context,
-            type: ListType.related,
-            pub: pub,
-          ),
+          onTap: pub.relatedWorkIds.isEmpty
+              ? null
+              : () => _navigate(context, type: ListType.related, pub: pub),
         ),
         const SizedBox(height: 8),
         _NavCard(
           icon: Icons.call_received,
           title: 'Cited By',
-          subtitle: 'Citation Counts ${pub.citedByCount}' ,
+          subtitle: 'Citation Counts ${pub.citedByCount}',
           color: Colors.orange,
-          onTap: pub.citedByCount == 0 ? null : () => _navigate(
-            context,
-            type: ListType.citedBy,
-            pub: pub,
-          ),
+          onTap: pub.citedByCount == 0
+              ? null
+              : () => _navigate(context, type: ListType.citedBy, pub: pub),
         ),
         const SizedBox(height: 8),
-       _NavCard(
+        _NavCard(
           icon: Icons.call_made,
           title: 'References',
           subtitle: '${pub.referencedWorkIds.length} references',
           color: Colors.purple,
-          onTap: pub.referencedWorkIds.isEmpty ? null : () => _navigate(
-            context,
-            type: ListType.references,
-            pub: pub,
-          ),
+          onTap: pub.referencedWorkIds.isEmpty
+              ? null
+              : () => _navigate(context, type: ListType.references, pub: pub),
         ),
       ],
     );
@@ -372,7 +385,7 @@ class _NavigateSection extends StatelessWidget {
     BuildContext context, {
     required ListType type,
     required Publication pub,
-    }) {
+  }) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -384,13 +397,13 @@ class _NavigateSection extends StatelessWidget {
             ids: type == ListType.related
                 ? pub.relatedWorkIds
                 : type == ListType.references
-                    ? pub.referencedWorkIds
-                    : [],
+                ? pub.referencedWorkIds
+                : [],
             title: type == ListType.related
                 ? 'Related Articles'
                 : type == ListType.citedBy
-                    ? 'Cited By'
-                    : 'References',
+                ? 'Cited By'
+                : 'References',
           ),
         ),
       ),
@@ -412,7 +425,7 @@ class _NavCard extends StatelessWidget {
     required this.color,
     this.onTap,
   });
- @override
+  @override
   Widget build(BuildContext context) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -420,15 +433,19 @@ class _NavCard extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: color, size: 20),
         ),
-        title: Text(title,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-        subtitle: Text(subtitle,
-            style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
+        ),
         trailing: onTap != null
             ? const Icon(Icons.arrow_forward_ios, size: 14)
             : const Icon(Icons.block, size: 14, color: Colors.grey),

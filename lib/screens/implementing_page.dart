@@ -4,11 +4,7 @@ class ImplementingPage extends StatelessWidget {
   final String title;
   final VoidCallback? onOpenDrawer;
 
-  const ImplementingPage({
-    super.key,
-    required this.title,
-    this.onOpenDrawer,
-  });
+  const ImplementingPage({super.key, required this.title, this.onOpenDrawer});
 
   @override
   Widget build(BuildContext context) {
@@ -25,10 +21,7 @@ class ImplementingPage extends StatelessWidget {
       body: const Center(
         child: Text(
           'This feature is being implemented',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
       ),
     );
