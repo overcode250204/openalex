@@ -15,7 +15,9 @@ import 'publication_detail_screen.dart';
 import 'trend_analysis_screen.dart';
 
 class TrendAnalyzerHomePage extends StatefulWidget {
-  const TrendAnalyzerHomePage({super.key});
+  final VoidCallback? onOpenDrawer;
+
+  const TrendAnalyzerHomePage({super.key, this.onOpenDrawer});
 
   @override
   State<TrendAnalyzerHomePage> createState() => _TrendAnalyzerHomePageState();
@@ -79,9 +81,7 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
         leading: IconButton(
           icon: const Icon(Icons.menu),
           onPressed: () {
-            // Context from build method, above the inner Scaffold, 
-            // so it finds the AppShell's scaffold drawer.
-            Scaffold.of(context).openDrawer();
+            widget.onOpenDrawer?.call();
           },
         ),
         actions: [

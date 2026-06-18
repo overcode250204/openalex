@@ -13,56 +13,58 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   AppPage selectedPage = AppPage.home;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  void _onPageSelected(AppPage page) {
+    setState(() {
+      selectedPage = page;
+    });
+
+    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+      Navigator.of(context).pop();
+    }
+  }
 
   Widget _buildBody() {
     switch (selectedPage) {
       case AppPage.home:
       case AppPage.searchTopic:
-        return const TrendAnalyzerHomePage();
+        return TrendAnalyzerHomePage(onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer());
 
       case AppPage.recentSearches:
-        return const ImplementingPage(title: 'Recent Searches');
+        return ImplementingPage(title: 'Recent Searches', onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer());
 
       case AppPage.publications:
-        return const ImplementingPage(title: 'Publications');
+        return ImplementingPage(title: 'Publications', onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer());
 
       case AppPage.details:
-        return const ImplementingPage(title: 'Journal Details');
+        return ImplementingPage(title: 'Journal Details', onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer());
 
       case AppPage.trends:
-        return const ImplementingPage(title: 'Keyword Trends');
+        return ImplementingPage(title: 'Keyword Trends', onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer());
 
       case AppPage.authors:
-        return const ImplementingPage(title: 'Authors');
+        return ImplementingPage(title: 'Authors', onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer());
 
       case AppPage.journals:
-        return const ImplementingPage(title: 'Journals');
+        return ImplementingPage(title: 'Journals', onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer());
 
       case AppPage.settings:
-        return const ImplementingPage(title: 'Settings');
+        return ImplementingPage(title: 'Settings', onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer());
 
       case AppPage.about:
-        return const ImplementingPage(title: 'About');
+        return ImplementingPage(title: 'About', onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer());
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       drawer: AppDrawer(
         selectedPage: selectedPage,
         onPageSelected: (page) {
-          setState(() {
-            selectedPage = page;
-          });
-          // Close the drawer if it's open
-          if (Scaffold.of(context).hasDrawer && Scaffold.of(context).isDrawerOpen) {
-            Navigator.of(context).pop();
-          } else {
-             // If accessed via a globally keyed Scaffold or similar, pop might pop the whole route.
-             // Usually, Drawer opens a modal route.
-             Navigator.of(context).pop(); 
-          }
+          _onPageSelected(page);
         },
       ),
       body: _buildBody(),
