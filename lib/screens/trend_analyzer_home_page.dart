@@ -13,16 +13,15 @@ import '../widgets/publication_card.dart';
 import 'dashboard_screen.dart';
 import 'publication_detail_screen.dart';
 import 'trend_analysis_screen.dart';
-import '../widgets/app_drawer.dart';
 
-class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+class TrendAnalyzerHomePage extends StatefulWidget {
+  const TrendAnalyzerHomePage({super.key});
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  State<TrendAnalyzerHomePage> createState() => _TrendAnalyzerHomePageState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
   final TextEditingController _topicController = TextEditingController();
    Timer? _debounce;
 
@@ -74,8 +73,17 @@ class _SearchScreenState extends State<SearchScreen> {
     final provider = context.watch<PublicationProvider>();
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
         title: const Text('Trend Analyzer', overflow: TextOverflow.ellipsis),
+        leading: IconButton(
+          icon: const Icon(Icons.menu),
+          onPressed: () {
+            // Context from build method, above the inner Scaffold, 
+            // so it finds the AppShell's scaffold drawer.
+            Scaffold.of(context).openDrawer();
+          },
+        ),
         actions: [
            Consumer<PublicationProvider>(
               builder: (context, provider, _){
@@ -147,7 +155,6 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ],
       ),
-      drawer: const AppDrawer(),
    
       body: Column(
         children: [

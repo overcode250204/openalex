@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:openalex/providers/publication_list_provider.dart';
 import 'package:openalex/providers/publication_provider.dart';
 import 'package:openalex/providers/publication_detail_provider.dart';
-import 'package:openalex/screens/search_screen.dart';
+import 'package:openalex/screens/app_shell.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -40,7 +40,7 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           title: 'Journal Trend Analyzer',
           theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
-          home: const SearchScreen(),
+          home: const AppShell(),
         ),
       );
   }

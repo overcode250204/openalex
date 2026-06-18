@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import '../models/app_page.dart';
 
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key});
+  final AppPage selectedPage;
+  final Function(AppPage) onPageSelected;
+
+  const AppDrawer({
+    super.key,
+    required this.selectedPage,
+    required this.onPageSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -62,9 +70,26 @@ class AppDrawer extends StatelessWidget {
                     context: context,
                     title: 'Home',
                     icon: Icons.home_outlined,
+                    initiallyExpanded: true, // Always expand this group for easy access
                     children: [
-                      _buildNavItem('Search Topic', Icons.search, mutedColor, textColor),
-                      _buildNavItem('Recent Searches', Icons.history, mutedColor, textColor),
+                      _buildNavItem(
+                        title: 'Search Topic',
+                        icon: Icons.search,
+                        page: AppPage.searchTopic,
+                        primaryColor: primaryColor,
+                        activeBgColor: activeBgColor,
+                        mutedColor: mutedColor,
+                        textColor: textColor,
+                      ),
+                      _buildNavItem(
+                        title: 'Recent Searches',
+                        icon: Icons.history,
+                        page: AppPage.recentSearches,
+                        primaryColor: primaryColor,
+                        activeBgColor: activeBgColor,
+                        mutedColor: mutedColor,
+                        textColor: textColor,
+                      ),
                     ],
                     textColor: textColor,
                     mutedColor: mutedColor,
@@ -74,9 +99,26 @@ class AppDrawer extends StatelessWidget {
                     context: context,
                     title: 'Journal',
                     icon: Icons.menu_book_outlined,
+                    initiallyExpanded: selectedPage == AppPage.publications || selectedPage == AppPage.details,
                     children: [
-                      _buildNavItem('Publications', Icons.article_outlined, mutedColor, textColor),
-                      _buildNavItem('Details', Icons.bar_chart, mutedColor, textColor),
+                      _buildNavItem(
+                        title: 'Publications',
+                        icon: Icons.article_outlined,
+                        page: AppPage.publications,
+                        primaryColor: primaryColor,
+                        activeBgColor: activeBgColor,
+                        mutedColor: mutedColor,
+                        textColor: textColor,
+                      ),
+                      _buildNavItem(
+                        title: 'Details',
+                        icon: Icons.bar_chart,
+                        page: AppPage.details,
+                        primaryColor: primaryColor,
+                        activeBgColor: activeBgColor,
+                        mutedColor: mutedColor,
+                        textColor: textColor,
+                      ),
                     ],
                     textColor: textColor,
                     mutedColor: mutedColor,
@@ -86,11 +128,35 @@ class AppDrawer extends StatelessWidget {
                     context: context,
                     title: 'Keywords',
                     icon: Icons.local_offer_outlined,
-                    initiallyExpanded: true,
+                    initiallyExpanded: selectedPage == AppPage.trends || selectedPage == AppPage.authors || selectedPage == AppPage.journals,
                     children: [
-                      _buildActiveNavItem('Trends', Icons.trending_up, primaryColor, activeBgColor),
-                      _buildNavItem('Authors', Icons.person_outline, mutedColor, textColor),
-                      _buildNavItem('Journals', Icons.account_balance_outlined, mutedColor, textColor),
+                      _buildNavItem(
+                        title: 'Trends',
+                        icon: Icons.trending_up,
+                        page: AppPage.trends,
+                        primaryColor: primaryColor,
+                        activeBgColor: activeBgColor,
+                        mutedColor: mutedColor,
+                        textColor: textColor,
+                      ),
+                      _buildNavItem(
+                        title: 'Authors',
+                        icon: Icons.person_outline,
+                        page: AppPage.authors,
+                        primaryColor: primaryColor,
+                        activeBgColor: activeBgColor,
+                        mutedColor: mutedColor,
+                        textColor: textColor,
+                      ),
+                      _buildNavItem(
+                        title: 'Journals',
+                        icon: Icons.account_balance_outlined,
+                        page: AppPage.journals,
+                        primaryColor: primaryColor,
+                        activeBgColor: activeBgColor,
+                        mutedColor: mutedColor,
+                        textColor: textColor,
+                      ),
                     ],
                     textColor: textColor,
                     mutedColor: mutedColor,
@@ -100,9 +166,26 @@ class AppDrawer extends StatelessWidget {
                     context: context,
                     title: 'Profile',
                     icon: Icons.person_outline,
+                    initiallyExpanded: selectedPage == AppPage.settings || selectedPage == AppPage.about,
                     children: [
-                      _buildNavItem('Settings', Icons.settings_outlined, mutedColor, textColor),
-                      _buildNavItem('About', Icons.info_outline, mutedColor, textColor),
+                      _buildNavItem(
+                        title: 'Settings',
+                        icon: Icons.settings_outlined,
+                        page: AppPage.settings,
+                        primaryColor: primaryColor,
+                        activeBgColor: activeBgColor,
+                        mutedColor: mutedColor,
+                        textColor: textColor,
+                      ),
+                      _buildNavItem(
+                        title: 'About',
+                        icon: Icons.info_outline,
+                        page: AppPage.about,
+                        primaryColor: primaryColor,
+                        activeBgColor: activeBgColor,
+                        mutedColor: mutedColor,
+                        textColor: textColor,
+                      ),
                     ],
                     textColor: textColor,
                     mutedColor: mutedColor,
@@ -194,43 +277,40 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(String title, IconData icon, Color mutedColor, Color textColor) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16.0, right: 8.0, top: 4.0, bottom: 4.0),
-      child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0),
-        dense: true,
-        leading: Icon(icon, color: mutedColor, size: 20),
-        title: Text(
-          title,
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        onTap: () {},
-      ),
-    );
-  }
+  Widget _buildNavItem({
+    required String title,
+    required IconData icon,
+    required AppPage page,
+    required Color primaryColor,
+    required Color activeBgColor,
+    required Color mutedColor,
+    required Color textColor,
+  }) {
+    // Treat home and searchTopic as active for 'Search Topic' if they map together, 
+    // but the user's prompt says: "Nếu selectedPage là home hoặc searchTopic thì Home/Search Topic active."
+    bool isActive = selectedPage == page;
+    if (page == AppPage.searchTopic && selectedPage == AppPage.home) {
+      isActive = true;
+    }
 
-  Widget _buildActiveNavItem(String title, IconData icon, Color primaryColor, Color activeBgColor) {
     return Padding(
       padding: const EdgeInsets.only(left: 16.0, right: 8.0, top: 4.0, bottom: 4.0),
       child: ListTile(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        tileColor: activeBgColor,
+        tileColor: isActive ? activeBgColor : null,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0),
         dense: true,
-        leading: Icon(icon, color: primaryColor, size: 20),
+        leading: Icon(icon, color: isActive ? primaryColor : mutedColor, size: 20),
         title: Text(
           title,
           style: TextStyle(
-            color: primaryColor,
-            fontWeight: FontWeight.bold,
+            color: isActive ? primaryColor : textColor,
+            fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
           ),
         ),
-        onTap: () {},
+        onTap: () {
+          onPageSelected(page);
+        },
       ),
     );
   }

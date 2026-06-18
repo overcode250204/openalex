@@ -18,7 +18,6 @@ class DashboardScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Research Dashboard'),
       ),
-      drawer: const AppDrawer(),
       body: provider.publications.isEmpty
           ? const Center(
               child: Text('Search a topic first to view dashboard.'),
