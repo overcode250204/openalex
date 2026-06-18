@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 
 import '../models/keyword/keyword_analysis_paper.dart';
 import '../models/keyword/keyword_analysis_result.dart';
+import '../models/keyword/openalex_keyword.dart';
 import '../viewmodels/keyword_analyzer_view_model.dart';
 import '../widgets/keyword/keyword_analysis_summary.dart';
+import '../widgets/keyword/keyword_paper_list_card.dart';
 import '../widgets/keyword/keyword_trend_chart.dart';
 import '../widgets/keyword/latest_papers_card.dart';
 import '../widgets/keyword/most_cited_papers_card.dart';
@@ -237,9 +239,26 @@ class _KeywordDashboard extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         child: Column(
           children: [
+            if (result.resolvedKeyword != null) ...[
+              _KeywordMatchedCard(
+                keyword: result.keyword,
+                resolvedKeyword: result.resolvedKeyword!,
+              ),
+              const SizedBox(height: 16),
+            ],
             KeywordAnalysisSummary(result: result),
             const SizedBox(height: 16),
             KeywordTrendChart(keyword: result.keyword, trend: result.trend),
+            const SizedBox(height: 16),
+            KeywordPaperListCard(
+              title: 'Papers Using This Keyword',
+              subtitle:
+                  'Papers ranked by how strongly OpenAlex associates them with this keyword.',
+              emptyMessage: 'No relevant papers found.',
+              papers: result.relevantPapers,
+              showKeywordScore: true,
+              onPaperTap: onPaperTap,
+            ),
             const SizedBox(height: 16),
             MostCitedPapersCard(
               papers: result.mostCitedPapers,
@@ -258,6 +277,110 @@ class _KeywordDashboard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _KeywordMatchedCard extends StatelessWidget {
+  final String keyword;
+  final OpenAlexKeyword resolvedKeyword;
+
+  const _KeywordMatchedCard({
+    required this.keyword,
+    required this.resolvedKeyword,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.blue.shade200, width: 1.5),
+      ),
+      color: Colors.blue.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.blue.shade700),
+                const SizedBox(width: 8),
+                const Text(
+                  'Keyword Matched',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildRow('User input', keyword),
+            const SizedBox(height: 4),
+            _buildRow('OpenAlex keyword', resolvedKeyword.displayName),
+            const SizedBox(height: 4),
+            _buildRow('Works count', _formatNumber(resolvedKeyword.worksCount)),
+            const SizedBox(height: 4),
+            _buildRow(
+              'Total citations of works',
+              _formatNumber(resolvedKeyword.citedByCount),
+              tooltip:
+                  'Total citations of all works associated with this keyword according to OpenAlex.',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatNumber(int value) {
+    return value.toString().replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'),
+      (match) => ',',
+    );
+  }
+
+  Widget _buildRow(String label, String value, {String? tooltip}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 160,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '$label:',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade700,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              if (tooltip != null) ...[
+                const SizedBox(width: 4),
+                Tooltip(
+                  message: tooltip,
+                  child: Icon(
+                    Icons.info_outline,
+                    size: 14,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ],
     );
   }
 }

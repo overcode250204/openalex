@@ -64,9 +64,9 @@ void main() {
       expect(viewModel.result?.keyword, 'AI');
     });
 
-    test('analyze failure exposes friendly error', () async {
+    test('analyze failure exposes friendly KeywordNotFoundException', () async {
       final viewModel = KeywordAnalyzerViewModel(
-        FakeKeywordService(error: Exception('boom')),
+        FakeKeywordService(error: KeywordNotFoundException('Not found.')),
       );
 
       await viewModel.analyze('AI');
@@ -75,7 +75,7 @@ void main() {
       expect(viewModel.result, isNull);
       expect(
         viewModel.errorMessage,
-        'Unable to analyze keyword. Please try again.',
+        'Not found.',
       );
     });
 
@@ -96,6 +96,7 @@ KeywordAnalysisResult sampleResult(String keyword) {
   return KeywordAnalysisResult(
     keyword: keyword,
     trend: const [KeywordTrendPoint(year: 2024, count: 10)],
+    relevantPapers: const [],
     mostCitedPapers: const [
       KeywordAnalysisPaper(
         id: 'W1',

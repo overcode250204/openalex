@@ -58,5 +58,42 @@ void main() {
 
       expect(paper.isOpenAccess, isTrue);
     });
+
+    test('marks future publication year as future-dated', () {
+      final paper = KeywordAnalysisPaper.fromJson({
+        'id': 'W4',
+        'display_name': 'Future Year Paper',
+        'publication_year': DateTime.now().toUtc().year + 1,
+      });
+
+      expect(paper.isFutureDated, isTrue);
+    });
+
+    test('marks future publication date as future-dated', () {
+      final futureYear = DateTime.now().toUtc().year + 1;
+      final paper = KeywordAnalysisPaper.fromJson({
+        'id': 'W5',
+        'display_name': 'Future Date Paper',
+        'publication_date': '$futureYear-01-01',
+      });
+
+      expect(paper.isFutureDated, isTrue);
+    });
+
+    test('allows past publication date and null date fields', () {
+      final pastPaper = KeywordAnalysisPaper.fromJson({
+        'id': 'W6',
+        'display_name': 'Past Paper',
+        'publication_year': 2020,
+        'publication_date': '2020-01-01',
+      });
+      final sparsePaper = KeywordAnalysisPaper.fromJson({
+        'id': 'W7',
+        'display_name': 'Sparse Paper',
+      });
+
+      expect(pastPaper.isFutureDated, isFalse);
+      expect(sparsePaper.isFutureDated, isFalse);
+    });
   });
 }

@@ -16,7 +16,8 @@ class OpenAccessPapersCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return KeywordPaperListCard(
-      title: 'Open Access Papers',
+      title: 'Open Access Papers Using This Keyword',
+      subtitle: 'Free-to-read papers with this keyword.',
       emptyMessage: 'No open access papers available.',
       papers: papers,
       onPaperTap: onPaperTap,

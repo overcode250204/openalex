@@ -25,6 +25,16 @@ void main() {
       expect(points.single.year, 2024);
     });
 
+    test('skips future years', () {
+      final currentYear = DateTime.now().toUtc().year;
+      final points = KeywordTrendPoint.parseGroupBy([
+        {'key': '$currentYear', 'count': 12},
+        {'key': '${currentYear + 1}', 'count': 99},
+      ]);
+
+      expect(points.map((point) => point.year), [currentYear]);
+    });
+
     test('limits chart points to latest years', () {
       final points = List.generate(
         20,

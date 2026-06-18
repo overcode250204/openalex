@@ -20,7 +20,8 @@ class KeywordTrendChart extends StatelessWidget {
     final chartData = KeywordTrendPoint.latestPoints(trend);
 
     return AnalyticsChartCard(
-      title: 'Publication Trend: $keyword',
+      title: 'Keyword Trend',
+      subtitle: 'Number of papers with this keyword by publication year.',
       dropdownText: 'Yearly',
       child: _TrendLineChart(points: chartData),
     );

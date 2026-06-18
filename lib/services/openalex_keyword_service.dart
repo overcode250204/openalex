@@ -5,6 +5,14 @@ import 'package:http/http.dart' as http;
 import '../models/keyword/keyword_analysis_paper.dart';
 import '../models/keyword/keyword_analysis_result.dart';
 import '../models/keyword/keyword_trend_point.dart';
+import '../models/keyword/openalex_keyword.dart';
+
+class KeywordNotFoundException implements Exception {
+  final String message;
+  KeywordNotFoundException(this.message);
+  @override
+  String toString() => message;
+}
 
 class OpenAlexKeywordService {
   static const String host = 'api.openalex.org';
@@ -15,9 +23,52 @@ class OpenAlexKeywordService {
   OpenAlexKeywordService({http.Client? client})
     : _client = client ?? http.Client();
 
-  Future<List<KeywordTrendPoint>> fetchKeywordTrend(String keyword) async {
-    final body = await _getWorks({
+  String _todayIsoDate() {
+    final now = DateTime.now().toUtc();
+    final y = now.year.toString().padLeft(4, '0');
+    final m = now.month.toString().padLeft(2, '0');
+    final d = now.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  String _appendToPublicationDateFilter([String? existingFilter]) {
+    final today = _todayIsoDate();
+    if (existingFilter == null || existingFilter.trim().isEmpty) {
+      return 'to_publication_date:$today';
+    }
+    return '$existingFilter,to_publication_date:$today';
+  }
+
+  Future<OpenAlexKeyword?> resolveKeyword(String keyword) async {
+    final uri = Uri.https(host, '/keywords', {
       'search': keyword.trim(),
+      'per-page': '1',
+      'mailto': mailto,
+    });
+
+    final response = await _client.get(uri);
+    if (response.statusCode != 200) {
+      throw Exception(
+        'OpenAlex request failed with status code ${response.statusCode}',
+      );
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final results = body['results'] as List<dynamic>? ?? [];
+
+    if (results.isEmpty) {
+      return null;
+    }
+
+    final firstResult = results.first as Map<String, dynamic>;
+    return OpenAlexKeyword.fromJson(firstResult);
+  }
+
+  Future<List<KeywordTrendPoint>> fetchKeywordTrendByKeywordId(
+    String keywordId,
+  ) async {
+    final body = await _getWorks({
+      'filter': _appendToPublicationDateFilter('keywords.id:$keywordId'),
       'group_by': 'publication_year',
       'mailto': mailto,
     });
@@ -26,76 +77,117 @@ class OpenAlexKeywordService {
     return KeywordTrendPoint.parseGroupBy(groupBy);
   }
 
-  Future<List<KeywordAnalysisPaper>> fetchMostCitedPapers(
-    String keyword, {
-    int perPage = 5,
-  }) {
-    return _fetchPapers(keyword, {
-      'sort': 'cited_by_count:desc',
+  Future<List<KeywordAnalysisPaper>> fetchRelevantPapersByKeywordId(
+    String keywordId, {
+    int perPage = 25,
+    int limit = 5,
+  }) async {
+    final papers = await _fetchPapers({
+      'filter': _appendToPublicationDateFilter('keywords.id:$keywordId'),
       'per-page': perPage.toString(),
+    }, matchedKeywordId: keywordId);
+
+    final relevantPapers = papers
+        .where((paper) => paper.keywordScore > 0)
+        .toList();
+
+    relevantPapers.sort((a, b) {
+      final scoreCompare = b.keywordScore.compareTo(a.keywordScore);
+      if (scoreCompare != 0) return scoreCompare;
+      return b.citedByCount.compareTo(a.citedByCount);
     });
+
+    return relevantPapers.take(limit).toList();
   }
 
-  Future<List<KeywordAnalysisPaper>> fetchLatestPapers(
-    String keyword, {
+  Future<List<KeywordAnalysisPaper>> fetchMostCitedPapersByKeywordId(
+    String keywordId, {
     int perPage = 5,
   }) {
-    return _fetchPapers(keyword, {
+    return _fetchPapers({
+      'filter': _appendToPublicationDateFilter('keywords.id:$keywordId'),
+      'sort': 'cited_by_count:desc',
+      'per-page': perPage.toString(),
+    }, matchedKeywordId: keywordId);
+  }
+
+  Future<List<KeywordAnalysisPaper>> fetchLatestPapersByKeywordId(
+    String keywordId, {
+    int perPage = 5,
+  }) {
+    return _fetchPapers({
+      'filter': _appendToPublicationDateFilter('keywords.id:$keywordId'),
       'sort': 'publication_date:desc',
       'per-page': perPage.toString(),
-    });
+    }, matchedKeywordId: keywordId);
   }
 
-  Future<List<KeywordAnalysisPaper>> fetchOpenAccessPapers(
-    String keyword, {
+  Future<List<KeywordAnalysisPaper>> fetchOpenAccessPapersByKeywordId(
+    String keywordId, {
     int perPage = 5,
   }) {
-    return _fetchPapers(keyword, {
-      'filter': 'open_access.is_oa:true',
+    return _fetchPapers({
+      'filter': _appendToPublicationDateFilter(
+        'keywords.id:$keywordId,open_access.is_oa:true',
+      ),
       'sort': 'cited_by_count:desc',
       'per-page': perPage.toString(),
-    });
+    }, matchedKeywordId: keywordId);
   }
 
   Future<KeywordAnalysisResult> analyzeKeyword(String keyword) async {
     final trimmedKeyword = keyword.trim();
 
+    final resolvedKeyword = await resolveKeyword(trimmedKeyword);
+
+    if (resolvedKeyword == null || resolvedKeyword.id.isEmpty) {
+      throw KeywordNotFoundException('No matching OpenAlex keyword found.');
+    }
+
+    final keywordId = resolvedKeyword.id;
+
     final results = await Future.wait([
-      fetchKeywordTrend(trimmedKeyword),
-      fetchMostCitedPapers(trimmedKeyword),
-      fetchLatestPapers(trimmedKeyword),
-      fetchOpenAccessPapers(trimmedKeyword),
+      fetchKeywordTrendByKeywordId(keywordId),
+      fetchRelevantPapersByKeywordId(keywordId),
+      fetchMostCitedPapersByKeywordId(keywordId),
+      fetchLatestPapersByKeywordId(keywordId),
+      fetchOpenAccessPapersByKeywordId(keywordId),
     ]);
 
     return KeywordAnalysisResult(
       keyword: trimmedKeyword,
+      resolvedKeyword: resolvedKeyword,
       trend: results[0] as List<KeywordTrendPoint>,
-      mostCitedPapers: results[1] as List<KeywordAnalysisPaper>,
-      latestPapers: results[2] as List<KeywordAnalysisPaper>,
-      openAccessPapers: results[3] as List<KeywordAnalysisPaper>,
+      relevantPapers: results[1] as List<KeywordAnalysisPaper>,
+      mostCitedPapers: results[2] as List<KeywordAnalysisPaper>,
+      latestPapers: results[3] as List<KeywordAnalysisPaper>,
+      openAccessPapers: results[4] as List<KeywordAnalysisPaper>,
     );
   }
 
   Future<List<KeywordAnalysisPaper>> _fetchPapers(
-    String keyword,
-    Map<String, String> params,
-  ) async {
-    final body = await _getWorks({
-      'search': keyword.trim(),
-      ...params,
-      'mailto': mailto,
-    });
+    Map<String, String> params, {
+    String? matchedKeywordId,
+  }) async {
+    final body = await _getWorks({...params, 'mailto': mailto});
 
     final results = body['results'] as List<dynamic>? ?? [];
     return results
         .whereType<Map<String, dynamic>>()
-        .map(KeywordAnalysisPaper.fromJson)
+        .map(
+          (json) => KeywordAnalysisPaper.fromOpenAlexJson(
+            json,
+            matchedKeywordId: matchedKeywordId,
+          ),
+        )
+        .where((paper) => !paper.isFutureDated)
         .toList();
   }
 
   Future<Map<String, dynamic>> _getWorks(Map<String, String> params) async {
     final uri = Uri.https(host, '/works', params);
     final response = await _client.get(uri);
+    print('Requesting: $uri');
 
     if (response.statusCode != 200) {
       throw Exception(

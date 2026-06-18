@@ -12,11 +12,12 @@ class LatestPapersCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return KeywordPaperListCard(
-      title: 'Latest Papers',
+      title: 'Latest Papers Using This Keyword',
+      subtitle:
+          'Newest papers with this keyword, excluding future-dated metadata.',
       emptyMessage: 'No latest papers available.',
       papers: papers,
       onPaperTap: onPaperTap,
-      showDate: true,
     );
   }
 }

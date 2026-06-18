@@ -16,13 +16,14 @@ class KeywordTrendPoint {
 
   static List<KeywordTrendPoint> parseGroupBy(List<dynamic> items) {
     final points = <KeywordTrendPoint>[];
+    final currentYear = DateTime.now().toUtc().year;
 
     for (final item in items) {
       if (item is! Map<String, dynamic>) continue;
 
       try {
         final point = KeywordTrendPoint.fromJson(item);
-        if (point.year >= 1900) {
+        if (point.year >= 1900 && point.year <= currentYear) {
           points.add(point);
         }
       } on FormatException {

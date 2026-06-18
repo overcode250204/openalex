@@ -12,7 +12,8 @@ class MostCitedPapersCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return KeywordPaperListCard(
-      title: 'Most Cited Papers',
+      title: 'Most Cited Papers Using This Keyword',
+      subtitle: 'Papers with this keyword, sorted by citation count.',
       emptyMessage: 'No cited papers available.',
       papers: papers,
       onPaperTap: onPaperTap,

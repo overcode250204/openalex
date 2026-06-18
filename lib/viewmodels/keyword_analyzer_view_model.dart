@@ -37,6 +37,9 @@ class KeywordAnalyzerViewModel extends ChangeNotifier {
 
     try {
       _result = await _service.analyzeKeyword(trimmedKeyword);
+    } on KeywordNotFoundException catch (e) {
+      _result = null;
+      _errorMessage = e.message;
     } catch (_) {
       _result = null;
       _errorMessage = 'Unable to analyze keyword. Please try again.';
