@@ -1,37 +1,80 @@
 import 'package:flutter/material.dart';
+import 'package:openalex/models/search_filter.dart';
+import 'package:openalex/models/topic.dart';
+import 'package:openalex/services/history_service.dart';
+import 'package:openalex/services/suggestion_service.dart';
 
 import '../models/publication.dart';
 import '../models/trend_report_snapshot.dart';
 import '../services/openalex_service.dart';
+import 'analytics_provider.dart';
 
 class PublicationProvider extends ChangeNotifier {
   final OpenAlexService _openAlexService;
+  final SearchHistoryService _historyService;
+  final SuggestionService _suggestionService;
+  AnalyticsProvider? _analyticsProvider;
 
-  PublicationProvider(this._openAlexService);
+  PublicationProvider(
+    this._openAlexService, {
+    SearchHistoryService? historyService,
+    SuggestionService? suggestionService,
+  }) : _historyService = historyService ?? SearchHistoryService(),
+       _suggestionService = suggestionService ?? SuggestionService();
+
+  void setAnalyticsProvider(AnalyticsProvider provider) {
+    _analyticsProvider = provider;
+  }
+
+  void _triggerAnalytics() {
+    if (_analyticsProvider == null || _currentTopic.isEmpty) return;
+    _analyticsProvider!.fetchAnalytics(_currentTopic, _filter, _publications);
+  }
 
   List<Publication> _publications = [];
   bool _isLoading = false;
+  bool _isLoadingMore = false;
   String? _errorMessage;
   String _currentTopic = '';
+  SearchFilter _filter = const SearchFilter();
+  int _currentPage = 1;
+  bool _hasMore = true;
+  int _totalResults = 0;
+  List<String> _searchHistory = [];
+  List<TopicSuggestion> _conceptSuggestions = [];
+  List<String> _relatedKeywords = [];
+  bool _showSuggestions = false;
 
   List<Publication> get publications => _publications;
 
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
 
   String? get errorMessage => _errorMessage;
 
   String get currentTopic => _currentTopic;
 
+  SearchFilter get filter => _filter;
+  bool get hasMore => _hasMore;
+  int get totalResults => _totalResults;
+  List<String> get searchHistory => _searchHistory;
+  List<TopicSuggestion> get conceptSuggestions => _conceptSuggestions;
+  List<String> get relatedKeywords => _relatedKeywords;
+  bool get showSuggestions => _showSuggestions;
+
+  // Search By Topic
   Future<void> searchPublications({
     required String keyword,
-    int? fromYear,
-    int? toYear,
+    TopicSuggestion? topic,
   }) async {
     if (keyword.trim().isEmpty) {
       _errorMessage = 'Please enter a research topic.';
       notifyListeners();
       return;
     }
+    _showSuggestions = false;
+    await _historyService.addHistory(keyword);
+    _searchHistory = await _historyService.getHistory();
 
     _isLoading = true;
     _errorMessage = null;
@@ -39,16 +82,26 @@ class PublicationProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _publications = await _openAlexService.searchPublications(
-        keyword: keyword,
-        fromYear: fromYear,
-        toYear: toYear,
-      );
+      int total;
+      List<Publication> result;
+      if (topic != null) {
+        (total, result) = await _openAlexService.searchPublications(
+            keyword: keyword,
+            topicIds: [topic.id.replaceAll('https://openalex.org/', '')]);
+      } else {
+        final topicIds = await _openAlexService.getTopicIdsFromKeyword(keyword);
+        (total, result) = await _openAlexService.searchPublications(
+            keyword: keyword, topicIds: topicIds);
+      }
+      _totalResults = total;
+      _publications = result;
     } catch (error) {
       _publications = [];
       _errorMessage = 'Cannot load publications. Please try again.';
     } finally {
       _isLoading = false;
+      _triggerAnalytics();
+      _relatedKeywords = await _suggestionService.fetchRelatedKeywords(keyword);
       notifyListeners();
     }
   }
@@ -115,12 +168,30 @@ class PublicationProvider extends ChangeNotifier {
       return 0;
     }
 
-    final totalCitations = _publications.fold<int>(
+    final total = _publications.fold<int>(
       0,
       (sum, publication) => sum + publication.citedByCount,
     );
 
-    return totalCitations / _publications.length;
+    return total / _publications.length;
+  }
+
+  int get totalCitations =>
+      _publications.fold(0, (sum, p) => sum + p.citedByCount);
+
+  double get publicationGrowthRate {
+    final years = publicationCountByYear;
+    if (years.length < 2) return 0;
+    final first = years.values.first.toDouble();
+    final last = years.values.last.toDouble();
+    if (first == 0) return 0;
+    return ((last - first) / first) * 100;
+  }
+
+  int get citationMedian {
+    if (_publications.isEmpty) return 0;
+    final sorted = _publications.map((p) => p.citedByCount).toList()..sort();
+    return sorted[sorted.length ~/ 2];
   }
 
   int? get mostActiveYear {
@@ -177,10 +248,120 @@ class PublicationProvider extends ChangeNotifier {
       topAuthors: topAuthors,
       totalPublications: totalPublications,
       averageCitationCount: averageCitationCount,
+      citationMedian: citationMedian,
+      publicationGrowthRate: publicationGrowthRate,
       mostActiveYear: mostActiveYear,
       topJournal: topJournal,
       topAuthor: topAuthor,
       mostInfluentialPaper: mostInfluentialPaper,
     );
+  }
+
+  // Apply filter
+  Future<void> updateFilter(SearchFilter newFilter) async {
+    _filter = newFilter;
+    if (_currentTopic.isNotEmpty) {
+      await searchWithFilter(_currentTopic, null, resetPage: true);
+    }
+    notifyListeners();
+  }
+
+  Future<void> searchWithFilter(String keyword, TopicSuggestion? topic,
+      {bool resetPage = true}) async {
+    if (resetPage) {
+      _currentPage = 1;
+      _publications = [];
+      _isLoading = true;
+    }
+    if (!resetPage) {
+      _isLoadingMore = true;
+    }
+
+    _currentTopic = keyword;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      int total;
+      List<Publication> result;
+      if (topic != null) {
+        final params = _filter.toQueryParams(
+            keyword, [topic.id.replaceAll('https://openalex.org/', '')]);
+        params['page'] = _currentPage.toString();
+        (total, result) = await _openAlexService.searchWithFilter(params);
+      } else {
+        final topicIds =
+            await _openAlexService.getTopicIdsFromKeyword(keyword);
+        final params = _filter.toQueryParams(keyword, topicIds);
+        params['page'] = _currentPage.toString();
+        (total, result) = await _openAlexService.searchWithFilter(params);
+      }
+      _totalResults = total;
+
+      if (resetPage) {
+        _publications = result;
+      } else {
+        _publications.addAll(result);
+      }
+
+      _hasMore = result.length >= 50;
+      _currentPage++;
+    } catch (_) {
+      _publications = [];
+      _errorMessage = 'Cannot load publications. Please try again.';
+    } finally {
+      _isLoading = false;
+      _isLoadingMore = false;
+      _triggerAnalytics();
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (!_hasMore || _isLoading || _isLoadingMore) return;
+    await searchWithFilter(_currentTopic, null, resetPage: false);
+  }
+
+  void resetFilter() {
+    _filter = const SearchFilter();
+    notifyListeners();
+  }
+
+  // HISTORY - SUGGESTION
+  Future<void> loadHistory() async {
+    _searchHistory = await _historyService.getHistory();
+    notifyListeners();
+  }
+
+  Future<void> onQueryChanged(String query) async {
+    if (query.trim().isEmpty) {
+      if (_conceptSuggestions.isNotEmpty) {
+        _conceptSuggestions = [];
+        _showSuggestions = true;
+        notifyListeners();
+      }
+      return;
+    }
+    _showSuggestions = true;
+    _conceptSuggestions =
+        await _suggestionService.fetchTopicSuggestions(query);
+    notifyListeners();
+  }
+
+  void hideSuggestions() {
+    _showSuggestions = false;
+    notifyListeners();
+  }
+
+  Future<void> removeHistory(String keyword) async {
+    await _historyService.removeHistory(keyword);
+    _searchHistory = await _historyService.getHistory();
+    notifyListeners();
+  }
+
+  Future<void> clearHistory() async {
+    await _historyService.clearHistory();
+    _searchHistory = [];
+    notifyListeners();
   }
 }

@@ -9,6 +9,8 @@ class TrendReportSnapshot {
   final Map<String, int> topAuthors;
   final int totalPublications;
   final double averageCitationCount;
+  final int citationMedian;
+  final double publicationGrowthRate;
   final int? mostActiveYear;
   final String? topJournal;
   final String? topAuthor;
@@ -23,6 +25,8 @@ class TrendReportSnapshot {
     required this.topAuthors,
     required this.totalPublications,
     required this.averageCitationCount,
+    required this.citationMedian,
+    required this.publicationGrowthRate,
     required this.mostActiveYear,
     required this.topJournal,
     required this.topAuthor,
