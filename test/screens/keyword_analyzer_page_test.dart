@@ -25,6 +25,20 @@ class FakeKeywordService extends OpenAlexKeywordService {
       mostCitedPapers: const [_samplePaper],
       latestPapers: const [_samplePaper],
       openAccessPapers: const [_samplePaper],
+      topAuthors: const {
+        'John Doe': 42,
+        'Jane Smith': 28,
+        'Alice Lee': 15,
+        'Bob Chen': 10,
+        'Carol Kim': 8,
+      },
+      topSources: const {
+        'Nature': 100,
+        'IEEE Access': 80,
+        'Science': 60,
+        'Cell': 40,
+        'PLOS ONE': 20,
+      },
     );
   }
 }
@@ -96,4 +110,123 @@ void main() {
     expect(find.text('Open Access Papers Using This Keyword'), findsOneWidget);
     expect(find.text('2024 • IEEE Access'), findsWidgets);
   });
+
+  testWidgets('shows Top Contributing Authors card after analysis', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => KeywordAnalyzerViewModel(FakeKeywordService()),
+        child: const MaterialApp(home: KeywordAnalyzerPage()),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), 'AI');
+    await tester.tap(find.text('Analyze Keyword'));
+    await tester.pumpAndSettle();
+
+    final scrollable = find.byType(Scrollable).first;
+    await tester.scrollUntilVisible(
+      find.text('Top Contributing Authors'),
+      300,
+      scrollable: scrollable,
+    );
+
+    expect(find.text('Top Contributing Authors'), findsOneWidget);
+    expect(
+      find.text('Authors with the most publications on this keyword.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('shows Top Research Journals card after analysis', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => KeywordAnalyzerViewModel(FakeKeywordService()),
+        child: const MaterialApp(home: KeywordAnalyzerPage()),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), 'AI');
+    await tester.tap(find.text('Analyze Keyword'));
+    await tester.pumpAndSettle();
+
+    final scrollable = find.byType(Scrollable).first;
+    await tester.scrollUntilVisible(
+      find.text('Top Research Journals'),
+      300,
+      scrollable: scrollable,
+    );
+
+    expect(find.text('Top Research Journals'), findsOneWidget);
+    expect(
+      find.text('Journals publishing the most on this keyword.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('analytics cards show Top 5 dropdown selected by default', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => KeywordAnalyzerViewModel(FakeKeywordService()),
+        child: const MaterialApp(home: KeywordAnalyzerPage()),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), 'AI');
+    await tester.tap(find.text('Analyze Keyword'));
+    await tester.pumpAndSettle();
+
+    final scrollable = find.byType(Scrollable).first;
+    await tester.scrollUntilVisible(
+      find.text('Top Contributing Authors'),
+      300,
+      scrollable: scrollable,
+    );
+    await tester.scrollUntilVisible(
+      find.text('Top Research Journals'),
+      300,
+      scrollable: scrollable,
+    );
+
+    expect(find.text('Top 5'), findsNWidgets(2));
+  });
+
+  testWidgets('analytics cards do not render when topAuthors/topSources are empty', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => KeywordAnalyzerViewModel(
+          _FakeKeywordServiceNoAnalytics(),
+        ),
+        child: const MaterialApp(home: KeywordAnalyzerPage()),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), 'AI');
+    await tester.tap(find.text('Analyze Keyword'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Top Contributing Authors'), findsNothing);
+    expect(find.text('Top Research Journals'), findsNothing);
+  });
+}
+
+class _FakeKeywordServiceNoAnalytics extends OpenAlexKeywordService {
+  @override
+  Future<KeywordAnalysisResult> analyzeKeyword(String keyword) async {
+    return KeywordAnalysisResult(
+      keyword: keyword,
+      trend: const [KeywordTrendPoint(year: 2024, count: 5)],
+      relevantPapers: const [],
+      mostCitedPapers: const [],
+      latestPapers: const [],
+      openAccessPapers: const [],
+    );
+  }
 }

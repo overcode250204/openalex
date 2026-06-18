@@ -2,13 +2,6 @@ import 'keyword_analysis_paper.dart';
 import 'keyword_trend_point.dart';
 import 'openalex_keyword.dart';
 
-// Dummy classes for optional fields until fully implemented if needed
-class TopAuthorItem {}
-
-class TopSourceItem {}
-
-class TopKeywordItem {}
-
 class KeywordAnalysisResult {
   final String keyword;
   final OpenAlexKeyword? resolvedKeyword;
@@ -18,9 +11,8 @@ class KeywordAnalysisResult {
   final List<KeywordAnalysisPaper> latestPapers;
   final List<KeywordAnalysisPaper> openAccessPapers;
 
-  final List<TopAuthorItem> topAuthors;
-  final List<TopSourceItem> topSources;
-  final List<TopKeywordItem> relatedKeywords;
+  final Map<String, int> topAuthors;
+  final Map<String, int> topSources;
 
   const KeywordAnalysisResult({
     required this.keyword,
@@ -30,9 +22,8 @@ class KeywordAnalysisResult {
     required this.mostCitedPapers,
     required this.latestPapers,
     required this.openAccessPapers,
-    this.topAuthors = const [],
-    this.topSources = const [],
-    this.relatedKeywords = const [],
+    this.topAuthors = const {},
+    this.topSources = const {},
   });
 
   bool get isEmpty {

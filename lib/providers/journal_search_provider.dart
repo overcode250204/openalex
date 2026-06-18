@@ -166,4 +166,15 @@ class JournalSearchProvider extends ChangeNotifier {
     _selectedPublication = publication;
     notifyListeners();
   }
+
+  void clearSelection() {
+    _selectedJournal = null;
+    _publications = [];
+    _highestCitedPaper = null;
+    _selectedPublication = null;
+    _currentPage = 1;
+    _hasMorePublications = true;
+    _errorMessage = null;
+    notifyListeners();
+  }
 }

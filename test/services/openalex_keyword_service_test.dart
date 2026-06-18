@@ -57,7 +57,7 @@ void main() {
           requestedUris.single.queryParameters['filter'],
           'keywords.id:C123,to_publication_date:${_todayIsoDate()}',
         );
-        expect(requestedUris.single.queryParameters['per-page'], '5');
+        expect(requestedUris.single.queryParameters['per-page'], '25');
       },
     );
 
@@ -148,6 +148,194 @@ void main() {
       final papers = await service.fetchLatestPapersByKeywordId('C123');
 
       expect(papers.map((paper) => paper.title), ['Valid Paper']);
+    });
+  });
+
+  group('fetchTopAuthorsByKeywordId', () {
+    test('sends correct group_by param and filter', () async {
+      Uri? capturedUri;
+      final service = OpenAlexKeywordService(
+        client: MockClient((request) async {
+          capturedUri = request.url;
+          return http.Response(jsonEncode({'group_by': []}), 200);
+        }),
+      );
+
+      await service.fetchTopAuthorsByKeywordId('C123');
+
+      expect(
+        capturedUri?.queryParameters['group_by'],
+        'authorships.author.id',
+      );
+      expect(
+        capturedUri?.queryParameters['filter'],
+        'keywords.id:C123,to_publication_date:${_todayIsoDate()}',
+      );
+    });
+
+    test('parses group_by response into Map<String, int>', () async {
+      final service = OpenAlexKeywordService(
+        client: MockClient((_) async => http.Response(
+          jsonEncode({
+            'group_by': [
+              {'key': 'A1', 'key_display_name': 'John Doe', 'count': 42},
+              {'key': 'A2', 'key_display_name': 'Jane Smith', 'count': 28},
+            ],
+          }),
+          200,
+        )),
+      );
+
+      final result = await service.fetchTopAuthorsByKeywordId('C123');
+
+      expect(result, {'John Doe': 42, 'Jane Smith': 28});
+    });
+
+    test('skips entries with empty or null display name', () async {
+      final service = OpenAlexKeywordService(
+        client: MockClient((_) async => http.Response(
+          jsonEncode({
+            'group_by': [
+              {'key': 'A1', 'key_display_name': 'John Doe', 'count': 42},
+              {'key': 'A2', 'key_display_name': '', 'count': 10},
+              {'key': 'A3', 'key_display_name': null, 'count': 5},
+            ],
+          }),
+          200,
+        )),
+      );
+
+      final result = await service.fetchTopAuthorsByKeywordId('C123');
+
+      expect(result.keys, ['John Doe']);
+    });
+
+    test('returns empty map when group_by field is absent', () async {
+      final service = OpenAlexKeywordService(
+        client: MockClient((_) async => http.Response(jsonEncode({}), 200)),
+      );
+
+      final result = await service.fetchTopAuthorsByKeywordId('C123');
+
+      expect(result, isEmpty);
+    });
+
+    test('respects custom perPage param', () async {
+      Uri? capturedUri;
+      final service = OpenAlexKeywordService(
+        client: MockClient((request) async {
+          capturedUri = request.url;
+          return http.Response(jsonEncode({'group_by': []}), 200);
+        }),
+      );
+
+      await service.fetchTopAuthorsByKeywordId('C123', perPage: 20);
+
+      expect(capturedUri?.queryParameters['per-page'], '20');
+    });
+  });
+
+  group('fetchTopJournalsByKeywordId', () {
+    test('sends correct group_by param', () async {
+      Uri? capturedUri;
+      final service = OpenAlexKeywordService(
+        client: MockClient((request) async {
+          capturedUri = request.url;
+          return http.Response(jsonEncode({'group_by': []}), 200);
+        }),
+      );
+
+      await service.fetchTopJournalsByKeywordId('C123');
+
+      expect(
+        capturedUri?.queryParameters['group_by'],
+        'primary_location.source.id',
+      );
+    });
+
+    test('parses group_by response into Map<String, int>', () async {
+      final service = OpenAlexKeywordService(
+        client: MockClient((_) async => http.Response(
+          jsonEncode({
+            'group_by': [
+              {'key': 'S1', 'key_display_name': 'Nature', 'count': 100},
+              {'key': 'S2', 'key_display_name': 'IEEE Access', 'count': 80},
+            ],
+          }),
+          200,
+        )),
+      );
+
+      final result = await service.fetchTopJournalsByKeywordId('C123');
+
+      expect(result, {'Nature': 100, 'IEEE Access': 80});
+    });
+  });
+
+  group('analyzeKeyword – topAuthors and topSources', () {
+    test('populates topAuthors and topSources from group_by responses',
+        () async {
+      final service = OpenAlexKeywordService(
+        client: MockClient((request) async {
+          final params = request.url.queryParameters;
+
+          if (request.url.path == '/keywords') {
+            return http.Response(
+              jsonEncode({
+                'results': [
+                  {
+                    'id': 'C123',
+                    'display_name': 'AI',
+                    'works_count': 100,
+                    'cited_by_count': 500,
+                  },
+                ],
+              }),
+              200,
+            );
+          }
+
+          if (params['group_by'] == 'publication_year') {
+            return http.Response(
+              jsonEncode({
+                'group_by': [
+                  {'key': '2024', 'count': 10},
+                ],
+              }),
+              200,
+            );
+          }
+
+          if (params['group_by'] == 'authorships.author.id') {
+            return http.Response(
+              jsonEncode({
+                'group_by': [
+                  {'key': 'A1', 'key_display_name': 'John Doe', 'count': 5},
+                ],
+              }),
+              200,
+            );
+          }
+
+          if (params['group_by'] == 'primary_location.source.id') {
+            return http.Response(
+              jsonEncode({
+                'group_by': [
+                  {'key': 'S1', 'key_display_name': 'Nature', 'count': 20},
+                ],
+              }),
+              200,
+            );
+          }
+
+          return http.Response(jsonEncode({'results': []}), 200);
+        }),
+      );
+
+      final result = await service.analyzeKeyword('AI');
+
+      expect(result.topAuthors, {'John Doe': 5});
+      expect(result.topSources, {'Nature': 20});
     });
   });
 }

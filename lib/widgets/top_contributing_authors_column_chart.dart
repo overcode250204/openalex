@@ -28,7 +28,8 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
       if (entry.value > maxCountValue) maxCountValue = entry.value;
     }
     final maxCount = maxCountValue.toDouble();
-    final maxY = maxCount + 1.0;
+    final maxY = maxCount + (maxCount * 0.1).ceilToDouble() + 1;
+    final yInterval = maxCount > 5 ? (maxCount / 5).ceilToDouble() : 1.0;
 
     return SizedBox(
       height: 260,
@@ -112,16 +113,13 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 32,
-                      interval: 1,
+                      reservedSize: 42,
+                      interval: yInterval,
                       getTitlesWidget: (double value, TitleMeta meta) {
-                        if (value % 1 != 0) {
-                          return const SizedBox.shrink();
-                        }
                         return SideTitleWidget(
                           axisSide: meta.axisSide,
                           child: Text(
-                            value.toInt().toString(),
+                            _formatAxisValue(value.toInt()),
                             style: const TextStyle(
                               color: Colors.black54,
                               fontSize: 10,
@@ -141,9 +139,7 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval: maxCount > 5
-                      ? (maxCount / 5).ceilToDouble()
-                      : 1,
+                  horizontalInterval: yInterval,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
                       color: Colors.grey.shade200,
@@ -184,7 +180,13 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
     );
   }
 
-  String _formatAuthorLabel(String name) {
+  static String _formatAxisValue(int value) {
+    if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}M';
+    if (value >= 1000) return '${(value / 1000).toStringAsFixed(0)}k';
+    return value.toString();
+  }
+
+  static String _formatAuthorLabel(String name) {
     final parts = name.trim().split(RegExp(r'\s+'));
 
     if (parts.length <= 2) {

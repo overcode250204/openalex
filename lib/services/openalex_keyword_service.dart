@@ -135,6 +135,46 @@ class OpenAlexKeywordService {
     }, matchedKeywordId: keywordId);
   }
 
+  Future<Map<String, int>> fetchTopAuthorsByKeywordId(
+    String keywordId, {
+    int perPage = 10,
+  }) => _fetchGroupBy(
+    filter: _appendToPublicationDateFilter('keywords.id:$keywordId'),
+    groupBy: 'authorships.author.id',
+    perPage: perPage,
+  );
+
+  Future<Map<String, int>> fetchTopJournalsByKeywordId(
+    String keywordId, {
+    int perPage = 10,
+  }) => _fetchGroupBy(
+    filter: _appendToPublicationDateFilter('keywords.id:$keywordId'),
+    groupBy: 'primary_location.source.id',
+    perPage: perPage,
+  );
+
+  Future<Map<String, int>> _fetchGroupBy({
+    required String filter,
+    required String groupBy,
+    int perPage = 10,
+  }) async {
+    final body = await _getWorks({
+      'filter': filter,
+      'group_by': groupBy,
+      'per-page': perPage.toString(),
+      'mailto': mailto,
+    });
+    final groups = body['group_by'] as List<dynamic>? ?? [];
+    final result = <String, int>{};
+    for (final item in groups) {
+      if (item is! Map<String, dynamic>) continue;
+      final name = item['key_display_name']?.toString();
+      final count = item['count'] as int? ?? 0;
+      if (name != null && name.isNotEmpty) result[name] = count;
+    }
+    return result;
+  }
+
   Future<KeywordAnalysisResult> analyzeKeyword(String keyword) async {
     final trimmedKeyword = keyword.trim();
 
@@ -152,6 +192,8 @@ class OpenAlexKeywordService {
       fetchMostCitedPapersByKeywordId(keywordId),
       fetchLatestPapersByKeywordId(keywordId),
       fetchOpenAccessPapersByKeywordId(keywordId),
+      fetchTopAuthorsByKeywordId(keywordId, perPage: 20),
+      fetchTopJournalsByKeywordId(keywordId, perPage: 20),
     ]);
 
     return KeywordAnalysisResult(
@@ -162,6 +204,8 @@ class OpenAlexKeywordService {
       mostCitedPapers: results[2] as List<KeywordAnalysisPaper>,
       latestPapers: results[3] as List<KeywordAnalysisPaper>,
       openAccessPapers: results[4] as List<KeywordAnalysisPaper>,
+      topAuthors: results[5] as Map<String, int>,
+      topSources: results[6] as Map<String, int>,
     );
   }
 
@@ -187,7 +231,6 @@ class OpenAlexKeywordService {
   Future<Map<String, dynamic>> _getWorks(Map<String, String> params) async {
     final uri = Uri.https(host, '/works', params);
     final response = await _client.get(uri);
-    print('Requesting: $uri');
 
     if (response.statusCode != 200) {
       throw Exception(

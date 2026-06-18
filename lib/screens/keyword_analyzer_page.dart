@@ -5,12 +5,16 @@ import '../models/keyword/keyword_analysis_paper.dart';
 import '../models/keyword/keyword_analysis_result.dart';
 import '../models/keyword/openalex_keyword.dart';
 import '../viewmodels/keyword_analyzer_view_model.dart';
+import '../widgets/analytics_chart_card.dart';
 import '../widgets/keyword/keyword_analysis_summary.dart';
 import '../widgets/keyword/keyword_paper_list_card.dart';
 import '../widgets/keyword/keyword_trend_chart.dart';
 import '../widgets/keyword/latest_papers_card.dart';
 import '../widgets/keyword/most_cited_papers_card.dart';
 import '../widgets/keyword/open_access_papers_card.dart';
+import '../widgets/top_contributing_authors_column_chart.dart';
+import '../widgets/top_research_journals_donut_chart.dart';
+import '../widgets/top_selector_dropdown.dart';
 import 'publication_detail_screen.dart';
 
 class KeywordAnalyzerPage extends StatefulWidget {
@@ -225,14 +229,28 @@ class _KeywordErrorCard extends StatelessWidget {
   }
 }
 
-class _KeywordDashboard extends StatelessWidget {
+class _KeywordDashboard extends StatefulWidget {
   final KeywordAnalysisResult result;
   final ValueChanged<KeywordAnalysisPaper> onPaperTap;
 
   const _KeywordDashboard({required this.result, required this.onPaperTap});
 
   @override
+  State<_KeywordDashboard> createState() => _KeywordDashboardState();
+}
+
+class _KeywordDashboardState extends State<_KeywordDashboard> {
+  static const _topOptions = [5, 10, 15, 20];
+
+  int? _topAuthors = 5;
+  int? _topJournals = 5;
+
+  Map<String, int> _take(Map<String, int> data, int? limit) =>
+      limit == null ? data : Map.fromEntries(data.entries.take(limit));
+
+  @override
   Widget build(BuildContext context) {
+    final result = widget.result;
     return SafeArea(
       top: false,
       child: SingleChildScrollView(
@@ -249,6 +267,37 @@ class _KeywordDashboard extends StatelessWidget {
             KeywordAnalysisSummary(result: result),
             const SizedBox(height: 16),
             KeywordTrendChart(keyword: result.keyword, trend: result.trend),
+            if (result.topAuthors.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              AnalyticsChartCard(
+                title: 'Top Contributing Authors',
+                subtitle:
+                    'Authors with the most publications on this keyword.',
+                customDropdown: TopSelectorDropdown(
+                  value: _topAuthors,
+                  options: _topOptions,
+                  onChanged: (v) => setState(() => _topAuthors = v),
+                ),
+                child: TopContributingAuthorsColumnChart(
+                  authorsData: _take(result.topAuthors, _topAuthors),
+                ),
+              ),
+            ],
+            if (result.topSources.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              AnalyticsChartCard(
+                title: 'Top Research Journals',
+                subtitle: 'Journals publishing the most on this keyword.',
+                customDropdown: TopSelectorDropdown(
+                  value: _topJournals,
+                  options: _topOptions,
+                  onChanged: (v) => setState(() => _topJournals = v),
+                ),
+                child: TopResearchJournalsDonutChart(
+                  journalsData: _take(result.topSources, _topJournals),
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             KeywordPaperListCard(
               title: 'Papers Using This Keyword',
@@ -257,22 +306,22 @@ class _KeywordDashboard extends StatelessWidget {
               emptyMessage: 'No relevant papers found.',
               papers: result.relevantPapers,
               showKeywordScore: true,
-              onPaperTap: onPaperTap,
+              onPaperTap: widget.onPaperTap,
             ),
             const SizedBox(height: 16),
             MostCitedPapersCard(
               papers: result.mostCitedPapers,
-              onPaperTap: onPaperTap,
+              onPaperTap: widget.onPaperTap,
             ),
             const SizedBox(height: 16),
             LatestPapersCard(
               papers: result.latestPapers,
-              onPaperTap: onPaperTap,
+              onPaperTap: widget.onPaperTap,
             ),
             const SizedBox(height: 16),
             OpenAccessPapersCard(
               papers: result.openAccessPapers,
-              onPaperTap: onPaperTap,
+              onPaperTap: widget.onPaperTap,
             ),
           ],
         ),
