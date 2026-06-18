@@ -13,6 +13,7 @@ import '../widgets/publication_card.dart';
 import 'dashboard_screen.dart';
 import 'publication_detail_screen.dart';
 import 'trend_analysis_screen.dart';
+import '../widgets/app_drawer.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -146,6 +147,7 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ],
       ),
+      drawer: const AppDrawer(),
    
       body: Column(
         children: [

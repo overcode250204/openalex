@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/publication_provider.dart';
 import '../services/trend_report_export_service.dart';
+import '../widgets/app_drawer.dart';
 import '../widgets/summary_card.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -17,6 +18,7 @@ class DashboardScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Research Dashboard'),
       ),
+      drawer: const AppDrawer(),
       body: provider.publications.isEmpty
           ? const Center(
               child: Text('Search a topic first to view dashboard.'),
