@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/app_page.dart';
 import '../widgets/app_drawer.dart';
 import 'implementing_page.dart';
+import 'journal/journal_search_screen.dart';
 import 'keyword_analyzer_page.dart';
 import 'trend_analyzer_home_page.dart';
 
@@ -64,8 +65,7 @@ class _AppShellState extends State<AppShell> {
         );
 
       case AppPage.journals:
-        return ImplementingPage(
-          title: 'Journals',
+        return JournalSearchScreen(
           onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
         );
 

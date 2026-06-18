@@ -105,8 +105,18 @@ class AppDrawer extends StatelessWidget {
                     icon: Icons.menu_book_outlined,
                     initiallyExpanded:
                         selectedPage == AppPage.publications ||
-                        selectedPage == AppPage.details,
+                        selectedPage == AppPage.details ||
+                        selectedPage == AppPage.journals,
                     children: [
+                      _buildNavItem(
+                        title: 'Search Journal',
+                        icon: Icons.manage_search,
+                        page: AppPage.journals,
+                        primaryColor: primaryColor,
+                        activeBgColor: activeBgColor,
+                        mutedColor: mutedColor,
+                        textColor: textColor,
+                      ),
                       _buildNavItem(
                         title: 'Publications',
                         icon: Icons.article_outlined,
@@ -136,8 +146,7 @@ class AppDrawer extends StatelessWidget {
                     icon: Icons.local_offer_outlined,
                     initiallyExpanded:
                         selectedPage == AppPage.trends ||
-                        selectedPage == AppPage.authors ||
-                        selectedPage == AppPage.journals,
+                        selectedPage == AppPage.authors,
                     children: [
                       _buildNavItem(
                         title: 'Trends',
@@ -152,15 +161,6 @@ class AppDrawer extends StatelessWidget {
                         title: 'Authors',
                         icon: Icons.person_outline,
                         page: AppPage.authors,
-                        primaryColor: primaryColor,
-                        activeBgColor: activeBgColor,
-                        mutedColor: mutedColor,
-                        textColor: textColor,
-                      ),
-                      _buildNavItem(
-                        title: 'Journals',
-                        icon: Icons.account_balance_outlined,
-                        page: AppPage.journals,
                         primaryColor: primaryColor,
                         activeBgColor: activeBgColor,
                         mutedColor: mutedColor,
