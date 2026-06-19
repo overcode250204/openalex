@@ -36,12 +36,23 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
   bool hasErrorAuthors = false;
   Map<String, int>? fetchedAuthorsData;
 
+  Map<int, int>? fetchedTrendData;
+  bool isLoadingTrend = false;
+  bool hasErrorTrend = false;
+
+  int selectedFromYear = 2014;
+  int selectedToYear = DateTime.now().year;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_seededInitialAnalytics) {
       _seedAnalyticsFromProvider();
       _seededInitialAnalytics = true;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadPublicationTrend();
+      });
     }
   }
 
@@ -49,6 +60,8 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
     final provider = context.read<PublicationProvider>();
 
     if (provider.currentTopic.trim().isEmpty) return;
+
+    fetchedTrendData = provider.publicationCountByYear;
 
     fetchedPapers = provider.topInfluentialPapers
         .take(selectedTopPapers ?? provider.topInfluentialPapers.length)
@@ -63,6 +76,41 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
         selectedTopAuthors ?? provider.topAuthors.length,
       ),
     );
+  }
+
+  Future<void> _loadPublicationTrend() async {
+    final provider = context.read<PublicationProvider>();
+    final keyword = provider.currentTopic;
+
+    if (keyword.trim().isEmpty) return;
+
+    setState(() {
+      isLoadingTrend = true;
+      hasErrorTrend = false;
+    });
+
+    try {
+      final service = OpenAlexService();
+      final result = await service.fetchPublicationTrend(
+        keyword: keyword,
+        fromYear: selectedFromYear,
+        toYear: selectedToYear,
+      );
+
+      if (mounted) {
+        setState(() {
+          fetchedTrendData = result;
+          isLoadingTrend = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          hasErrorTrend = true;
+          isLoadingTrend = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadInfluentialPapers({int? limit}) async {
@@ -217,10 +265,102 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
                     AnalyticsChartCard(
                       title:
                           'Publication Trend: ${provider.currentTopic.isNotEmpty ? provider.currentTopic : "Topic"}',
-                      dropdownText: 'Yearly',
-                      child: PublicationTrendLineChart(
-                        data: provider.publicationCountByYear,
+                      customDropdown: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          DropdownButton<int>(
+                            value: selectedFromYear,
+                            underline: const SizedBox.shrink(),
+                            items: List.generate(
+                              DateTime.now().year - 1990 + 1,
+                              (index) {
+                                final year = 1990 + index;
+                                return DropdownMenuItem(
+                                  value: year,
+                                  child: Text('$year'),
+                                );
+                              },
+                            ),
+                            onChanged: (value) async {
+                              if (value == null) return;
+                              setState(() {
+                                selectedFromYear = value;
+                                if (selectedFromYear > selectedToYear) {
+                                  selectedToYear = selectedFromYear;
+                                }
+                              });
+                              await _loadPublicationTrend();
+                            },
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 6),
+                            child: Text('to'),
+                          ),
+                          DropdownButton<int>(
+                            value: selectedToYear,
+                            underline: const SizedBox.shrink(),
+                            items: List.generate(
+                              DateTime.now().year - 1990 + 1,
+                              (index) {
+                                final year = 1990 + index;
+                                return DropdownMenuItem(
+                                  value: year,
+                                  child: Text('$year'),
+                                );
+                              },
+                            ),
+                            onChanged: (value) async {
+                              if (value == null) return;
+                              setState(() {
+                                selectedToYear = value;
+                                if (selectedToYear < selectedFromYear) {
+                                  selectedFromYear = selectedToYear;
+                                }
+                              });
+                              await _loadPublicationTrend();
+                            },
+                          ),
+                        ],
                       ),
+                      child: isLoadingTrend
+                          ? const SizedBox(
+                              height: 300,
+                              child: Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            )
+                          : hasErrorTrend
+                          ? SizedBox(
+                              height: 300,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text(
+                                      'Failed to load publication trend.',
+                                    ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: _loadPublicationTrend,
+                                      child: const Text('Retry'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : (fetchedTrendData == null ||
+                                  fetchedTrendData!.isEmpty)
+                          ? const SizedBox(
+                              height: 300,
+                              child: Center(
+                                child: Text(
+                                  'No publication trend data available.',
+                                ),
+                              ),
+                            )
+                          : PublicationTrendLineChart(
+                              data: fetchedTrendData!,
+                            ),
                     ),
                     const SizedBox(height: 16),
                     AnalyticsChartCard(
