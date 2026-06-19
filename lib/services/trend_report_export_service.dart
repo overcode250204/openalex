@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:path_provider/path_provider.dart';
+
 import '../models/publication.dart';
 import '../models/trend_report_snapshot.dart';
 
@@ -11,8 +13,6 @@ class TrendReportExportResult {
 }
 
 class TrendReportExportService {
-  static const String preferredExportDirectoryPath = r'D:\FPT\Ki8\PRM392';
-
   const TrendReportExportService();
 
   Future<TrendReportExportResult> exportMarkdownReport(
@@ -195,9 +195,17 @@ class TrendReportExportService {
   }
 
   static Future<Directory> _resolveExportDirectory() async {
-    final preferredDirectory = Directory(preferredExportDirectoryPath);
+    Directory? baseDirectory;
+    if (Platform.isAndroid) {
+      baseDirectory = await getExternalStorageDirectory();
+    }
+    baseDirectory ??= await getApplicationDocumentsDirectory();
 
-    return preferredDirectory.create(recursive: true);
+    final exportDirectory = Directory(
+      '${baseDirectory.path}${Platform.pathSeparator}OpenAlexReports',
+    );
+
+    return exportDirectory.create(recursive: true);
   }
 
   static String _trendDirection(Map<int, int> data) {
