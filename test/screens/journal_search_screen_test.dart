@@ -10,6 +10,18 @@ import 'package:provider/provider.dart';
 // ---------------------------------------------------------------------------
 // Fakes
 // ---------------------------------------------------------------------------
+import 'package:openalex/services/suggestion_service.dart';
+import 'package:openalex/models/journal_suggestion.dart';
+
+class _FakeSuggestionService extends SuggestionService {
+  final List<JournalSuggestion> suggestions;
+  _FakeSuggestionService({this.suggestions = const []});
+
+  @override
+  Future<List<JournalSuggestion>> fetchJournalSuggestions(String query) async {
+    return suggestions;
+  }
+}
 
 class _FakeJournalService extends OpenAlexJournalService {
   final List<JournalSource> journalResults;
@@ -70,7 +82,41 @@ Widget _buildScreen(JournalSearchProvider provider) {
 
 void main() {
   group('JournalSearchScreen initial state', () {
-    testWidgets('renders search field pre-filled with IEEE Access', (
+    testWidgets('typing in search field shows suggestions', (tester) async {
+      final provider = JournalSearchProvider(
+        _FakeJournalService(),
+        suggestionService: _FakeSuggestionService(
+          suggestions: [
+            JournalSuggestion(
+              id: '1',
+              shortId: 'S1',
+              displayName: 'Nature',
+              worksCount: 100,
+            ),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(_buildScreen(provider));
+
+      final searchField = find.byType(TextField);
+      await tester.enterText(searchField, 'Nat');
+
+      // Wait for debounce and state update
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nature'), findsOneWidget);
+
+      // Tap suggestion
+      await tester.tap(find.text('Nature'));
+      await tester.pumpAndSettle();
+
+      // Field is populated
+      expect(find.widgetWithText(TextField, 'Nature'), findsOneWidget);
+    });
+
+    testWidgets('renders search results correctly after searching', (
       tester,
     ) async {
       final provider = JournalSearchProvider(

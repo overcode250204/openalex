@@ -7,6 +7,47 @@ import 'package:openalex/services/openalex_keyword_service.dart';
 
 void main() {
   group('OpenAlexKeywordService', () {
+    test('fetchKeywordTrend fills missing years with zero', () async {
+      Uri? requestedUri;
+      final service = OpenAlexKeywordService(
+        client: MockClient((request) async {
+          requestedUri = request.url;
+          return http.Response(
+            jsonEncode({
+              'group_by': [
+                {'key': '2019', 'count': 10},
+                {'key': '2021', 'count': 5},
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+
+      final trend = await service.fetchKeywordTrend(
+        keyword: 'AI',
+        fromYear: 2018,
+        toYear: 2022,
+      );
+
+      expect(requestedUri?.queryParameters['search'], 'AI');
+      expect(
+        requestedUri?.queryParameters['filter'],
+        'publication_year:2018-2022',
+      );
+      expect(trend.length, 5); // 2018, 2019, 2020, 2021, 2022
+      expect(trend[0].year, 2018);
+      expect(trend[0].count, 0);
+      expect(trend[1].year, 2019);
+      expect(trend[1].count, 10);
+      expect(trend[2].year, 2020);
+      expect(trend[2].count, 0);
+      expect(trend[3].year, 2021);
+      expect(trend[3].count, 5);
+      expect(trend[4].year, 2022);
+      expect(trend[4].count, 0);
+    });
+
     test(
       'fetchKeywordTrend uses keyword id filter and publication date limit',
       () async {

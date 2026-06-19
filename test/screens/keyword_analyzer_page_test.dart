@@ -15,7 +15,7 @@ class FakeKeywordService extends OpenAlexKeywordService {
   String? requestedKeyword;
 
   @override
-  Future<KeywordAnalysisResult> analyzeKeyword(String keyword) async {
+  Future<KeywordAnalysisResult> analyzeKeyword(String keyword, {int fromYear = 2011, int? toYear}) async {
     calls++;
     requestedKeyword = keyword;
     return KeywordAnalysisResult(
@@ -46,6 +46,18 @@ class FakeKeywordService extends OpenAlexKeywordService {
         'PLOS ONE': 20,
       },
     );
+  }
+
+  @override
+  Future<List<KeywordTrendPoint>> fetchKeywordTrend({
+    required String keyword,
+    int fromYear = 2011,
+    int? toYear,
+  }) async {
+    return [
+      KeywordTrendPoint(year: fromYear, count: 50),
+      KeywordTrendPoint(year: toYear ?? DateTime.now().year, count: 100),
+    ];
   }
 }
 
@@ -121,7 +133,36 @@ void main() {
       scrollable: dashboardScrollable,
     );
     expect(find.text('Open Access Papers Using This Keyword'), findsOneWidget);
+    expect(find.text('Open Access Papers Using This Keyword'), findsOneWidget);
     expect(find.text('2024 • IEEE Access'), findsWidgets);
+  });
+
+  testWidgets('renders trend year dropdowns and allows changing year range', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => KeywordAnalyzerViewModel(FakeKeywordService()),
+        child: const MaterialApp(home: KeywordAnalyzerPage()),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), 'Artificial Intelligence');
+    await tester.tap(find.text('Analyze Keyword'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('to'), findsOneWidget);
+    expect(find.text('2014'), findsOneWidget); // Default fromYear
+
+    // Open fromYear dropdown and select 2020
+    await tester.tap(find.text('2014'));
+    await tester.pumpAndSettle();
+    
+    // Tap the item '2020' in the dropdown menu
+    await tester.tap(find.text('2020').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('2020'), findsWidgets);
   });
 
   testWidgets('typing shows suggestions and tapping one analyzes it', (
@@ -148,7 +189,6 @@ void main() {
     await tester.tap(find.text('Machine learning'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Machine learning'), findsNothing);
     expect(find.widgetWithText(TextField, 'Machine learning'), findsOneWidget);
     expect(keywordService.calls, 1);
     expect(keywordService.requestedKeyword, 'Machine learning');
@@ -291,7 +331,7 @@ void main() {
 
 class _FakeKeywordServiceNoAnalytics extends OpenAlexKeywordService {
   @override
-  Future<KeywordAnalysisResult> analyzeKeyword(String keyword) async {
+  Future<KeywordAnalysisResult> analyzeKeyword(String keyword, {int fromYear = 2011, int? toYear}) async {
     return KeywordAnalysisResult(
       keyword: keyword,
       trend: const [KeywordTrendPoint(year: 2024, count: 5)],

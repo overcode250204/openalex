@@ -3,6 +3,8 @@ import 'package:openalex/models/journal/journal_publication.dart';
 import 'package:openalex/models/journal/journal_source.dart';
 import 'package:openalex/providers/journal_search_provider.dart';
 import 'package:openalex/services/openalex_journal_service.dart';
+import 'package:openalex/services/suggestion_service.dart';
+import 'package:openalex/models/journal_suggestion.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -54,6 +56,17 @@ class _FakeJournalService extends OpenAlexJournalService {
   }
 }
 
+class _FakeSuggestionService extends SuggestionService {
+  final List<JournalSuggestion> mockSuggestions;
+
+  _FakeSuggestionService({this.mockSuggestions = const []});
+
+  @override
+  Future<List<JournalSuggestion>> fetchJournalSuggestions(String query) async {
+    return mockSuggestions;
+  }
+}
+
 JournalSource _source({String id = 'S1', String name = 'IEEE Access'}) {
   return JournalSource(
     id: 'https://openalex.org/$id',
@@ -95,12 +108,15 @@ JournalPublication _publication(String id) {
 void main() {
   group('JournalSearchProvider initial state', () {
     test('has correct defaults', () {
-      final provider = JournalSearchProvider(_FakeJournalService());
+      final provider = JournalSearchProvider(_FakeJournalService(), suggestionService: _FakeSuggestionService());
 
       expect(provider.searchQuery, '');
       expect(provider.journals, isEmpty);
       expect(provider.selectedJournal, isNull);
       expect(provider.publications, isEmpty);
+      expect(provider.journalSuggestions, isEmpty);
+      expect(provider.showJournalSuggestions, isFalse);
+      expect(provider.isLoadingJournalSuggestions, isFalse);
       expect(provider.highestCitedPaper, isNull);
       expect(provider.selectedPublication, isNull);
       expect(provider.isSearchingJournals, isFalse);
@@ -309,6 +325,53 @@ void main() {
       expect(provider.hasMorePublications, isTrue);
       expect(provider.errorMessage, isNull);
       expect(notified, isTrue);
+    });
+  });
+
+  group('JournalSearchProvider journal suggestions', () {
+    test('onJournalQueryChanged fetches suggestions and shows them', () async {
+      final mockSuggestions = [
+        JournalSuggestion(id: '1', shortId: '1', displayName: 'Nature', worksCount: 100),
+      ];
+      final provider = JournalSearchProvider(
+        _FakeJournalService(),
+        suggestionService: _FakeSuggestionService(mockSuggestions: mockSuggestions),
+      );
+
+      provider.onJournalQueryChanged('Nature');
+
+      // Wait for debounce 300ms
+      await Future.delayed(const Duration(milliseconds: 350));
+
+      expect(provider.journalSuggestions.length, 1);
+      expect(provider.showJournalSuggestions, isTrue);
+      expect(provider.journalSuggestions.first.displayName, 'Nature');
+    });
+
+    test('onJournalQueryChanged hides suggestions if query is short', () async {
+      final provider = JournalSearchProvider(
+        _FakeJournalService(),
+        suggestionService: _FakeSuggestionService(),
+      );
+
+      provider.onJournalQueryChanged('a');
+
+      // Wait for debounce 300ms
+      await Future.delayed(const Duration(milliseconds: 350));
+
+      expect(provider.journalSuggestions, isEmpty);
+      expect(provider.showJournalSuggestions, isFalse);
+    });
+
+    test('hideSuggestions sets showJournalSuggestions to false', () {
+      final provider = JournalSearchProvider(
+        _FakeJournalService(),
+        suggestionService: _FakeSuggestionService(),
+      );
+
+      provider.hideSuggestions();
+
+      expect(provider.showJournalSuggestions, isFalse);
     });
   });
 }

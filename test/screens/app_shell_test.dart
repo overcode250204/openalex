@@ -55,7 +55,7 @@ class _FakeJournalService extends OpenAlexJournalService {
 
 class _FakeKeywordService extends OpenAlexKeywordService {
   @override
-  Future<KeywordAnalysisResult> analyzeKeyword(String keyword) async {
+  Future<KeywordAnalysisResult> analyzeKeyword(String keyword, {int fromYear = 2011, int? toYear}) async {
     return KeywordAnalysisResult(
       keyword: keyword,
       trend: const [KeywordTrendPoint(year: 2024, count: 1)],

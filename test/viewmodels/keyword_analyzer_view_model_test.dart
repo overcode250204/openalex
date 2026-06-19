@@ -15,7 +15,7 @@ class FakeKeywordService extends OpenAlexKeywordService {
   int calls = 0;
 
   @override
-  Future<KeywordAnalysisResult> analyzeKeyword(String keyword) async {
+  Future<KeywordAnalysisResult> analyzeKeyword(String keyword, {int fromYear = 2011, int? toYear}) async {
     calls++;
     requestedKeyword = keyword;
 
@@ -24,6 +24,19 @@ class FakeKeywordService extends OpenAlexKeywordService {
     }
 
     return result ?? sampleResult(keyword);
+  }
+
+  @override
+  Future<List<KeywordTrendPoint>> fetchKeywordTrend({
+    required String keyword,
+    int fromYear = 2011,
+    int? toYear,
+  }) async {
+    if (error != null) throw error!;
+    return [
+      KeywordTrendPoint(year: fromYear, count: 10),
+      KeywordTrendPoint(year: toYear ?? DateTime.now().year, count: 20),
+    ];
   }
 }
 
@@ -168,10 +181,41 @@ void main() {
 
       viewModel.onQueryChanged('ai');
       await Future<void>.delayed(const Duration(milliseconds: 400));
-      viewModel.clear();
-
+      expect(viewModel.result, isNull);
       expect(viewModel.keywordSuggestions, isEmpty);
       expect(viewModel.showKeywordSuggestions, isFalse);
+      expect(viewModel.isLoadingTrend, isFalse);
+      expect(viewModel.hasTrendError, isFalse);
+    });
+
+    test('updateKeywordTrendYearRange swaps if from > to and calls reload', () async {
+      final service = FakeKeywordService(result: sampleResult('AI'));
+      final viewModel = KeywordAnalyzerViewModel(service);
+
+      await viewModel.analyze('AI');
+      
+      await viewModel.updateKeywordTrendYearRange(fromYear: 2022, toYear: 2020);
+      
+      expect(viewModel.selectedFromYear, 2020);
+      expect(viewModel.selectedToYear, 2022);
+      expect(viewModel.result?.trend.length, 2);
+      expect(viewModel.result?.trend.first.year, 2020);
+      expect(viewModel.result?.trend.last.year, 2022);
+    });
+
+    test('reloadKeywordTrend sets error on failure', () async {
+      final service = FakeKeywordService(result: sampleResult('AI'));
+      final viewModel = KeywordAnalyzerViewModel(service);
+
+      await viewModel.analyze('AI');
+      
+      // Simulate failure
+      service.error = Exception('Network error');
+      
+      await viewModel.reloadKeywordTrend();
+      
+      expect(viewModel.hasTrendError, isTrue);
+      expect(viewModel.isLoadingTrend, isFalse);
     });
   });
 }
