@@ -1,15 +1,23 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/journal/journal_publication.dart';
 import '../models/journal/journal_source.dart';
+import '../models/journal_suggestion.dart';
 import '../services/openalex_journal_service.dart';
+import '../services/suggestion_service.dart';
 
 class JournalSearchProvider extends ChangeNotifier {
   static const int publicationsPerPage = 20;
 
   final OpenAlexJournalService _service;
+  final SuggestionService _suggestionService;
 
-  JournalSearchProvider(this._service);
+  JournalSearchProvider(
+    this._service, {
+    SuggestionService? suggestionService,
+  }) : _suggestionService = suggestionService ?? SuggestionService();
 
   String _searchQuery = '';
   List<JournalSource> _journals = [];
@@ -23,6 +31,12 @@ class JournalSearchProvider extends ChangeNotifier {
   bool _isLoadingHighestCited = false;
   String? _errorMessage;
   int _currentPage = 1;
+
+  // ── Journal suggestion state ──────────────────────────────────────────────
+  Timer? _debounce;
+  List<JournalSuggestion> _journalSuggestions = [];
+  bool _showJournalSuggestions = false;
+  bool _isLoadingJournalSuggestions = false;
   bool _hasMorePublications = true;
 
   String get searchQuery => _searchQuery;
@@ -38,6 +52,10 @@ class JournalSearchProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   int get currentPage => _currentPage;
   bool get hasMorePublications => _hasMorePublications;
+
+  List<JournalSuggestion> get journalSuggestions => _journalSuggestions;
+  bool get showJournalSuggestions => _showJournalSuggestions;
+  bool get isLoadingJournalSuggestions => _isLoadingJournalSuggestions;
 
   Future<void> searchJournals(String query) async {
     final trimmedQuery = query.trim();
@@ -176,5 +194,55 @@ class JournalSearchProvider extends ChangeNotifier {
     _hasMorePublications = true;
     _errorMessage = null;
     notifyListeners();
+  }
+
+  // ── Journal suggestion methods ────────────────────────────────────────────
+
+  void onJournalQueryChanged(String query) {
+    _debounce?.cancel();
+
+    final trimmedQuery = query.trim();
+
+    if (trimmedQuery.isEmpty) {
+      _journalSuggestions = [];
+      _showJournalSuggestions = false;
+      _isLoadingJournalSuggestions = false;
+      notifyListeners();
+      return;
+    }
+
+    _showJournalSuggestions = true;
+    _isLoadingJournalSuggestions = true;
+    notifyListeners();
+
+    _debounce = Timer(const Duration(milliseconds: 350), () async {
+      try {
+        _journalSuggestions =
+            await _suggestionService.fetchJournalSuggestions(trimmedQuery);
+      } catch (_) {
+        _journalSuggestions = [];
+      }
+
+      _isLoadingJournalSuggestions = false;
+      notifyListeners();
+    });
+  }
+
+  void hideJournalSuggestions() {
+    _showJournalSuggestions = false;
+    notifyListeners();
+  }
+
+  void clearJournalSuggestions() {
+    _journalSuggestions = [];
+    _showJournalSuggestions = false;
+    _isLoadingJournalSuggestions = false;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
   }
 }

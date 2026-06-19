@@ -7,6 +7,7 @@ import '../../providers/journal_search_provider.dart';
 import '../../widgets/journal/highest_cited_paper_card.dart';
 import '../../widgets/journal/journal_publication_card.dart';
 import '../../widgets/journal/journal_source_card.dart';
+import '../../widgets/search/journal_suggestion_dropdown.dart';
 import 'journal_publication_detail_screen.dart';
 
 String _formatCount(int n) {
@@ -43,9 +44,9 @@ class _JournalSearchScreenState extends State<JournalSearchScreen> {
 
   Future<void> _search() async {
     FocusScope.of(context).unfocus();
-    await context.read<JournalSearchProvider>().searchJournals(
-      _queryController.text,
-    );
+    final provider = context.read<JournalSearchProvider>();
+    provider.hideJournalSuggestions();
+    await provider.searchJournals(_queryController.text);
   }
 
   void _openPublication(JournalPublication publication) {
@@ -146,7 +147,25 @@ class _JournalSearchView extends StatelessWidget {
           controller: queryController,
           isLoading: provider.isSearchingJournals,
           onSearch: onSearch,
+          onChanged: provider.onJournalQueryChanged,
+          onSubmitted: (_) {
+            provider.hideJournalSuggestions();
+            if (!provider.isSearchingJournals) onSearch();
+          },
         ),
+        // Journal suggestion dropdown
+        if (provider.showJournalSuggestions)
+          JournalSuggestionDropdown(
+            isLoading: provider.isLoadingJournalSuggestions,
+            suggestions: provider.journalSuggestions,
+            onSelected: (journal) {
+              queryController.text = journal.displayName;
+              provider.hideJournalSuggestions();
+              FocusScope.of(context).unfocus();
+              // Search by display name so provider resolves the full source
+              provider.searchJournals(journal.displayName);
+            },
+          ),
         const SizedBox(height: 16),
         if (provider.errorMessage != null) ...[
           _InfoBanner(message: provider.errorMessage!, isError: true),
@@ -442,11 +461,15 @@ class _SearchBar extends StatelessWidget {
   final TextEditingController controller;
   final bool isLoading;
   final VoidCallback onSearch;
+  final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
 
   const _SearchBar({
     required this.controller,
     required this.isLoading,
     required this.onSearch,
+    this.onChanged,
+    this.onSubmitted,
   });
 
   @override
@@ -467,7 +490,8 @@ class _SearchBar extends StatelessWidget {
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.search),
               ),
-              onSubmitted: (_) {
+              onChanged: onChanged,
+              onSubmitted: onSubmitted ?? (_) {
                 if (!isLoading) onSearch();
               },
             ),
