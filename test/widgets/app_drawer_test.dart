@@ -31,18 +31,14 @@ void main() {
       await tester.pumpWidget(buildDrawer());
 
       expect(find.text('Home'), findsOneWidget);
-      // Journal, Keywords, Profile groups are collapsed initially
       expect(find.text('Journal'), findsOneWidget);
       expect(find.text('Keywords'), findsOneWidget);
-      expect(find.text('Profile'), findsOneWidget);
     });
 
     testWidgets('Home group is expanded and shows nav items', (tester) async {
       await tester.pumpWidget(buildDrawer());
 
-      // The Home group is always expanded initially
       expect(find.text('Search Topic'), findsOneWidget);
-      expect(find.text('Recent Searches'), findsOneWidget);
     });
   });
 
@@ -59,17 +55,7 @@ void main() {
       expect(selected, AppPage.searchTopic);
     });
 
-    testWidgets('tapping Recent Searches triggers callback', (tester) async {
-      AppPage? selected;
-      await tester.pumpWidget(buildDrawer(
-        onPageSelected: (page) => selected = page,
-      ));
 
-      await tester.tap(find.text('Recent Searches'));
-      await tester.pump();
-
-      expect(selected, AppPage.recentSearches);
-    });
 
     testWidgets('Search Topic item is active when selectedPage is home',
         (tester) async {
@@ -98,8 +84,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Search Journal'), findsOneWidget);
-      expect(find.text('Publications'), findsOneWidget);
-      expect(find.text('Details'), findsOneWidget);
     });
 
     testWidgets('Keywords group expands on tap', (tester) async {
@@ -109,7 +93,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Trends'), findsOneWidget);
-      expect(find.text('Authors'), findsOneWidget);
     });
 
     testWidgets('Journal group is pre-expanded when selectedPage is journals',

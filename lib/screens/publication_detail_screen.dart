@@ -219,9 +219,7 @@ class _ActionButtons extends StatelessWidget {
 
   Future<void> _launch(String url) async {
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
       launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
   }
 }
 

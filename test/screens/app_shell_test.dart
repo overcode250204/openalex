@@ -167,21 +167,6 @@ void main() {
       expect(find.text('Search Journal'), findsWidgets);
     });
 
-    testWidgets('navigates to ImplementingPage for Recent Searches',
-        (tester) async {
-      await tester.pumpWidget(_appShellWidget());
-      await tester.pump();
-
-      final ScaffoldState scaffold =
-          tester.state<ScaffoldState>(find.byType(Scaffold).first);
-      scaffold.openDrawer();
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Recent Searches'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Recent Searches'), findsWidgets);
-    });
   });
 
   group('AppShell – selectedPage enum coverage', () {

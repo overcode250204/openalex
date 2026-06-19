@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/app_page.dart';
 import '../widgets/app_drawer.dart';
-import 'implementing_page.dart';
 import 'journal/journal_search_screen.dart';
 import 'keyword_analyzer_page.dart';
 import 'trend_analyzer_home_page.dart';
@@ -35,51 +34,21 @@ class _AppShellState extends State<AppShell> {
           onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
         );
 
-      case AppPage.recentSearches:
-        return ImplementingPage(
-          title: 'Recent Searches',
-          onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
-        );
 
-      case AppPage.publications:
-        return ImplementingPage(
-          title: 'Publications',
-          onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
-        );
-
-      case AppPage.details:
-        return ImplementingPage(
-          title: 'Journal Details',
-          onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
-        );
 
       case AppPage.trends:
         return KeywordAnalyzerPage(
           onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
         );
 
-      case AppPage.authors:
-        return ImplementingPage(
-          title: 'Authors',
-          onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
-        );
+
 
       case AppPage.journals:
         return JournalSearchScreen(
           onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
         );
 
-      case AppPage.settings:
-        return ImplementingPage(
-          title: 'Settings',
-          onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
-        );
 
-      case AppPage.about:
-        return ImplementingPage(
-          title: 'About',
-          onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
-        );
     }
   }
 

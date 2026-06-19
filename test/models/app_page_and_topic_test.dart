@@ -9,18 +9,12 @@ void main() {
 
       expect(allValues, contains(AppPage.home));
       expect(allValues, contains(AppPage.searchTopic));
-      expect(allValues, contains(AppPage.recentSearches));
-      expect(allValues, contains(AppPage.publications));
-      expect(allValues, contains(AppPage.details));
       expect(allValues, contains(AppPage.trends));
-      expect(allValues, contains(AppPage.authors));
       expect(allValues, contains(AppPage.journals));
-      expect(allValues, contains(AppPage.settings));
-      expect(allValues, contains(AppPage.about));
     });
 
-    test('has exactly 10 values', () {
-      expect(AppPage.values.length, 10);
+    test('has exactly 4 values', () {
+      expect(AppPage.values.length, 4);
     });
 
     test('supports equality comparison', () {

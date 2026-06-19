@@ -128,6 +128,8 @@ class OpenAlexService {
       });
       final res = await http.get(uri);
 
+      print(uri);
+
       if (res.statusCode != 200) {
         throw Exception(
           'OpenAlex request failed with status code ${res.statusCode}',

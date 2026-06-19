@@ -85,15 +85,6 @@ class AppDrawer extends StatelessWidget {
                         mutedColor: mutedColor,
                         textColor: textColor,
                       ),
-                      _buildNavItem(
-                        title: 'Recent Searches',
-                        icon: Icons.history,
-                        page: AppPage.recentSearches,
-                        primaryColor: primaryColor,
-                        activeBgColor: activeBgColor,
-                        mutedColor: mutedColor,
-                        textColor: textColor,
-                      ),
                     ],
                     textColor: textColor,
                     mutedColor: mutedColor,
@@ -104,8 +95,6 @@ class AppDrawer extends StatelessWidget {
                     title: 'Journal',
                     icon: Icons.menu_book_outlined,
                     initiallyExpanded:
-                        selectedPage == AppPage.publications ||
-                        selectedPage == AppPage.details ||
                         selectedPage == AppPage.journals,
                     children: [
                       _buildNavItem(
@@ -117,24 +106,7 @@ class AppDrawer extends StatelessWidget {
                         mutedColor: mutedColor,
                         textColor: textColor,
                       ),
-                      _buildNavItem(
-                        title: 'Publications',
-                        icon: Icons.article_outlined,
-                        page: AppPage.publications,
-                        primaryColor: primaryColor,
-                        activeBgColor: activeBgColor,
-                        mutedColor: mutedColor,
-                        textColor: textColor,
-                      ),
-                      _buildNavItem(
-                        title: 'Details',
-                        icon: Icons.bar_chart,
-                        page: AppPage.details,
-                        primaryColor: primaryColor,
-                        activeBgColor: activeBgColor,
-                        mutedColor: mutedColor,
-                        textColor: textColor,
-                      ),
+
                     ],
                     textColor: textColor,
                     mutedColor: mutedColor,
@@ -145,8 +117,7 @@ class AppDrawer extends StatelessWidget {
                     title: 'Keywords',
                     icon: Icons.local_offer_outlined,
                     initiallyExpanded:
-                        selectedPage == AppPage.trends ||
-                        selectedPage == AppPage.authors,
+                        selectedPage == AppPage.trends,
                     children: [
                       _buildNavItem(
                         title: 'Trends',
@@ -157,46 +128,7 @@ class AppDrawer extends StatelessWidget {
                         mutedColor: mutedColor,
                         textColor: textColor,
                       ),
-                      _buildNavItem(
-                        title: 'Authors',
-                        icon: Icons.person_outline,
-                        page: AppPage.authors,
-                        primaryColor: primaryColor,
-                        activeBgColor: activeBgColor,
-                        mutedColor: mutedColor,
-                        textColor: textColor,
-                      ),
-                    ],
-                    textColor: textColor,
-                    mutedColor: mutedColor,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildNavGroup(
-                    context: context,
-                    title: 'Profile',
-                    icon: Icons.person_outline,
-                    initiallyExpanded:
-                        selectedPage == AppPage.settings ||
-                        selectedPage == AppPage.about,
-                    children: [
-                      _buildNavItem(
-                        title: 'Settings',
-                        icon: Icons.settings_outlined,
-                        page: AppPage.settings,
-                        primaryColor: primaryColor,
-                        activeBgColor: activeBgColor,
-                        mutedColor: mutedColor,
-                        textColor: textColor,
-                      ),
-                      _buildNavItem(
-                        title: 'About',
-                        icon: Icons.info_outline,
-                        page: AppPage.about,
-                        primaryColor: primaryColor,
-                        activeBgColor: activeBgColor,
-                        mutedColor: mutedColor,
-                        textColor: textColor,
-                      ),
+
                     ],
                     textColor: textColor,
                     mutedColor: mutedColor,

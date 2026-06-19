@@ -101,11 +101,11 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
               Wrap(
                 spacing: 8,
                 children: [
-                  _sortChip('Liên quan', SortOption.relevance),
-                  _sortChip('Trích dẫn ↓', SortOption.citedDesc),
-                  _sortChip('Trích dẫn ↑', SortOption.citedAsc),
-                  _sortChip('Năm mới nhất', SortOption.yearDesc),
-                  _sortChip('Năm cũ nhất', SortOption.yearAsc),
+                  _sortChip('Relevance', SortOption.relevance),
+                  _sortChip('Cited (Desc)', SortOption.citedDesc),
+                  _sortChip('Cited (Asc)', SortOption.citedAsc),
+                  _sortChip('Year (Desc)', SortOption.yearDesc),
+                  _sortChip('Year (Asc)', SortOption.yearAsc),
                 ],
               ),
               const SizedBox(height: 16),
