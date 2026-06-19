@@ -1,35 +1,67 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/models/publication.dart';
 import 'package:openalex/providers/publication_provider.dart';
+import 'package:openalex/services/history_service.dart';
 import 'package:openalex/services/openalex_service.dart';
+import 'package:openalex/services/suggestion_service.dart';
 
 class FakeOpenAlexService extends OpenAlexService {
-  FakeOpenAlexService({this.results = const [], this.error});
+  FakeOpenAlexService({this.results = const [], this.error, this.total = 0});
 
   final List<Publication> results;
+  int total;
   final Object? error;
   String? requestedKeyword;
   int? requestedFromYear;
   int? requestedToYear;
 
   @override
-  Future<List<Publication>> searchPublications({
+  Future<(int total, List<Publication> publications)> searchPublications({
     required String keyword,
     int perPage = 50,
     String sort = 'cited_by_count:desc',
-    int? fromYear,
-    int? toYear,
+    List<String>? topicIds
   }) async {
     requestedKeyword = keyword;
-    requestedFromYear = fromYear;
-    requestedToYear = toYear;
 
     if (error != null) {
       throw error!;
     }
 
-    return results;
+    return (total, results);
   }
+
+  
+}
+
+class FakeSearchHistoryService extends SearchHistoryService {
+  final List<String> _history = [];
+
+  @override
+  Future<void> addHistory(String keyword) async {
+    _history.remove(keyword);
+    _history.insert(0, keyword);
+  }
+
+  @override
+  Future<List<String>> getHistory() async {
+    return List<String>.from(_history);
+  }
+}
+
+class FakeSuggestionService extends SuggestionService {
+  @override
+  Future<List<String>> fetchRelatedKeywords(String keyword) async {
+    return [];
+  }
+}
+
+PublicationProvider testProvider(OpenAlexService service) {
+  return PublicationProvider(
+    service,
+    historyService: FakeSearchHistoryService(),
+    suggestionService: FakeSuggestionService(),
+  );
 }
 
 Publication publication({
@@ -48,13 +80,16 @@ Publication publication({
     doi: null,
     abstractText: null,
     authors: authors,
+    referencedWorkIds: List.empty(),
+    relatedWorkIds: List.empty(),
+    oaUrl: ""
   );
 }
 
 void main() {
   test('rejects empty search term without calling the service', () async {
     final service = FakeOpenAlexService();
-    final provider = PublicationProvider(service);
+    final provider = testProvider(service);
     var notifications = 0;
     provider.addListener(() => notifications++);
 
@@ -93,19 +128,15 @@ void main() {
         ),
       ],
     );
-    final provider = PublicationProvider(service);
+    final provider = testProvider(service);
     final loadingStates = <bool>[];
     provider.addListener(() => loadingStates.add(provider.isLoading));
 
     await provider.searchPublications(
       keyword: '  AI  ',
-      fromYear: 2020,
-      toYear: 2024,
     );
 
     expect(service.requestedKeyword, '  AI  ');
-    expect(service.requestedFromYear, 2020);
-    expect(service.requestedToYear, 2024);
     expect(loadingStates, [true, false]);
     expect(provider.currentTopic, 'AI');
     expect(provider.errorMessage, isNull);
@@ -128,7 +159,7 @@ void main() {
   test(
     'clears publications and exposes friendly message on service failure',
     () async {
-      final provider = PublicationProvider(
+      final provider = testProvider(
         FakeOpenAlexService(error: Exception('boom')),
       );
 
