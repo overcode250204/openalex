@@ -221,7 +221,7 @@ void main() {
       expect(find.text('Search history'), findsOneWidget);
 
       provider.hideSuggestions();
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.text('Search history'), findsNothing);
     });

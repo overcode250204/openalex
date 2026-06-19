@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/models/publication.dart';
 import 'package:openalex/providers/publication_provider.dart';
+import 'package:openalex/services/history_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
 import 'package:openalex/widgets/related_keyworks_bar.dart';
@@ -19,6 +20,17 @@ class _FakeOpenAlexService extends OpenAlexService {
     String sort = 'cited_by_count:desc',
     List<String>? topicIds,
   }) async => (0, <Publication>[]);
+
+  @override
+  Future<List<String>> getTopicIdsFromKeyword(String keyword) async => [];
+}
+
+class _FakeHistoryService extends SearchHistoryService {
+  @override
+  Future<void> addHistory(String keyword) async {}
+
+  @override
+  Future<List<String>> getHistory() async => [];
 }
 
 class _FakeSuggestionService extends SuggestionService {
@@ -51,6 +63,7 @@ void main() {
     testWidgets('shows nothing when relatedKeywords is empty', (tester) async {
       final provider = PublicationProvider(
         _FakeOpenAlexService(),
+        historyService: _FakeHistoryService(),
         suggestionService: _FakeSuggestionService(keywords: []),
       );
 
@@ -70,6 +83,7 @@ void main() {
       );
       final provider = PublicationProvider(
         _FakeOpenAlexService(),
+        historyService: _FakeHistoryService(),
         suggestionService: suggestionService,
       );
 
@@ -97,6 +111,7 @@ void main() {
       );
       final provider = PublicationProvider(
         _FakeOpenAlexService(),
+        historyService: _FakeHistoryService(),
         suggestionService: suggestionService,
       );
       await provider.searchPublications(keyword: 'AI');
