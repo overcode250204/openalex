@@ -178,20 +178,29 @@ void main() {
       viewModel.onQueryChanged('ai');
       await Future<void>.delayed(const Duration(milliseconds: 400));
 
+      expect(viewModel.keywordSuggestions, ['AI']);
+      expect(viewModel.showKeywordSuggestions, isTrue);
+
       await viewModel.analyze('AI');
 
+      expect(viewModel.result, isNotNull);
       expect(viewModel.keywordSuggestions, isEmpty);
       expect(viewModel.showKeywordSuggestions, isFalse);
 
       viewModel.onQueryChanged('ai');
       await Future<void>.delayed(const Duration(milliseconds: 400));
+
+      expect(viewModel.keywordSuggestions, ['AI']);
+      expect(viewModel.showKeywordSuggestions, isTrue);
+
+      viewModel.clear();
+
       expect(viewModel.result, isNull);
       expect(viewModel.keywordSuggestions, isEmpty);
       expect(viewModel.showKeywordSuggestions, isFalse);
       expect(viewModel.isLoadingTrend, isFalse);
       expect(viewModel.hasTrendError, isFalse);
     });
-
     test(
       'updateKeywordTrendYearRange swaps if from > to and calls reload',
       () async {

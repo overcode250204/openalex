@@ -18,27 +18,21 @@ class SearchSuggestionOverlay extends StatelessWidget {
     return Focus(
       child: Consumer<PublicationProvider>(
         builder: (context, provider, _) {
-          if (!provider.showSuggestions) return const SizedBox();
+          if (!provider.showSuggestions) {
+            return const SizedBox.shrink();
+          }
 
           final query = controller.text.trim();
           final hasHistory = provider.searchHistory.isNotEmpty;
           final hasSuggestions = provider.conceptSuggestions.isNotEmpty;
 
-          if (!hasHistory && !hasSuggestions) return const SizedBox();
+          if (!hasHistory && !hasSuggestions) {
+            return const SizedBox.shrink();
+          }
 
           return Container(
+            key: const Key('search_suggestion_overlay_content'),
             margin: const EdgeInsets.symmetric(horizontal: 8),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,6 +72,7 @@ class SearchSuggestionOverlay extends StatelessWidget {
                       onTap: () {
                         controller.text = h;
                         provider.hideSuggestions();
+                        onSearch?.call(null);
                         onSearch!(null);
                       },
                       onDelete: () => provider.removeHistory(h),

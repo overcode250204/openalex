@@ -144,6 +144,11 @@ void main() {
   testWidgets('renders trend year dropdowns and allows changing year range', (
     tester,
   ) async {
+    tester.view.physicalSize = const Size(1200, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(
       ChangeNotifierProvider(
         create: (_) => KeywordAnalyzerViewModel(FakeKeywordService()),
@@ -155,15 +160,22 @@ void main() {
     await tester.tap(find.text('Analyze Keyword'));
     await tester.pumpAndSettle();
 
-    expect(find.text('to'), findsOneWidget);
-    expect(find.text('2011'), findsOneWidget); // Default fromYear
-
-    // Open fromYear dropdown and select 2020
-    await tester.tap(find.text('2011'));
+    await tester.ensureVisible(find.text('Keyword Trend'));
     await tester.pumpAndSettle();
 
-    // Tap the item '2020' in the dropdown menu
-    await tester.tap(find.text('2020').last);
+    expect(find.text('Keyword Trend'), findsOneWidget);
+    expect(find.text('to'), findsOneWidget);
+    expect(find.text('2011'), findsOneWidget);
+
+    final dropdowns = find.byType(DropdownButton<int>);
+    expect(dropdowns, findsWidgets);
+
+    await tester.tap(dropdowns.first);
+    await tester.pumpAndSettle();
+
+    final year2020 = find.text('2020').last;
+    await tester.ensureVisible(year2020);
+    await tester.tap(year2020);
     await tester.pumpAndSettle();
 
     expect(find.text('2020'), findsWidgets);
