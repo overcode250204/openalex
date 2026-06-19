@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:openalex/providers/analytics_provider.dart';
 import 'package:openalex/providers/journal_search_provider.dart';
 import 'package:openalex/providers/publication_list_provider.dart';
 import 'package:openalex/providers/publication_provider.dart';
@@ -32,6 +33,8 @@ class MyApp extends StatelessWidget {
         ),
 
         ChangeNotifierProvider(create: (_) => PublicationListProvider()),
+
+        ChangeNotifierProvider(create: (_) => AnalyticsProvider()),
 
         ChangeNotifierProvider(create: (_) => PublicationDetailProvider()),
 
