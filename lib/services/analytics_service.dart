@@ -109,18 +109,20 @@ class AnalyticsService {
     final baseParams = filter.toQueryParams(keyword, []);
 
     // Kick off the group-by aggregations and the top-paper lookup concurrently.
-    final groupsFuture = Future.wait([
-      _fetchGroupBy(baseParams, 'publication_year'),
-      _fetchGroupBy(baseParams, 'concepts.id'),
-      _fetchGroupBy(baseParams, 'authorships.institutions.id'),
-      _fetchGroupBy(baseParams, 'authorships.countries'),
-      _fetchGroupBy(baseParams, 'primary_location.source.id'),
-      _fetchGroupBy(baseParams, 'authorships.author.id'),
+    final allFutures = await Future.wait([
+      Future.wait([
+        _fetchGroupBy(baseParams, 'publication_year'),
+        _fetchGroupBy(baseParams, 'concepts.id'),
+        _fetchGroupBy(baseParams, 'authorships.institutions.id'),
+        _fetchGroupBy(baseParams, 'authorships.countries'),
+        _fetchGroupBy(baseParams, 'primary_location.source.id'),
+        _fetchGroupBy(baseParams, 'authorships.author.id'),
+      ]),
+      _fetchTopPaper(baseParams),
     ]);
-    final topPaperFuture = _fetchTopPaper(baseParams);
 
-    final results = await groupsFuture;
-    final topPaper = await topPaperFuture;
+    final results = allFutures[0] as List<Map<String, int>>;
+    final topPaper = allFutures[1] as _TopPaper;
 
     // Convert year string keys → Map<int, int>, filter to last 35 years, sort ascending
     final currentYear = DateTime.now().year;

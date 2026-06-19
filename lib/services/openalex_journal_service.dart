@@ -108,7 +108,6 @@ class OpenAlexJournalService {
   ) async {
     final uri = Uri.https(host, path, queryParameters);
     final response = await _client.get(uri);
-    print(uri);
     if (response.statusCode != 200) {
       throw Exception(
         'OpenAlex request failed with status code ${response.statusCode}',
