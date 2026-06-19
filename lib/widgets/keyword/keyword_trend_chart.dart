@@ -3,27 +3,109 @@ import 'package:flutter/material.dart';
 
 import '../../core/utils/formatters.dart';
 import '../../models/keyword/keyword_trend_point.dart';
+import '../../viewmodels/keyword_analyzer_view_model.dart';
 import '../analytics_chart_card.dart';
 
 class KeywordTrendChart extends StatelessWidget {
-  final String keyword;
+  final KeywordAnalyzerViewModel viewModel;
   final List<KeywordTrendPoint> trend;
 
   const KeywordTrendChart({
     super.key,
-    required this.keyword,
+    required this.viewModel,
     required this.trend,
   });
 
   @override
   Widget build(BuildContext context) {
-    final chartData = KeywordTrendPoint.latestPoints(trend);
-
     return AnalyticsChartCard(
       title: 'Keyword Trend',
       subtitle: 'Number of papers with this keyword by publication year.',
-      dropdownText: 'Yearly',
-      child: _TrendLineChart(points: chartData),
+      customDropdown: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DropdownButton<int>(
+            value: viewModel.selectedFromYear,
+            underline: const SizedBox.shrink(),
+            items: List.generate(
+              DateTime.now().year - 1990 + 1,
+              (index) {
+                final year = 1990 + index;
+                return DropdownMenuItem(
+                  value: year,
+                  child: Text('$year'),
+                );
+              },
+            ),
+            onChanged: (value) async {
+              if (value == null) return;
+              final fromYear = value;
+              final toYear = viewModel.selectedToYear;
+              await viewModel.updateKeywordTrendYearRange(
+                fromYear: fromYear,
+                toYear: fromYear > toYear ? fromYear : toYear,
+              );
+            },
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 6),
+            child: Text('to'),
+          ),
+          DropdownButton<int>(
+            value: viewModel.selectedToYear,
+            underline: const SizedBox.shrink(),
+            items: List.generate(
+              DateTime.now().year - 1990 + 1,
+              (index) {
+                final year = 1990 + index;
+                return DropdownMenuItem(
+                  value: year,
+                  child: Text('$year'),
+                );
+              },
+            ),
+            onChanged: (value) async {
+              if (value == null) return;
+              final toYear = value;
+              final fromYear = viewModel.selectedFromYear;
+              await viewModel.updateKeywordTrendYearRange(
+                fromYear: toYear < fromYear ? toYear : fromYear,
+                toYear: toYear,
+              );
+            },
+          ),
+        ],
+      ),
+      child: viewModel.isLoadingTrend
+          ? const SizedBox(
+              height: 280,
+              child: Center(child: CircularProgressIndicator()),
+            )
+          : viewModel.hasTrendError
+          ? SizedBox(
+              height: 280,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('Failed to load keyword trend.'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: viewModel.reloadKeywordTrend,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : trend.isEmpty
+          ? const SizedBox(
+              height: 280,
+              child: Center(
+                child: Text('No keyword trend data available.'),
+              ),
+            )
+          : _TrendLineChart(points: trend),
     );
   }
 }

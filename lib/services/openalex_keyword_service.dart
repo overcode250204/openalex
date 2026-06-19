@@ -175,7 +175,11 @@ class OpenAlexKeywordService {
     return result;
   }
 
-  Future<KeywordAnalysisResult> analyzeKeyword(String keyword) async {
+  Future<KeywordAnalysisResult> analyzeKeyword(
+    String keyword, {
+    int fromYear = 2011,
+    int? toYear,
+  }) async {
     final trimmedKeyword = keyword.trim();
 
     final resolvedKeyword = await resolveKeyword(trimmedKeyword);
@@ -187,7 +191,11 @@ class OpenAlexKeywordService {
     final keywordId = resolvedKeyword.id;
 
     final results = await Future.wait([
-      fetchKeywordTrendByKeywordId(keywordId),
+      fetchKeywordTrend(
+        keyword: trimmedKeyword,
+        fromYear: fromYear,
+        toYear: toYear,
+      ),
       fetchRelevantPapersByKeywordId(keywordId),
       fetchMostCitedPapersByKeywordId(keywordId),
       fetchLatestPapersByKeywordId(keywordId),
@@ -239,5 +247,65 @@ class OpenAlexKeywordService {
     }
 
     return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  Future<List<KeywordTrendPoint>> fetchKeywordTrend({
+    required String keyword,
+    int fromYear = 2011,
+    int? toYear,
+  }) async {
+    final trimmedKeyword = keyword.trim();
+
+    if (trimmedKeyword.isEmpty) {
+      return [];
+    }
+
+    final endYear = toYear ?? DateTime.now().year;
+
+    final uri = Uri.https(host, '/works', {
+      'search': trimmedKeyword,
+      'filter': 'publication_year:$fromYear-$endYear',
+      'group_by': 'publication_year',
+      'mailto': mailto,
+    });
+
+    final response = await _client.get(uri);
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'OpenAlex keyword trend request failed with status code ${response.statusCode}',
+      );
+    }
+
+    final Map<String, dynamic> body =
+        jsonDecode(response.body) as Map<String, dynamic>;
+
+    final List<dynamic> groups = body['group_by'] as List<dynamic>? ?? [];
+
+    final Map<int, int> trendMap = {};
+
+    for (final item in groups) {
+      final group = item as Map<String, dynamic>;
+
+      final year = int.tryParse(group['key']?.toString() ?? '');
+      final count = group['count'] as int? ?? 0;
+
+      if (year != null) {
+        trendMap[year] = count;
+      }
+    }
+
+    final List<KeywordTrendPoint> completedTrend = [];
+
+    for (int year = fromYear; year <= endYear; year++) {
+      completedTrend.add(
+        KeywordTrendPoint(
+          year: year,
+          count: trendMap[year] ?? 0,
+        ),
+      );
+    }
+
+    return completedTrend;
   }
 }

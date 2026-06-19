@@ -23,12 +23,74 @@ class KeywordAnalyzerViewModel extends ChangeNotifier {
   bool _showKeywordSuggestions = false;
   Timer? _debounce;
 
+  int _selectedFromYear = 2011;
+  int _selectedToYear = DateTime.now().year;
+  bool _isLoadingTrend = false;
+  bool _hasTrendError = false;
+
   String get keyword => _keyword;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   KeywordAnalysisResult? get result => _result;
   List<String> get keywordSuggestions => _keywordSuggestions;
   bool get showKeywordSuggestions => _showKeywordSuggestions;
+
+  int get selectedFromYear => _selectedFromYear;
+  int get selectedToYear => _selectedToYear;
+  bool get isLoadingTrend => _isLoadingTrend;
+  bool get hasTrendError => _hasTrendError;
+
+  Future<void> updateKeywordTrendYearRange({
+    required int fromYear,
+    required int toYear,
+  }) async {
+    _selectedFromYear = fromYear;
+    _selectedToYear = toYear;
+
+    if (_selectedFromYear > _selectedToYear) {
+      final temp = _selectedFromYear;
+      _selectedFromYear = _selectedToYear;
+      _selectedToYear = temp;
+    }
+
+    notifyListeners();
+
+    final trimmedKeyword = keyword.trim();
+
+    if (trimmedKeyword.isEmpty) {
+      return;
+    }
+
+    await reloadKeywordTrend();
+  }
+
+  Future<void> reloadKeywordTrend() async {
+    final trimmedKeyword = keyword.trim();
+
+    if (trimmedKeyword.isEmpty) {
+      return;
+    }
+
+    _isLoadingTrend = true;
+    _hasTrendError = false;
+    notifyListeners();
+
+    try {
+      final trend = await _service.fetchKeywordTrend(
+        keyword: trimmedKeyword,
+        fromYear: _selectedFromYear,
+        toYear: _selectedToYear,
+      );
+
+      _result = _result?.copyWith(trend: trend);
+      _isLoadingTrend = false;
+    } catch (_) {
+      _hasTrendError = true;
+      _isLoadingTrend = false;
+    }
+
+    notifyListeners();
+  }
 
   void onQueryChanged(String query) {
     _debounce?.cancel();
@@ -84,7 +146,11 @@ class KeywordAnalyzerViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _result = await _service.analyzeKeyword(trimmedKeyword);
+      _result = await _service.analyzeKeyword(
+        trimmedKeyword,
+        fromYear: _selectedFromYear,
+        toYear: _selectedToYear,
+      );
     } on KeywordNotFoundException catch (e) {
       _result = null;
       _errorMessage = e.message;
@@ -110,6 +176,8 @@ class KeywordAnalyzerViewModel extends ChangeNotifier {
     _result = null;
     _keywordSuggestions = [];
     _showKeywordSuggestions = false;
+    _isLoadingTrend = false;
+    _hasTrendError = false;
     notifyListeners();
   }
 

@@ -304,7 +304,10 @@ class _KeywordDashboardState extends State<_KeywordDashboard> {
             ],
             KeywordAnalysisSummary(result: result),
             const SizedBox(height: 16),
-            KeywordTrendChart(keyword: result.keyword, trend: result.trend),
+            KeywordTrendChart(
+              viewModel: context.read<KeywordAnalyzerViewModel>(),
+              trend: result.trend,
+            ),
             if (result.topAuthors.isNotEmpty) ...[
               const SizedBox(height: 16),
               AnalyticsChartCard(

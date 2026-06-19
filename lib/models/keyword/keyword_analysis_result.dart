@@ -50,4 +50,26 @@ class KeywordAnalysisResult {
       (a, b) => a.citedByCount >= b.citedByCount ? a : b,
     );
   }
+
+  KeywordAnalysisResult copyWith({
+    List<KeywordTrendPoint>? trend,
+    List<KeywordAnalysisPaper>? relevantPapers,
+    List<KeywordAnalysisPaper>? mostCitedPapers,
+    List<KeywordAnalysisPaper>? latestPapers,
+    List<KeywordAnalysisPaper>? openAccessPapers,
+    Map<String, int>? topAuthors,
+    Map<String, int>? topSources,
+  }) {
+    return KeywordAnalysisResult(
+      keyword: keyword,
+      resolvedKeyword: resolvedKeyword,
+      trend: trend ?? this.trend,
+      relevantPapers: relevantPapers ?? this.relevantPapers,
+      mostCitedPapers: mostCitedPapers ?? this.mostCitedPapers,
+      latestPapers: latestPapers ?? this.latestPapers,
+      openAccessPapers: openAccessPapers ?? this.openAccessPapers,
+      topAuthors: topAuthors ?? this.topAuthors,
+      topSources: topSources ?? this.topSources,
+    );
+  }
 }
