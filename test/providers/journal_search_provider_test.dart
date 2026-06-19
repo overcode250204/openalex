@@ -108,7 +108,10 @@ JournalPublication _publication(String id) {
 void main() {
   group('JournalSearchProvider initial state', () {
     test('has correct defaults', () {
-      final provider = JournalSearchProvider(_FakeJournalService(), suggestionService: _FakeSuggestionService());
+      final provider = JournalSearchProvider(
+        _FakeJournalService(),
+        suggestionService: _FakeSuggestionService(),
+      );
 
       expect(provider.searchQuery, '');
       expect(provider.journals, isEmpty);
@@ -331,17 +334,19 @@ void main() {
   group('JournalSearchProvider journal suggestions', () {
     test('onJournalQueryChanged fetches suggestions and shows them', () async {
       final mockSuggestions = [
-        JournalSuggestion(id: '1', shortId: '1', displayName: 'Nature', worksCount: 100),
+        JournalSuggestion(id: '1', displayName: 'Nature', worksCount: 100),
       ];
       final provider = JournalSearchProvider(
         _FakeJournalService(),
-        suggestionService: _FakeSuggestionService(mockSuggestions: mockSuggestions),
+        suggestionService: _FakeSuggestionService(
+          mockSuggestions: mockSuggestions,
+        ),
       );
 
       provider.onJournalQueryChanged('Nature');
 
-      // Wait for debounce 300ms
-      await Future.delayed(const Duration(milliseconds: 350));
+      // Wait beyond the 350ms debounce window.
+      await Future.delayed(const Duration(milliseconds: 400));
 
       expect(provider.journalSuggestions.length, 1);
       expect(provider.showJournalSuggestions, isTrue);
@@ -356,20 +361,19 @@ void main() {
 
       provider.onJournalQueryChanged('a');
 
-      // Wait for debounce 300ms
-      await Future.delayed(const Duration(milliseconds: 350));
+      await Future.delayed(const Duration(milliseconds: 400));
 
       expect(provider.journalSuggestions, isEmpty);
       expect(provider.showJournalSuggestions, isFalse);
     });
 
-    test('hideSuggestions sets showJournalSuggestions to false', () {
+    test('hideJournalSuggestions sets showJournalSuggestions to false', () {
       final provider = JournalSearchProvider(
         _FakeJournalService(),
         suggestionService: _FakeSuggestionService(),
       );
 
-      provider.hideSuggestions();
+      provider.hideJournalSuggestions();
 
       expect(provider.showJournalSuggestions, isFalse);
     });

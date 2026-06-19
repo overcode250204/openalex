@@ -88,8 +88,7 @@ void main() {
         suggestionService: _FakeSuggestionService(
           suggestions: [
             JournalSuggestion(
-              id: '1',
-              shortId: 'S1',
+              id: 'https://openalex.org/S1',
               displayName: 'Nature',
               worksCount: 100,
             ),

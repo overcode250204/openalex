@@ -6,7 +6,10 @@ import '../models/publication.dart';
 enum ListType { related, citedBy, references }
 
 class PublicationListProvider extends ChangeNotifier {
-  final _service = OpenAlexService();
+  final OpenAlexService _service;
+
+  PublicationListProvider({OpenAlexService? service})
+    : _service = service ?? OpenAlexService();
 
   List<Publication> _items = [];
   bool _isLoading = false;

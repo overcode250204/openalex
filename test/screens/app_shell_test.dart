@@ -29,13 +29,12 @@ class _FakeOpenAlexService extends OpenAlexService {
     int perPage = 50,
     String sort = 'cited_by_count:desc',
     List<String>? topicIds,
-  }) async =>
-      (0, <Publication>[]);
+  }) async => (0, <Publication>[]);
 
   @override
   Future<(int, List<Publication>)> searchWithFilter(
-          Map<String, String> params) async =>
-      (0, <Publication>[]);
+    Map<String, String> params,
+  ) async => (0, <Publication>[]);
 }
 
 class _FakeJournalService extends OpenAlexJournalService {
@@ -43,19 +42,25 @@ class _FakeJournalService extends OpenAlexJournalService {
   Future<List<JournalSource>> searchJournals(String query) async => [];
 
   @override
-  Future<List<JournalPublication>> getJournalPublications(String sourceId,
-          {int page = 1, int perPage = 20}) async =>
-      [];
+  Future<List<JournalPublication>> getJournalPublications(
+    String sourceId, {
+    int page = 1,
+    int perPage = 20,
+  }) async => [];
 
   @override
   Future<JournalPublication?> getHighestCitedPublication(
-          String sourceId) async =>
-      null;
+    String sourceId,
+  ) async => null;
 }
 
 class _FakeKeywordService extends OpenAlexKeywordService {
   @override
-  Future<KeywordAnalysisResult> analyzeKeyword(String keyword, {int fromYear = 2011, int? toYear}) async {
+  Future<KeywordAnalysisResult> analyzeKeyword(
+    String keyword, {
+    int fromYear = 2011,
+    int? toYear,
+  }) async {
     return KeywordAnalysisResult(
       keyword: keyword,
       trend: const [KeywordTrendPoint(year: 2024, count: 1)],
@@ -106,8 +111,9 @@ Widget _appShellWidget() {
 
 void main() {
   group('AppShell – initial state', () {
-    testWidgets('renders home page (TrendAnalyzerHomePage) by default',
-        (tester) async {
+    testWidgets('renders home page (TrendAnalyzerHomePage) by default', (
+      tester,
+    ) async {
       await tester.pumpWidget(_appShellWidget());
       await tester.pump();
 
@@ -115,8 +121,9 @@ void main() {
       expect(find.text('Trend Analyzer'), findsOneWidget);
     });
 
-    testWidgets('MyApp entry point also renders Trend Analyzer',
-        (tester) async {
+    testWidgets('MyApp entry point also renders Trend Analyzer', (
+      tester,
+    ) async {
       await tester.pumpWidget(const MyApp());
       await tester.pump();
 
@@ -125,15 +132,17 @@ void main() {
   });
 
   group('AppShell – page switching via drawer', () {
-    testWidgets('navigates to Keyword Analyzer (Trends) via drawer',
-        (tester) async {
+    testWidgets('navigates to Keyword Analyzer (Trends) via drawer', (
+      tester,
+    ) async {
       await tester.pumpWidget(_appShellWidget());
       await tester.pump();
 
       // Open drawer
       final scaffoldFinder = find.byType(Scaffold).first;
-      final ScaffoldState scaffold =
-          tester.state<ScaffoldState>(scaffoldFinder);
+      final ScaffoldState scaffold = tester.state<ScaffoldState>(
+        scaffoldFinder,
+      );
       scaffold.openDrawer();
       await tester.pumpAndSettle();
 
@@ -152,8 +161,9 @@ void main() {
       await tester.pumpWidget(_appShellWidget());
       await tester.pump();
 
-      final ScaffoldState scaffold =
-          tester.state<ScaffoldState>(find.byType(Scaffold).first);
+      final ScaffoldState scaffold = tester.state<ScaffoldState>(
+        find.byType(Scaffold).first,
+      );
       scaffold.openDrawer();
       await tester.pumpAndSettle();
 
@@ -164,16 +174,16 @@ void main() {
       await tester.pumpAndSettle();
 
       // JournalSearchScreen renders a search field
-      expect(find.text('Search Journal'), findsWidgets);
+      expect(find.text('Journal Search'), findsOneWidget);
     });
-
   });
 
   group('AppShell – selectedPage enum coverage', () {
     // Test that AppShell routes all AppPage values without throwing
     for (final page in AppPage.values) {
-      testWidgets('renders without error for page: ${page.name}',
-          (tester) async {
+      testWidgets('renders without error for page: ${page.name}', (
+        tester,
+      ) async {
         await tester.pumpWidget(_appShellWidget());
         await tester.pump();
 

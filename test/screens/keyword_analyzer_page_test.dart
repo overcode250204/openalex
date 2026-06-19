@@ -15,7 +15,11 @@ class FakeKeywordService extends OpenAlexKeywordService {
   String? requestedKeyword;
 
   @override
-  Future<KeywordAnalysisResult> analyzeKeyword(String keyword, {int fromYear = 2011, int? toYear}) async {
+  Future<KeywordAnalysisResult> analyzeKeyword(
+    String keyword, {
+    int fromYear = 2011,
+    int? toYear,
+  }) async {
     calls++;
     requestedKeyword = keyword;
     return KeywordAnalysisResult(
@@ -152,12 +156,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('to'), findsOneWidget);
-    expect(find.text('2014'), findsOneWidget); // Default fromYear
+    expect(find.text('2011'), findsOneWidget); // Default fromYear
 
     // Open fromYear dropdown and select 2020
-    await tester.tap(find.text('2014'));
+    await tester.tap(find.text('2011'));
     await tester.pumpAndSettle();
-    
+
     // Tap the item '2020' in the dropdown menu
     await tester.tap(find.text('2020').last);
     await tester.pumpAndSettle();
@@ -331,7 +335,11 @@ void main() {
 
 class _FakeKeywordServiceNoAnalytics extends OpenAlexKeywordService {
   @override
-  Future<KeywordAnalysisResult> analyzeKeyword(String keyword, {int fromYear = 2011, int? toYear}) async {
+  Future<KeywordAnalysisResult> analyzeKeyword(
+    String keyword, {
+    int fromYear = 2011,
+    int? toYear,
+  }) async {
     return KeywordAnalysisResult(
       keyword: keyword,
       trend: const [KeywordTrendPoint(year: 2024, count: 5)],

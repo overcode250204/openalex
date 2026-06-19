@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/main.dart';
 import 'package:openalex/models/publication.dart';
+import 'package:openalex/models/search_filter.dart';
 import 'package:openalex/models/topic.dart';
+import 'package:openalex/providers/analytics_provider.dart';
 import 'package:openalex/providers/publication_detail_provider.dart';
 import 'package:openalex/providers/publication_provider.dart';
 import 'package:openalex/screens/dashboard_screen.dart';
@@ -11,6 +13,7 @@ import 'package:openalex/screens/publication_detail_screen.dart'
 import 'package:openalex/screens/search_screen.dart';
 import 'package:openalex/screens/trend_analysis_screen.dart';
 import 'package:openalex/services/history_service.dart';
+import 'package:openalex/services/analytics_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
 import 'package:openalex/widgets/publication_card.dart';
@@ -37,16 +40,15 @@ class FakeOpenAlexService extends OpenAlexService {
 }
 
 class FakeDetailService extends OpenAlexService {
-final Publication? publication;
+  final Publication? publication;
 
-FakeDetailService(this.publication);
+  FakeDetailService(this.publication);
 
-@override
-Future<Publication?> fetchDetail(String workId) async {
-return publication;
+  @override
+  Future<Publication?> fetchDetail(String workId) async {
+    return publication;
+  }
 }
-}
-
 
 class FakeSearchHistoryService extends SearchHistoryService {
   @override
@@ -60,15 +62,30 @@ class FakeSearchHistoryService extends SearchHistoryService {
 
 class FakeSuggestionService extends SuggestionService {
   @override
-  Future<List<TopicSuggestion>> fetchTopicSuggestions(
-    String query,
-  ) async {
+  Future<List<TopicSuggestion>> fetchTopicSuggestions(String query) async {
     return [];
   }
 
   @override
   Future<List<String>> fetchRelatedKeywords(String keyword) async {
     return [];
+  }
+}
+
+class FakeAnalyticsService extends AnalyticsService {
+  @override
+  Future<AnalyticsResult> fetchAll(String keyword, SearchFilter filter) async {
+    return const AnalyticsResult(
+      publicationTrend: {2023: 1, 2024: 1},
+      topKeywords: {'Artificial Intelligence': 2},
+      institutionRanking: {},
+      countryOutput: {},
+      topJournals: {'Journal of Widgets': 2},
+      topAuthors: {'Ada Lovelace': 2},
+      totalWorks: 2,
+      mostCitedTitle: 'Top Paper',
+      mostCitedCount: 20,
+    );
   }
 }
 
@@ -113,8 +130,14 @@ Future<PublicationProvider> seededProvider(
 }
 
 Widget appWithProvider(Widget child, PublicationProvider provider) {
-  return ChangeNotifierProvider.value(
-    value: provider,
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider<PublicationProvider>.value(value: provider),
+      ChangeNotifierProvider(
+        create: (_) =>
+            AnalyticsProvider(analyticsService: FakeAnalyticsService()),
+      ),
+    ],
     child: MaterialApp(home: child),
   );
 }
@@ -208,6 +231,7 @@ void main() {
     await tester.pumpWidget(
       appWithProvider(const DashboardScreen(), emptyProvider),
     );
+    await tester.pumpAndSettle();
     expect(
       find.text('Search a topic first to view dashboard.'),
       findsOneWidget,
@@ -218,10 +242,11 @@ void main() {
       publication(title: 'Other Paper', citations: 4, year: 2023),
     ]);
     await tester.pumpWidget(appWithProvider(const DashboardScreen(), provider));
+    await tester.pumpAndSettle();
 
     expect(find.text('Dashboard: AI'), findsOneWidget);
     expect(find.text('Total Publications'), findsOneWidget);
-    expect(find.text('Average Citation Count'), findsOneWidget);
+    expect(find.text('Highest Citations'), findsOneWidget);
     expect(find.text('Most Influential Paper'), findsOneWidget);
     expect(find.text('Top Paper'), findsOneWidget);
   });
@@ -259,33 +284,32 @@ void main() {
     expect(find.text('Influential'), findsOneWidget);
   });
 
-  testWidgets('screen PublicationDetailScreen renders fallbacks and Zotero error',
+  testWidgets(
+    'screen PublicationDetailScreen renders fallbacks and Zotero error',
     (tester) async {
       await tester.pumpWidget(
         ChangeNotifierProvider(
-      create: (_) => PublicationDetailProvider(
-        service: FakeDetailService(
-          Publication(
-            id: '1',
-            title: 'Detail Paper',
-            publicationYear: null,
-            citedByCount: 0,
-            journalName: null,
-            doi: null,
-            abstractText: null,
-            authors: [],
-            referencedWorkIds: [],
-            relatedWorkIds: [],
-            oaUrl: null,
+          create: (_) => PublicationDetailProvider(
+            service: FakeDetailService(
+              Publication(
+                id: '1',
+                title: 'Detail Paper',
+                publicationYear: null,
+                citedByCount: 0,
+                journalName: null,
+                doi: null,
+                abstractText: null,
+                authors: [],
+                referencedWorkIds: [],
+                relatedWorkIds: [],
+                oaUrl: null,
+              ),
+            ),
+          ),
+          child: const MaterialApp(
+            home: screen_detail.PublicationDetailScreen(workId: '1'),
           ),
         ),
-      ),
-      child: const MaterialApp(
-        home: screen_detail.PublicationDetailScreen(
-          workId: '1',
-        ),
-      ),
-    )
       );
       await tester.pumpAndSettle();
       expect(find.text('Unknown authors'), findsOneWidget);
@@ -314,7 +338,7 @@ void main() {
     },
   );
 
-    testWidgets('widget PublicationDetailScreen renders DOI button', (
+  testWidgets('widget PublicationDetailScreen renders DOI button', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -336,5 +360,4 @@ void main() {
     );
     expect(find.text('A useful abstract.'), findsOneWidget);
   });
-  
 }

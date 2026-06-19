@@ -14,10 +14,8 @@ class JournalSearchProvider extends ChangeNotifier {
   final OpenAlexJournalService _service;
   final SuggestionService _suggestionService;
 
-  JournalSearchProvider(
-    this._service, {
-    SuggestionService? suggestionService,
-  }) : _suggestionService = suggestionService ?? SuggestionService();
+  JournalSearchProvider(this._service, {SuggestionService? suggestionService})
+    : _suggestionService = suggestionService ?? SuggestionService();
 
   String _searchQuery = '';
   List<JournalSource> _journals = [];
@@ -203,7 +201,7 @@ class JournalSearchProvider extends ChangeNotifier {
 
     final trimmedQuery = query.trim();
 
-    if (trimmedQuery.isEmpty) {
+    if (trimmedQuery.length < 2) {
       _journalSuggestions = [];
       _showJournalSuggestions = false;
       _isLoadingJournalSuggestions = false;
@@ -217,8 +215,9 @@ class JournalSearchProvider extends ChangeNotifier {
 
     _debounce = Timer(const Duration(milliseconds: 350), () async {
       try {
-        _journalSuggestions =
-            await _suggestionService.fetchJournalSuggestions(trimmedQuery);
+        _journalSuggestions = await _suggestionService.fetchJournalSuggestions(
+          trimmedQuery,
+        );
       } catch (_) {
         _journalSuggestions = [];
       }

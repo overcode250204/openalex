@@ -21,13 +21,12 @@ class _FakeOpenAlexService extends OpenAlexService {
     int perPage = 50,
     String sort = 'cited_by_count:desc',
     List<String>? topicIds,
-  }) async =>
-      (0, <Publication>[]);
+  }) async => (0, <Publication>[]);
 
   @override
   Future<(int, List<Publication>)> searchWithFilter(
-      Map<String, String> params) async =>
-      (0, <Publication>[]);
+    Map<String, String> params,
+  ) async => (0, <Publication>[]);
 }
 
 class _FakeHistoryService extends SearchHistoryService {
@@ -43,8 +42,7 @@ class _FakeSuggestionService extends SuggestionService {
   Future<List<String>> fetchRelatedKeywords(String keyword) async => [];
 
   @override
-  Future<List<TopicSuggestion>> fetchTopicSuggestions(String query) async =>
-      [];
+  Future<List<TopicSuggestion>> fetchTopicSuggestions(String query) async => [];
 }
 
 PublicationProvider _makeProvider() {
@@ -103,11 +101,11 @@ void main() {
       await tester.tap(find.text('Open Filter'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Liên quan'), findsOneWidget);
-      expect(find.text('Trích dẫn ↓'), findsOneWidget);
-      expect(find.text('Trích dẫn ↑'), findsOneWidget);
-      expect(find.text('Năm mới nhất'), findsOneWidget);
-      expect(find.text('Năm cũ nhất'), findsOneWidget);
+      expect(find.text('Relevance'), findsOneWidget);
+      expect(find.text('Cited (Desc)'), findsOneWidget);
+      expect(find.text('Cited (Asc)'), findsOneWidget);
+      expect(find.text('Year (Desc)'), findsOneWidget);
+      expect(find.text('Year (Asc)'), findsOneWidget);
     });
 
     testWidgets('renders all document type chips', (tester) async {
@@ -130,11 +128,11 @@ void main() {
       await tester.tap(find.text('Open Filter'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Trích dẫn ↓'));
+      await tester.tap(find.text('Cited (Desc)'));
       await tester.pump();
 
       // The chip with that label should now appear selected (no exception = passes)
-      expect(find.text('Trích dẫn ↓'), findsOneWidget);
+      expect(find.text('Cited (Desc)'), findsOneWidget);
     });
 
     testWidgets('Reset clears year fields and resets filter', (tester) async {
@@ -153,13 +151,12 @@ void main() {
       await tester.pump();
 
       // After reset the text fields should be cleared
-      expect(
-        tester.widget<TextField>(fromField).controller?.text ?? '',
-        '',
-      );
+      expect(tester.widget<TextField>(fromField).controller?.text ?? '', '');
     });
 
-    testWidgets('Apply calls updateFilter and pops bottom sheet', (tester) async {
+    testWidgets('Apply calls updateFilter and pops bottom sheet', (
+      tester,
+    ) async {
       final provider = _makeProvider();
       await tester.pumpWidget(_buildSheet(provider));
 
@@ -190,7 +187,9 @@ void main() {
 
     testWidgets('pre-fills year fields from existing filter', (tester) async {
       final provider = _makeProvider();
-      await provider.updateFilter(const SearchFilter(yearFrom: 2019, yearTo: 2024));
+      await provider.updateFilter(
+        const SearchFilter(yearFrom: 2019, yearTo: 2024),
+      );
       await tester.pumpWidget(_buildSheet(provider));
 
       await tester.tap(find.text('Open Filter'));

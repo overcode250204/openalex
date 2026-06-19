@@ -10,12 +10,16 @@ class FakeKeywordService extends OpenAlexKeywordService {
   FakeKeywordService({this.result, this.error});
 
   final KeywordAnalysisResult? result;
-  final Object? error;
+  Object? error;
   String? requestedKeyword;
   int calls = 0;
 
   @override
-  Future<KeywordAnalysisResult> analyzeKeyword(String keyword, {int fromYear = 2011, int? toYear}) async {
+  Future<KeywordAnalysisResult> analyzeKeyword(
+    String keyword, {
+    int fromYear = 2011,
+    int? toYear,
+  }) async {
     calls++;
     requestedKeyword = keyword;
 
@@ -188,32 +192,38 @@ void main() {
       expect(viewModel.hasTrendError, isFalse);
     });
 
-    test('updateKeywordTrendYearRange swaps if from > to and calls reload', () async {
-      final service = FakeKeywordService(result: sampleResult('AI'));
-      final viewModel = KeywordAnalyzerViewModel(service);
+    test(
+      'updateKeywordTrendYearRange swaps if from > to and calls reload',
+      () async {
+        final service = FakeKeywordService(result: sampleResult('AI'));
+        final viewModel = KeywordAnalyzerViewModel(service);
 
-      await viewModel.analyze('AI');
-      
-      await viewModel.updateKeywordTrendYearRange(fromYear: 2022, toYear: 2020);
-      
-      expect(viewModel.selectedFromYear, 2020);
-      expect(viewModel.selectedToYear, 2022);
-      expect(viewModel.result?.trend.length, 2);
-      expect(viewModel.result?.trend.first.year, 2020);
-      expect(viewModel.result?.trend.last.year, 2022);
-    });
+        await viewModel.analyze('AI');
+
+        await viewModel.updateKeywordTrendYearRange(
+          fromYear: 2022,
+          toYear: 2020,
+        );
+
+        expect(viewModel.selectedFromYear, 2020);
+        expect(viewModel.selectedToYear, 2022);
+        expect(viewModel.result?.trend.length, 2);
+        expect(viewModel.result?.trend.first.year, 2020);
+        expect(viewModel.result?.trend.last.year, 2022);
+      },
+    );
 
     test('reloadKeywordTrend sets error on failure', () async {
       final service = FakeKeywordService(result: sampleResult('AI'));
       final viewModel = KeywordAnalyzerViewModel(service);
 
       await viewModel.analyze('AI');
-      
+
       // Simulate failure
       service.error = Exception('Network error');
-      
+
       await viewModel.reloadKeywordTrend();
-      
+
       expect(viewModel.hasTrendError, isTrue);
       expect(viewModel.isLoadingTrend, isFalse);
     });

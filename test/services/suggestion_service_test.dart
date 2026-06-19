@@ -111,7 +111,7 @@ void main() {
       expect(requestedUri?.queryParameters['search'], 'topic');
       expect(result.length, 2);
       expect(result[0].displayName, 'Topic 1');
-      expect(result[1].worksCount, 200);
+      expect(result[1].workCount, 200);
     });
 
     test('returns empty on error', () async {
@@ -151,7 +151,7 @@ void main() {
                   'display_name': 'Nature',
                   'works_count': 100,
                   'issn_l': '1234',
-                  'host_organization_name': 'Publisher'
+                  'host_organization_name': 'Publisher',
                 },
               ],
             }),
@@ -191,15 +191,15 @@ void main() {
                     {'display_name': 'AI', 'score': 0.8},
                     {'display_name': 'Machine Learning', 'score': 0.9}, // match
                     {'display_name': 'Deep Learning', 'score': 0.4},
-                  ]
+                  ],
                 },
                 {
                   'concepts': [
                     {'display_name': 'Deep Learning', 'score': 0.5},
                     {'display_name': 'AI', 'score': 0.2}, // Below threshold 0.3
                     {'display_name': 'Data Science', 'score': 0.6},
-                  ]
-                }
+                  ],
+                },
               ],
             }),
             200,
@@ -212,7 +212,7 @@ void main() {
       expect(requestedUri?.path, '/works');
       expect(requestedUri?.queryParameters['search'], 'Machine Learning');
       expect(requestedUri?.queryParameters['select'], 'concepts');
-      
+
       // AI appears once >0.3, Deep Learning appears twice >0.3, Data Science once >0.3
       // Sort should prioritize count (Deep Learning = 2, AI = 1, Data Science = 1)
       expect(result.first, 'Deep Learning');

@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:openalex/models/publication.dart';
 import 'package:openalex/providers/journal_search_provider.dart';
 import 'package:openalex/providers/publication_detail_provider.dart';
 import 'package:openalex/providers/publication_list_provider.dart';
@@ -8,6 +11,20 @@ import 'package:openalex/screens/publication_list_screen.dart';
 import 'package:openalex/services/openalex_journal_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:provider/provider.dart';
+
+class _FakeOpenAlexService extends OpenAlexService {
+  final Future<List<Publication>> citedByResult;
+
+  _FakeOpenAlexService(this.citedByResult);
+
+  @override
+  Future<List<Publication>> fetchCitedBy(String workId, {int page = 1}) =>
+      citedByResult;
+}
+
+PublicationListProvider _emptyListProvider() => PublicationListProvider(
+  service: _FakeOpenAlexService(Future.value(const [])),
+);
 
 Widget _buildScreen({
   required ListType type,
@@ -49,7 +66,10 @@ void main() {
       tester,
     ) async {
       // Create a provider that stays loading
-      final listProvider = PublicationListProvider();
+      final pendingResult = Completer<List<Publication>>();
+      final listProvider = PublicationListProvider(
+        service: _FakeOpenAlexService(pendingResult.future),
+      );
 
       await tester.pumpWidget(
         _buildScreen(type: ListType.citedBy, listProvider: listProvider),
@@ -63,7 +83,7 @@ void main() {
     });
 
     testWidgets('shows empty message when no items returned', (tester) async {
-      final listProvider = PublicationListProvider();
+      final listProvider = _emptyListProvider();
 
       await tester.pumpWidget(
         _buildScreen(type: ListType.citedBy, listProvider: listProvider),
@@ -76,7 +96,7 @@ void main() {
     });
 
     testWidgets('renders AppBar title correctly', (tester) async {
-      final listProvider = PublicationListProvider();
+      final listProvider = _emptyListProvider();
 
       await tester.pumpWidget(
         _buildScreen(type: ListType.citedBy, listProvider: listProvider),
@@ -90,7 +110,7 @@ void main() {
     testWidgets('renders list of publications when items are available', (
       tester,
     ) async {
-      final listProvider = PublicationListProvider();
+      final listProvider = _emptyListProvider();
 
       await tester.pumpWidget(
         _buildScreen(type: ListType.citedBy, listProvider: listProvider),
