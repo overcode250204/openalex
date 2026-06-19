@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/models/publication.dart';
 import 'package:openalex/models/search_filter.dart';
+import 'package:openalex/models/topic.dart';
 import 'package:openalex/providers/publication_provider.dart';
 import 'package:openalex/services/openalex_service.dart';
 
@@ -38,7 +39,7 @@ Publication publication(String id, {int? year = 2024}) {
     abstractText: null,
     authors: const ['Ada Lovelace'],
     referencedWorkIds: ["1", "2"],
-    relatedWorkIds:  ["1", "2"],
+    relatedWorkIds: ["1", "2"],
     oaUrl: "123",
   );
 }
@@ -68,7 +69,6 @@ void main() {
         expect(provider.errorMessage, isNull);
         expect(service.requestedParams.single['search'], 'AI');
         expect(service.requestedParams.single['page'], '1');
-        
       },
     );
 
@@ -169,5 +169,30 @@ void main() {
         expect(provider.isLoadingMore, isFalse);
       },
     );
+
+    test('searchWithFilter normalizes selected topic OpenAlex id', () async {
+      final service = FakeFilterOpenAlexService(
+        responses: [(1, publications(1))],
+      );
+      final provider = PublicationProvider(service);
+
+      await provider.searchWithFilter(
+        'AI',
+        TopicSuggestion(
+          id: 'https://openalex.org/T12345',
+          displayName: 'Artificial intelligence',
+          workCount: 10,
+        ),
+      );
+
+      expect(
+        service.requestedParams.single['filter'],
+        contains('primary_topic.id:T12345'),
+      );
+      expect(
+        service.requestedParams.single['filter'],
+        isNot(contains('https://openalex.org/')),
+      );
+    });
   });
 }

@@ -54,7 +54,7 @@ class PublicationProvider extends ChangeNotifier {
   // Search By Topic
   Future<void> searchPublications({
     required String keyword,
-    TopicSuggestion? topic
+    TopicSuggestion? topic,
   }) async {
     if (keyword.trim().isEmpty) {
       _errorMessage = 'Please enter a research topic.';
@@ -74,13 +74,19 @@ class PublicationProvider extends ChangeNotifier {
     try {
       int total;
       List<Publication> result;
-      if(topic != null){
-          (total ,result) = await _openAlexService.searchPublications( keyword: keyword, topicIds: [topic.id.replaceAll('https://openalex.org/', '')]);
-          _totalResults = total;
-          _publications = result;
-      } else{
+      if (topic != null) {
+        (total, result) = await _openAlexService.searchPublications(
+          keyword: keyword,
+          topicIds: [topic.id.replaceAll('https://openalex.org/', '')],
+        );
+        _totalResults = total;
+        _publications = result;
+      } else {
         final topicIds = await _openAlexService.getTopicIdsFromKeyword(keyword);
-        (total ,result) = await _openAlexService.searchPublications( keyword: keyword, topicIds: topicIds);
+        (total, result) = await _openAlexService.searchPublications(
+          keyword: keyword,
+          topicIds: topicIds,
+        );
         _totalResults = total;
         _publications = result;
       }
@@ -235,7 +241,11 @@ class PublicationProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> searchWithFilter(String keyword, TopicSuggestion? topic, {bool resetPage = true}) async {
+  Future<void> searchWithFilter(
+    String keyword,
+    TopicSuggestion? topic, {
+    bool resetPage = true,
+  }) async {
     if (resetPage) {
       _currentPage = 1;
       _publications = [];
@@ -252,17 +262,19 @@ class PublicationProvider extends ChangeNotifier {
     try {
       int total;
       List<Publication> result;
-      if(topic != null){
-        final params = _filter.toQueryParams(keyword, [topic.id..replaceAll('https://openalex.org/', '')]);
+      if (topic != null) {
+        final params = _filter.toQueryParams(keyword, [
+          topic.id.replaceAll('https://openalex.org/', ''),
+        ]);
         params['page'] = _currentPage.toString();
-        (total ,result) = await _openAlexService.searchWithFilter(params);
-            _totalResults = total;
-      }else{
-          final topicIds = await _openAlexService.getTopicIdsFromKeyword(keyword);
-          final params = _filter.toQueryParams(keyword, topicIds);
-          params['page'] = _currentPage.toString();
-          (total, result) = await _openAlexService.searchWithFilter(params);
-          _totalResults = total;
+        (total, result) = await _openAlexService.searchWithFilter(params);
+        _totalResults = total;
+      } else {
+        final topicIds = await _openAlexService.getTopicIdsFromKeyword(keyword);
+        final params = _filter.toQueryParams(keyword, topicIds);
+        params['page'] = _currentPage.toString();
+        (total, result) = await _openAlexService.searchWithFilter(params);
+        _totalResults = total;
       }
       if (resetPage) {
         _publications = result;
@@ -306,9 +318,7 @@ class PublicationProvider extends ChangeNotifier {
       return;
     }
     _showSuggestions = true;
-    _conceptSuggestions = await _suggestionService.fetchTopicSuggestions(
-      query,
-    );
+    _conceptSuggestions = await _suggestionService.fetchTopicSuggestions(query);
     notifyListeners();
   }
 

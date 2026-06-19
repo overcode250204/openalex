@@ -10,10 +10,6 @@ import 'package:openalex/viewmodels/keyword_analyzer_view_model.dart';
 // ---------------------------------------------------------------------------
 
 class _SuccessService extends OpenAlexKeywordService {
-  final String keyword;
-
-  _SuccessService({this.keyword = 'AI'});
-
   @override
   Future<KeywordAnalysisResult> analyzeKeyword(String kw) async {
     return KeywordAnalysisResult(
@@ -74,25 +70,31 @@ void main() {
   });
 
   group('KeywordAnalyzerViewModel – generic exception', () {
-    test('analyze shows generic error for non-KeywordNotFoundException', () async {
-      final vm = KeywordAnalyzerViewModel(_GenericErrorService());
+    test(
+      'analyze shows generic error for non-KeywordNotFoundException',
+      () async {
+        final vm = KeywordAnalyzerViewModel(_GenericErrorService());
 
-      await vm.analyze('AI');
+        await vm.analyze('AI');
 
-      expect(vm.isLoading, isFalse);
-      expect(vm.result, isNull);
-      expect(vm.errorMessage, isNotNull);
-      expect(vm.errorMessage, isNot('Please enter an academic keyword.'));
-    });
+        expect(vm.isLoading, isFalse);
+        expect(vm.result, isNull);
+        expect(vm.errorMessage, isNotNull);
+        expect(vm.errorMessage, isNot('Please enter an academic keyword.'));
+      },
+    );
 
-    test('analyze shows specific message for KeywordNotFoundException', () async {
-      final vm = KeywordAnalyzerViewModel(_KeywordNotFoundService());
+    test(
+      'analyze shows specific message for KeywordNotFoundException',
+      () async {
+        final vm = KeywordAnalyzerViewModel(_KeywordNotFoundService());
 
-      await vm.analyze('obscure-term');
+        await vm.analyze('obscure-term');
 
-      expect(vm.errorMessage, contains('obscure-term'));
-      expect(vm.result, isNull);
-    });
+        expect(vm.errorMessage, contains('obscure-term'));
+        expect(vm.result, isNull);
+      },
+    );
   });
 
   group('KeywordAnalyzerViewModel – retry', () {
@@ -121,7 +123,9 @@ void main() {
   });
 
   group('KeywordAnalyzerViewModel – loading state', () {
-    testWidgets('isLoading is true while analyzing, then false', (tester) async {
+    testWidgets('isLoading is true while analyzing, then false', (
+      tester,
+    ) async {
       final vm = KeywordAnalyzerViewModel(_SuccessService());
       final loadingStates = <bool>[];
       vm.addListener(() => loadingStates.add(vm.isLoading));

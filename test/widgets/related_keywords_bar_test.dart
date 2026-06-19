@@ -12,18 +12,13 @@ import 'package:provider/provider.dart';
 // ---------------------------------------------------------------------------
 
 class _FakeOpenAlexService extends OpenAlexService {
-  final List<String> relatedKeywords;
-
-  _FakeOpenAlexService({this.relatedKeywords = const []});
-
   @override
   Future<(int, List<Publication>)> searchPublications({
     required String keyword,
     int perPage = 50,
     String sort = 'cited_by_count:desc',
     List<String>? topicIds,
-  }) async =>
-      (0, <Publication>[]);
+  }) async => (0, <Publication>[]);
 }
 
 class _FakeSuggestionService extends SuggestionService {
@@ -59,10 +54,12 @@ void main() {
         suggestionService: _FakeSuggestionService(keywords: []),
       );
 
-      await tester.pumpWidget(_buildWithProvider(
-        child: RelatedKeywordsBar(onKeywordTap: (_) {}),
-        provider: provider,
-      ));
+      await tester.pumpWidget(
+        _buildWithProvider(
+          child: RelatedKeywordsBar(onKeywordTap: (_) {}),
+          provider: provider,
+        ),
+      );
 
       expect(find.text('Related Topic'), findsNothing);
     });
@@ -79,10 +76,12 @@ void main() {
       // Trigger keyword loading so relatedKeywords gets populated
       await provider.searchPublications(keyword: 'AI');
 
-      await tester.pumpWidget(_buildWithProvider(
-        child: RelatedKeywordsBar(onKeywordTap: (_) {}),
-        provider: provider,
-      ));
+      await tester.pumpWidget(
+        _buildWithProvider(
+          child: RelatedKeywordsBar(onKeywordTap: (_) {}),
+          provider: provider,
+        ),
+      );
       await tester.pump();
 
       expect(find.text('Related Topic'), findsOneWidget);
@@ -90,8 +89,9 @@ void main() {
       expect(find.text('Deep Learning'), findsOneWidget);
     });
 
-    testWidgets('calls onKeywordTap with correct keyword on chip press',
-        (tester) async {
+    testWidgets('calls onKeywordTap with correct keyword on chip press', (
+      tester,
+    ) async {
       final suggestionService = _FakeSuggestionService(
         keywords: ['Neural Networks'],
       );
@@ -103,10 +103,12 @@ void main() {
 
       String? tappedKeyword;
 
-      await tester.pumpWidget(_buildWithProvider(
-        child: RelatedKeywordsBar(onKeywordTap: (k) => tappedKeyword = k),
-        provider: provider,
-      ));
+      await tester.pumpWidget(
+        _buildWithProvider(
+          child: RelatedKeywordsBar(onKeywordTap: (k) => tappedKeyword = k),
+          provider: provider,
+        ),
+      );
       await tester.pump();
 
       await tester.tap(find.text('Neural Networks'));

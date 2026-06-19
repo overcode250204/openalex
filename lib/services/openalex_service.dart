@@ -300,4 +300,58 @@ class OpenAlexService {
 
     return Map.fromEntries(selectedEntries);
   }
+
+  Future<Map<int, int>> fetchPublicationTrend({
+    required String keyword,
+    int fromYear = 2014,
+    int? toYear,
+  }) async {
+    final trimmedKeyword = keyword.trim();
+
+    if (trimmedKeyword.isEmpty) {
+      return {};
+    }
+
+    final endYear = toYear ?? DateTime.now().year;
+
+    final queryParams = {
+      'search': trimmedKeyword,
+      'filter': 'publication_year:$fromYear-$endYear',
+      'group_by': 'publication_year',
+      'mailto': 'truongtuan20042004@gmail.com',
+    };
+
+    final uri = Uri.https('api.openalex.org', '/works', queryParams);
+    final response = await _client.get(uri);
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'OpenAlex trend request failed with status code ${response.statusCode}',
+      );
+    }
+
+    final Map<String, dynamic> body = jsonDecode(response.body);
+    final List<dynamic> groups = body['group_by'] as List<dynamic>? ?? [];
+
+    final Map<int, int> trend = {};
+
+    for (final item in groups) {
+      final group = item as Map<String, dynamic>;
+
+      final year = int.tryParse(group['key']?.toString() ?? '');
+      final count = group['count'] as int? ?? 0;
+
+      if (year != null) {
+        trend[year] = count;
+      }
+    }
+
+    // Fill missing years with 0 so chart x-axis is continuous.
+    final Map<int, int> completedTrend = {};
+    for (int year = fromYear; year <= endYear; year++) {
+      completedTrend[year] = trend[year] ?? 0;
+    }
+
+    return completedTrend;
+  }
 }
