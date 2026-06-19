@@ -1,25 +1,73 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/keyword/keyword_analysis_result.dart';
 import '../services/openalex_keyword_service.dart';
+import '../services/suggestion_service.dart';
 
 class KeywordAnalyzerViewModel extends ChangeNotifier {
   final OpenAlexKeywordService _service;
+  final SuggestionService _suggestionService;
 
-  KeywordAnalyzerViewModel(this._service);
+  KeywordAnalyzerViewModel(
+    this._service, {
+    SuggestionService? suggestionService,
+  }) : _suggestionService = suggestionService ?? SuggestionService();
 
   String _keyword = '';
   bool _isLoading = false;
   String? _errorMessage;
   KeywordAnalysisResult? _result;
+  List<String> _keywordSuggestions = [];
+  bool _showKeywordSuggestions = false;
+  Timer? _debounce;
 
   String get keyword => _keyword;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   KeywordAnalysisResult? get result => _result;
+  List<String> get keywordSuggestions => _keywordSuggestions;
+  bool get showKeywordSuggestions => _showKeywordSuggestions;
+
+  void onQueryChanged(String query) {
+    _debounce?.cancel();
+
+    final trimmedQuery = query.trim();
+
+    if (trimmedQuery.isEmpty) {
+      _keywordSuggestions = [];
+      _showKeywordSuggestions = false;
+      notifyListeners();
+      return;
+    }
+
+    _showKeywordSuggestions = true;
+    notifyListeners();
+
+    _debounce = Timer(const Duration(milliseconds: 350), () async {
+      try {
+        _keywordSuggestions = await _suggestionService.fetchKeywordSuggestions(
+          trimmedQuery,
+        );
+      } catch (_) {
+        _keywordSuggestions = [];
+      }
+
+      notifyListeners();
+    });
+  }
+
+  void hideKeywordSuggestions() {
+    _showKeywordSuggestions = false;
+    notifyListeners();
+  }
 
   Future<void> analyze(String keyword) async {
     final trimmedKeyword = keyword.trim();
+    _debounce?.cancel();
+    _keywordSuggestions = [];
+    _showKeywordSuggestions = false;
 
     if (trimmedKeyword.isEmpty) {
       _keyword = '';
@@ -55,10 +103,19 @@ class KeywordAnalyzerViewModel extends ChangeNotifier {
   }
 
   void clear() {
+    _debounce?.cancel();
     _keyword = '';
     _isLoading = false;
     _errorMessage = null;
     _result = null;
+    _keywordSuggestions = [];
+    _showKeywordSuggestions = false;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
   }
 }

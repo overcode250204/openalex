@@ -36,7 +36,8 @@ class _FakeJournalService extends OpenAlexJournalService {
 
   @override
   Future<JournalPublication?> getHighestCitedPublication(
-      String sourceId) async {
+    String sourceId,
+  ) async {
     return null;
   }
 }
@@ -69,10 +70,12 @@ Widget _buildScreen(JournalSearchProvider provider) {
 
 void main() {
   group('JournalSearchScreen initial state', () {
-    testWidgets('renders search field pre-filled with IEEE Access',
-        (tester) async {
-      final provider =
-          JournalSearchProvider(_FakeJournalService(journalResults: []));
+    testWidgets('renders search field pre-filled with IEEE Access', (
+      tester,
+    ) async {
+      final provider = JournalSearchProvider(
+        _FakeJournalService(journalResults: []),
+      );
       await tester.pumpWidget(_buildScreen(provider));
 
       final textField = find.byType(TextField);
@@ -93,7 +96,10 @@ void main() {
   group('JournalSearchScreen – journal list', () {
     testWidgets('shows journal cards after successful search', (tester) async {
       final service = _FakeJournalService(
-        journalResults: [_source(name: 'Nature'), _source(id: 'S2', name: 'Science')],
+        journalResults: [
+          _source(name: 'Nature'),
+          _source(id: 'S2', name: 'Science'),
+        ],
       );
       final provider = JournalSearchProvider(service);
       await tester.pumpWidget(_buildScreen(provider));
@@ -101,8 +107,6 @@ void main() {
       // Trigger search
       await tester.tap(find.byType(FilledButton));
       await tester.pumpAndSettle();
-      print('Journals after search: ${provider.journals.length}, error: ${provider.errorMessage}');
-
       expect(find.text('Nature'), findsOneWidget);
       expect(find.text('Science', skipOffstage: false), findsOneWidget);
     });
@@ -134,8 +138,9 @@ void main() {
   });
 
   group('JournalSearchScreen – journal selection', () {
-    testWidgets('tapping a journal card loads its publications area',
-        (tester) async {
+    testWidgets('tapping a journal card loads its publications area', (
+      tester,
+    ) async {
       final source = _source(name: 'IEEE Access');
       final service = _FakeJournalService(
         journalResults: [source],

@@ -6,12 +6,18 @@ import 'package:openalex/models/keyword/keyword_trend_point.dart';
 import 'package:openalex/models/keyword/openalex_keyword.dart';
 import 'package:openalex/screens/keyword_analyzer_page.dart';
 import 'package:openalex/services/openalex_keyword_service.dart';
+import 'package:openalex/services/suggestion_service.dart';
 import 'package:openalex/viewmodels/keyword_analyzer_view_model.dart';
 import 'package:provider/provider.dart';
 
 class FakeKeywordService extends OpenAlexKeywordService {
+  int calls = 0;
+  String? requestedKeyword;
+
   @override
   Future<KeywordAnalysisResult> analyzeKeyword(String keyword) async {
+    calls++;
+    requestedKeyword = keyword;
     return KeywordAnalysisResult(
       keyword: keyword,
       resolvedKeyword: const OpenAlexKeyword(
@@ -40,6 +46,13 @@ class FakeKeywordService extends OpenAlexKeywordService {
         'PLOS ONE': 20,
       },
     );
+  }
+}
+
+class FakeSuggestionService extends SuggestionService {
+  @override
+  Future<List<String>> fetchKeywordSuggestions(String query) async {
+    return const ['Machine learning', 'Deep learning'];
   }
 }
 
@@ -109,6 +122,65 @@ void main() {
     );
     expect(find.text('Open Access Papers Using This Keyword'), findsOneWidget);
     expect(find.text('2024 • IEEE Access'), findsWidgets);
+  });
+
+  testWidgets('typing shows suggestions and tapping one analyzes it', (
+    tester,
+  ) async {
+    final keywordService = FakeKeywordService();
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => KeywordAnalyzerViewModel(
+          keywordService,
+          suggestionService: FakeSuggestionService(),
+        ),
+        child: const MaterialApp(home: KeywordAnalyzerPage()),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), 'mach');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Machine learning'), findsOneWidget);
+
+    await tester.tap(find.text('Machine learning'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Machine learning'), findsNothing);
+    expect(find.widgetWithText(TextField, 'Machine learning'), findsOneWidget);
+    expect(keywordService.calls, 1);
+    expect(keywordService.requestedKeyword, 'Machine learning');
+  });
+
+  testWidgets('pressing enter hides suggestions and analyzes typed keyword', (
+    tester,
+  ) async {
+    final keywordService = FakeKeywordService();
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider(
+        create: (_) => KeywordAnalyzerViewModel(
+          keywordService,
+          suggestionService: FakeSuggestionService(),
+        ),
+        child: const MaterialApp(home: KeywordAnalyzerPage()),
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), 'Deep learning');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Machine learning'), findsOneWidget);
+
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Machine learning'), findsNothing);
+    expect(keywordService.calls, 1);
+    expect(keywordService.requestedKeyword, 'Deep learning');
   });
 
   testWidgets('shows Top Contributing Authors card after analysis', (
@@ -196,25 +268,25 @@ void main() {
     expect(find.text('Top 5'), findsNWidgets(2));
   });
 
-  testWidgets('analytics cards do not render when topAuthors/topSources are empty', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      ChangeNotifierProvider(
-        create: (_) => KeywordAnalyzerViewModel(
-          _FakeKeywordServiceNoAnalytics(),
+  testWidgets(
+    'analytics cards do not render when topAuthors/topSources are empty',
+    (tester) async {
+      await tester.pumpWidget(
+        ChangeNotifierProvider(
+          create: (_) =>
+              KeywordAnalyzerViewModel(_FakeKeywordServiceNoAnalytics()),
+          child: const MaterialApp(home: KeywordAnalyzerPage()),
         ),
-        child: const MaterialApp(home: KeywordAnalyzerPage()),
-      ),
-    );
+      );
 
-    await tester.enterText(find.byType(TextField), 'AI');
-    await tester.tap(find.text('Analyze Keyword'));
-    await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'AI');
+      await tester.tap(find.text('Analyze Keyword'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Top Contributing Authors'), findsNothing);
-    expect(find.text('Top Research Journals'), findsNothing);
-  });
+      expect(find.text('Top Contributing Authors'), findsNothing);
+      expect(find.text('Top Research Journals'), findsNothing);
+    },
+  );
 }
 
 class _FakeKeywordServiceNoAnalytics extends OpenAlexKeywordService {

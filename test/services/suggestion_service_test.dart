@@ -1,50 +1,74 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:openalex/services/suggestion_service.dart';
 
 void main() {
-  // SuggestionService uses the global top-level http.get (non-injectable),
-  // so network calls in tests will fail and be caught silently (returns []).
-  // We focus on testing business-logic guards and the public API contract.
+  group('SuggestionService keyword suggestions', () {
+    test('returns empty for short query without calling HTTP', () async {
+      var called = false;
+      final service = SuggestionService(
+        client: MockClient((request) async {
+          called = true;
+          return http.Response('{}', 200);
+        }),
+      );
 
-  group('SuggestionService.fetchTopicSuggestions', () {
-    test('returns empty list when query is empty string', () async {
-      final service = SuggestionService();
-      expect(await service.fetchTopicSuggestions(''), isEmpty);
+      final result = await service.fetchKeywordSuggestions('a');
+
+      expect(result, isEmpty);
+      expect(called, isFalse);
     });
 
-    test('returns empty list when query is only whitespace', () async {
-      final service = SuggestionService();
-      expect(await service.fetchTopicSuggestions('   '), isEmpty);
+    test('calls OpenAlex keywords endpoint and parses display names', () async {
+      Uri? requestedUri;
+      final service = SuggestionService(
+        client: MockClient((request) async {
+          requestedUri = request.url;
+          return http.Response(
+            jsonEncode({
+              'results': [
+                {'display_name': 'Machine learning'},
+                {'display_name': ''},
+                {'display_name': 'Artificial intelligence'},
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+
+      final result = await service.fetchKeywordSuggestions(' machine ');
+
+      expect(requestedUri?.path, '/keywords');
+      expect(requestedUri?.queryParameters['search'], 'machine');
+      expect(requestedUri?.queryParameters['per_page'], '6');
+      expect(
+        requestedUri?.queryParameters['select'],
+        'id,display_name,works_count',
+      );
+      expect(
+        requestedUri?.queryParameters['mailto'],
+        'truongtuan20042004@gmail.com',
+      );
+      expect(result, ['Machine learning', 'Artificial intelligence']);
     });
 
-    test('returns empty list when query is exactly 1 character', () async {
-      final service = SuggestionService();
-      expect(await service.fetchTopicSuggestions('A'), isEmpty);
-    });
+    test('returns empty for non-200 and errors', () async {
+      final errorStatusService = SuggestionService(
+        client: MockClient((request) async => http.Response('nope', 500)),
+      );
+      final throwingService = SuggestionService(
+        client: MockClient((request) async => throw Exception('boom')),
+      );
 
-    test('returns List<TopicSuggestion> for any valid query (network may fail)',
-        () async {
-      final service = SuggestionService();
-      // query >= 2 chars triggers HTTP call; in tests without network,
-      // the catch block returns []
-      final result = await service.fetchTopicSuggestions('AI');
-      expect(result, isA<List>());
-    });
-  });
-
-  group('SuggestionService.fetchRelatedKeywords', () {
-    test('always returns List<String> (network errors are swallowed)', () async {
-      final service = SuggestionService();
-      final result = await service.fetchRelatedKeywords('machine learning');
-      expect(result, isA<List<String>>());
-    });
-
-    test('returns empty list on network failure', () async {
-      final service = SuggestionService();
-      // In the test sandbox no real HTTP is available → caught → []
-      final result = await service.fetchRelatedKeywords('AI');
-      expect(result, isA<List<String>>());
+      expect(
+        await errorStatusService.fetchKeywordSuggestions('machine'),
+        isEmpty,
+      );
+      expect(await throwingService.fetchKeywordSuggestions('machine'), isEmpty);
     });
   });
 }
-

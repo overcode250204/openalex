@@ -46,7 +46,9 @@ class _FakeJournalService extends OpenAlexJournalService {
   }
 
   @override
-  Future<JournalPublication?> getHighestCitedPublication(String sourceId) async {
+  Future<JournalPublication?> getHighestCitedPublication(
+    String sourceId,
+  ) async {
     getHighestCitedCalls++;
     return highestCited;
   }
@@ -113,9 +115,7 @@ void main() {
 
   group('JournalSearchProvider.searchJournals', () {
     test('sets errorMessage and skips HTTP when query is blank', () async {
-      final service = _FakeJournalService(
-        journalResults: [_source()],
-      );
+      final service = _FakeJournalService(journalResults: [_source()]);
       final provider = JournalSearchProvider(service);
 
       await provider.searchJournals('   ');
@@ -130,7 +130,9 @@ void main() {
       final provider = JournalSearchProvider(service);
 
       final loadingStates = <bool>[];
-      provider.addListener(() => loadingStates.add(provider.isSearchingJournals));
+      provider.addListener(
+        () => loadingStates.add(provider.isSearchingJournals),
+      );
 
       await provider.searchJournals('IEEE Access');
 
@@ -140,7 +142,9 @@ void main() {
     });
 
     test('sets error when no journals are found', () async {
-      final provider = JournalSearchProvider(_FakeJournalService(journalResults: []));
+      final provider = JournalSearchProvider(
+        _FakeJournalService(journalResults: []),
+      );
 
       await provider.searchJournals('Unknown Journal');
 
@@ -222,10 +226,6 @@ void main() {
       // Page 2 returns 15 results (partial → hasMore = false)
       final page2 = List.generate(15, (i) => _publication('P2_$i'));
 
-      var callCount = 0;
-      final service = _FakeJournalService()
-        ..getPublicationsCalls = 0;
-
       // Use anonymous override approach via extended fake
       final flexService = _FlexJournalService([page1, page2]);
       final provider = JournalSearchProvider(flexService);
@@ -239,9 +239,7 @@ void main() {
       expect(provider.publications, hasLength(35));
       expect(provider.hasMorePublications, isFalse);
 
-      // Ignore unused variable warning
-      callCount++;
-      expect(callCount, 1);
+      expect(flexService._callIndex, 2);
     });
 
     test('does nothing when hasMore is false', () async {
@@ -336,5 +334,7 @@ class _FlexJournalService extends OpenAlexJournalService {
   }
 
   @override
-  Future<JournalPublication?> getHighestCitedPublication(String sourceId) async => null;
+  Future<JournalPublication?> getHighestCitedPublication(
+    String sourceId,
+  ) async => null;
 }
