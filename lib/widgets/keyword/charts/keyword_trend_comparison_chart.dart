@@ -5,7 +5,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../models/keyword/keyword_trend_point.dart';
 import 'keyword_chart_card.dart';
 import 'keyword_chart_empty_state.dart';
-import 'keyword_chart_period_selector.dart';
+import 'keyword_custom_year_range_picker.dart';
 import 'keyword_trend_legend_chip.dart';
 
 class KeywordTrendComparisonChart extends StatefulWidget {
@@ -20,7 +20,8 @@ class KeywordTrendComparisonChart extends StatefulWidget {
 
 class _KeywordTrendComparisonChartState
     extends State<KeywordTrendComparisonChart> {
-  KeywordTrendRange _range = KeywordTrendRange.tenYears;
+  int _fromYear = DateTime.now().year - 10;
+  int _toYear = DateTime.now().year;
   final Set<String> _hiddenSeries = {};
 
   static const _colors = [
@@ -45,12 +46,9 @@ class _KeywordTrendComparisonChartState
     final filtered = <String, List<KeywordTrendPoint>>{};
     for (final keyword in topKeywords) {
       final points = widget.series[keyword]!;
-      final limit = switch (_range) {
-        KeywordTrendRange.fiveYears => 5,
-        KeywordTrendRange.tenYears => 10,
-        KeywordTrendRange.all => points.length,
-      };
-      filtered[keyword] = KeywordTrendPoint.latestPoints(points, limit: limit);
+      filtered[keyword] = points
+          .where((p) => p.year >= _fromYear && p.year <= _toYear)
+          .toList();
     }
 
     final allPoints = filtered.values.expand((v) => v).toList();
@@ -84,9 +82,15 @@ class _KeywordTrendComparisonChartState
     return KeywordChartCard(
       title: 'Keyword Trend Comparison',
       subtitle: 'Publication growth over time',
-      trailing: KeywordChartPeriodSelector(
-        selectedRange: _range,
-        onChanged: (val) => setState(() => _range = val),
+      trailing: KeywordCustomYearRangePicker(
+        fromYear: _fromYear,
+        toYear: _toYear,
+        onChanged: (from, to) {
+          setState(() {
+            _fromYear = from;
+            _toYear = to;
+          });
+        },
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

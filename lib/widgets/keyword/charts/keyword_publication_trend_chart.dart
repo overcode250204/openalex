@@ -7,8 +7,8 @@ import '../../../viewmodels/keyword_analyzer_view_model.dart';
 import 'keyword_chart_card.dart';
 import 'keyword_chart_empty_state.dart';
 import 'keyword_chart_error_state.dart';
-import 'keyword_chart_period_selector.dart';
 import 'keyword_chart_skeleton.dart';
+import 'keyword_custom_year_range_picker.dart';
 
 class KeywordPublicationTrendChart extends StatelessWidget {
   final KeywordAnalyzerViewModel viewModel;
@@ -48,35 +48,13 @@ class KeywordPublicationTrendChart extends StatelessWidget {
       );
     }
 
-    // Determine current range based on from/to years (heuristic)
-    final currentYear = DateTime.now().year;
-    final rangeSize = viewModel.selectedToYear - viewModel.selectedFromYear;
-    KeywordTrendRange selectedRange = KeywordTrendRange.all;
-    if (rangeSize <= 5 && viewModel.selectedToYear >= currentYear - 1) {
-      selectedRange = KeywordTrendRange.fiveYears;
-    } else if (rangeSize <= 10 && viewModel.selectedToYear >= currentYear - 1) {
-      selectedRange = KeywordTrendRange.tenYears;
-    }
-
     return KeywordChartCard(
       title: 'Publication Trend',
       subtitle: 'Research activity over time',
-      trailing: KeywordChartPeriodSelector(
-        selectedRange: selectedRange,
-        onChanged: (range) {
-          final toYear = DateTime.now().year;
-          int fromYear = 1990;
-          switch (range) {
-            case KeywordTrendRange.fiveYears:
-              fromYear = toYear - 5;
-              break;
-            case KeywordTrendRange.tenYears:
-              fromYear = toYear - 10;
-              break;
-            case KeywordTrendRange.all:
-              fromYear = 1990;
-              break;
-          }
+      trailing: KeywordCustomYearRangePicker(
+        fromYear: viewModel.selectedFromYear,
+        toYear: viewModel.selectedToYear,
+        onChanged: (fromYear, toYear) {
           viewModel.updateKeywordTrendYearRange(
             fromYear: fromYear,
             toYear: toYear,
