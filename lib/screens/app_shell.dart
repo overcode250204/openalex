@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/app_page.dart';
 import '../widgets/app_drawer.dart';
 import 'journal/journal_search_screen.dart';
-import 'keyword_analyzer_page.dart';
+import 'keyword/keyword_dashboard_screen.dart';
 import 'trend_analyzer_home_page.dart';
 
 class AppShell extends StatefulWidget {
@@ -37,7 +37,7 @@ class _AppShellState extends State<AppShell> {
 
 
       case AppPage.trends:
-        return KeywordAnalyzerPage(
+        return KeywordDashboardScreen(
           onOpenDrawer: () => _scaffoldKey.currentState?.openDrawer(),
         );
 

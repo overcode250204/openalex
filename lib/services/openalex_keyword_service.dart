@@ -188,6 +188,22 @@ class OpenAlexKeywordService {
       throw KeywordNotFoundException('No matching OpenAlex keyword found.');
     }
 
+    return analyzeResolvedKeyword(
+      trimmedKeyword,
+      resolvedKeyword,
+      fromYear: fromYear,
+      toYear: toYear,
+    );
+  }
+
+  Future<KeywordAnalysisResult> analyzeResolvedKeyword(
+    String keyword,
+    OpenAlexKeyword resolvedKeyword, {
+    int fromYear = 2011,
+    int? toYear,
+  }) async {
+    final trimmedKeyword = keyword.trim();
+
     final keywordId = resolvedKeyword.id;
 
     final results = await Future.wait([
