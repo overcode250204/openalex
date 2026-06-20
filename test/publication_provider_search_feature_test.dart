@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/models/publication.dart';
 import 'package:openalex/models/search_filter.dart';
+import 'package:openalex/models/topic.dart';
 import 'package:openalex/providers/publication_provider.dart';
 import 'package:openalex/services/openalex_service.dart';
 
@@ -37,6 +38,9 @@ Publication publication(String id, {int? year = 2024}) {
     doi: null,
     abstractText: null,
     authors: const ['Ada Lovelace'],
+    referencedWorkIds: ["1", "2"],
+    relatedWorkIds: ["1", "2"],
+    oaUrl: "123",
   );
 }
 
@@ -54,7 +58,7 @@ void main() {
         );
         final provider = PublicationProvider(service);
 
-        await provider.searchWithFilter('AI');
+        await provider.searchWithFilter('AI', null);
 
         expect(provider.currentTopic, 'AI');
         expect(provider.publications, hasLength(50));
@@ -79,7 +83,7 @@ void main() {
         );
         final provider = PublicationProvider(service);
 
-        await provider.searchWithFilter('AI');
+        await provider.searchWithFilter('AI', null);
         await provider.loadMore();
 
         expect(provider.publications, hasLength(75));
@@ -100,7 +104,7 @@ void main() {
       );
       final provider = PublicationProvider(service);
 
-      await provider.searchWithFilter('AI');
+      await provider.searchWithFilter('AI', null);
       await provider.updateFilter(
         const SearchFilter(
           yearFrom: 2020,
@@ -119,7 +123,7 @@ void main() {
       expect(filteredParams['page'], '1');
       expect(
         filteredParams['filter'],
-        'publication_year:2020-2024,is_oa:true,type:article',
+        'publication_year:2020-2024,is_oa:true,type:article,primary_topic.id:T10616|T10862|T12002',
       );
       expect(filteredParams['sort'], 'cited_by_count:desc');
     });
@@ -135,7 +139,7 @@ void main() {
         await provider.updateFilter(
           const SearchFilter(sortOption: SortOption.yearDesc),
         );
-        await provider.searchWithFilter('AI');
+        await provider.searchWithFilter('AI', null);
 
         provider.resetFilter();
 
@@ -153,7 +157,7 @@ void main() {
         );
         final provider = PublicationProvider(service);
 
-        await provider.searchWithFilter('AI');
+        await provider.searchWithFilter('AI', null);
         await provider.loadMore();
 
         expect(provider.publications, isEmpty);
@@ -165,5 +169,30 @@ void main() {
         expect(provider.isLoadingMore, isFalse);
       },
     );
+
+    test('searchWithFilter normalizes selected topic OpenAlex id', () async {
+      final service = FakeFilterOpenAlexService(
+        responses: [(1, publications(1))],
+      );
+      final provider = PublicationProvider(service);
+
+      await provider.searchWithFilter(
+        'AI',
+        TopicSuggestion(
+          id: 'https://openalex.org/T12345',
+          displayName: 'Artificial intelligence',
+          workCount: 10,
+        ),
+      );
+
+      expect(
+        service.requestedParams.single['filter'],
+        contains('primary_topic.id:T12345'),
+      );
+      expect(
+        service.requestedParams.single['filter'],
+        isNot(contains('https://openalex.org/')),
+      );
+    });
   });
 }

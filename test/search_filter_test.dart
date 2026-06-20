@@ -5,7 +5,7 @@ void main() {
   group('SearchFilter', () {
     test('builds default OpenAlex query parameters', () {
       final params = const SearchFilter().toQueryParams(
-        'artificial intelligence',
+        'artificial intelligence', List.empty()
       );
 
       expect(params, {
@@ -25,7 +25,7 @@ void main() {
         language: 'en',
         documentType: DocumentType.article,
         sortOption: SortOption.citedDesc,
-      ).toQueryParams('machine learning');
+      ).toQueryParams('machine learning', List.empty());
 
       expect(params['search'], 'machine learning');
       expect(params['per-page'], '50');
@@ -40,11 +40,11 @@ void main() {
       final fromOnly = const SearchFilter(
         yearFrom: 2020,
         sortOption: SortOption.yearAsc,
-      ).toQueryParams('ai');
+      ).toQueryParams('ai', List.empty());
       final toOnly = const SearchFilter(
         yearTo: 2024,
         sortOption: SortOption.yearDesc,
-      ).toQueryParams('ai');
+      ).toQueryParams('ai', List.empty());
 
       expect(fromOnly['filter'], 'publication_year:>2020');
       expect(fromOnly['sort'], 'publication_date:asc');

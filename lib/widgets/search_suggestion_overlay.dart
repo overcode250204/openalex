@@ -1,13 +1,11 @@
-
-
 import 'package:flutter/material.dart';
+import 'package:openalex/models/topic.dart';
 import 'package:openalex/providers/publication_provider.dart';
 import 'package:provider/provider.dart';
 
-
 class SearchSuggestionOverlay extends StatelessWidget {
   final TextEditingController controller;
-  final VoidCallback? onSearch;
+  final ValueChanged<TopicSuggestion?>? onSearch;
 
   const SearchSuggestionOverlay({
     super.key,
@@ -20,86 +18,94 @@ class SearchSuggestionOverlay extends StatelessWidget {
     return Focus(
       child: Consumer<PublicationProvider>(
         builder: (context, provider, _) {
-          if (!provider.showSuggestions) return const SizedBox();
-      
+          if (!provider.showSuggestions) {
+            return const SizedBox.shrink();
+          }
+
           final query = controller.text.trim();
           final hasHistory = provider.searchHistory.isNotEmpty;
           final hasSuggestions = provider.conceptSuggestions.isNotEmpty;
-      
-          if (!hasHistory && !hasSuggestions) return const SizedBox();
-      
+
+          if (!hasHistory && !hasSuggestions) {
+            return const SizedBox.shrink();
+          }
+
           return Container(
+            key: const Key('search_suggestion_overlay_content'),
             margin: const EdgeInsets.symmetric(horizontal: 8),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // History 
+                // History
                 if (query.isEmpty && hasHistory) ...[
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Lịch sử tìm kiếm',
-                            style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey)),
+                        const Text(
+                          'Search history',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey,
+                          ),
+                        ),
                         TextButton(
                           onPressed: () => provider.clearHistory(),
                           style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.zero),
-                          child: const Text('Xóa tất cả',
-                              style: TextStyle(fontSize: 12)),
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                          ),
+                          child: const Text(
+                            'Clear all',
+                            style: TextStyle(fontSize: 12),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  ...provider.searchHistory.map((h) => _HistoryItem(
-                        keyword: h,
-                        onTap: () {
-                          controller.text = h;
-                          provider.hideSuggestions();
-                          onSearch?.call();
-                        },
-                        onDelete: () => provider.removeHistory(h),
-                      )),
+                  ...provider.searchHistory.map(
+                    (h) => _HistoryItem(
+                      keyword: h,
+                      onTap: () {
+                        controller.text = h;
+                        provider.hideSuggestions();
+                        onSearch?.call(null);
+                        onSearch!(null);
+                      },
+                      onDelete: () => provider.removeHistory(h),
+                    ),
+                  ),
                 ],
-          
+
                 // suggestion from openalex
                 if (query.isNotEmpty && hasSuggestions) ...[
                   const Padding(
                     padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-                    child: Text('Gợi ý chủ đề',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey)),
+                    child: Text(
+                      'Suggestion',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey,
+                      ),
+                    ),
                   ),
-                  ...provider.conceptSuggestions.map((s) => _SuggestionItem(
-                        name: s['name']!,
-                        subtitle: s['count']!,
-                        onTap: () {
-                          controller.text = s['name']!;
-                          provider.hideSuggestions();
-                          onSearch?.call();
-                        },
-                      )),
+                  ...provider.conceptSuggestions.map(
+                    (s) => _SuggestionItem(
+                      name: s.displayName,
+                      subtitle: s.workCount.toString(),
+                      onTap: () {
+                        controller.text = s.displayName;
+                        provider.hideSuggestions();
+                        onSearch?.call(s);
+                      },
+                    ),
+                  ),
                 ],
-          
+
                 const SizedBox(height: 8),
               ],
             ),
@@ -155,8 +161,10 @@ class _SuggestionItem extends StatelessWidget {
       dense: true,
       leading: const Icon(Icons.search, size: 18, color: Colors.grey),
       title: Text(name, style: const TextStyle(fontSize: 14)),
-      subtitle: Text(subtitle,
-          style: const TextStyle(fontSize: 11, color: Colors.grey)),
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(fontSize: 11, color: Colors.grey),
+      ),
       onTap: onTap,
     );
   }

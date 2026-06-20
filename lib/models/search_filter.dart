@@ -41,7 +41,7 @@ class SearchFilter {
       sortOption: sortOption ?? this.sortOption);
   }
 
-  Map<String, String> toQueryParams(String keyword) {
+  Map<String, String> toQueryParams(String keyword, List<String> topicIds) {
     final params = <String, String>{
       'search' : keyword,
       'per-page' : '50',
@@ -68,6 +68,10 @@ class SearchFilter {
 
     if(documentType != DocumentType.all){
       filters.add('type:${documentType.name}');
+    }
+
+    if(topicIds.isNotEmpty){
+     filters.add('primary_topic.id:${topicIds.join('|')}');
     }
 
     if(filters.isNotEmpty){

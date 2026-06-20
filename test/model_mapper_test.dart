@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/core/utils/abstract_converter.dart';
-import 'package:openalex/mappers/ZoteroMapper.dart';
+import 'package:openalex/mappers/zotero_mapper.dart';
 import 'package:openalex/models/publication.dart';
 import 'package:openalex/models/zotero.dart';
 
@@ -128,6 +128,9 @@ void main() {
           doi: '10.1000/mapped',
           abstractText: 'A clear abstract.',
           authors: ['Ada Lovelace', 'Plato'],
+          referencedWorkIds: ["1", "2"],
+          relatedWorkIds: ["1", "2"],
+          oaUrl: "123",
         ),
       );
 
@@ -158,6 +161,9 @@ void main() {
           doi: '',
           abstractText: null,
           authors: [],
+          referencedWorkIds: List.empty(),
+          relatedWorkIds: List.empty(),
+          oaUrl: "",
         ),
       );
 

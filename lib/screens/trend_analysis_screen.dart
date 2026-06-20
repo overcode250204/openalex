@@ -2,125 +2,523 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/publication_provider.dart';
-import '../widgets/trend_chart.dart';
-import 'publication_detail_screen.dart';
+import '../widgets/analytics_chart_card.dart';
+import '../widgets/publication_trend_line_chart.dart';
+import '../widgets/top_influential_papers_horizontal_chart.dart';
+import '../widgets/top_research_journals_donut_chart.dart';
+import '../widgets/top_contributing_authors_column_chart.dart';
 
-class TrendAnalysisScreen extends StatelessWidget {
+import '../models/publication.dart';
+import '../services/openalex_service.dart';
+import '../widgets/top_selector_dropdown.dart';
+
+class TrendAnalysisScreen extends StatefulWidget {
   const TrendAnalysisScreen({super.key});
+
+  @override
+  State<TrendAnalysisScreen> createState() => _TrendAnalysisScreenState();
+}
+
+class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
+  bool _seededInitialAnalytics = false;
+  int? selectedTopPapers = 5;
+  bool isLoadingPapers = false;
+  bool hasErrorPapers = false;
+  List<Publication>? fetchedPapers;
+
+  int? selectedTopJournals = 10;
+  bool isLoadingJournals = false;
+  bool hasErrorJournals = false;
+  Map<String, int>? fetchedJournalsData;
+
+  int? selectedTopAuthors = 10;
+  bool isLoadingAuthors = false;
+  bool hasErrorAuthors = false;
+  Map<String, int>? fetchedAuthorsData;
+
+  Map<int, int>? fetchedTrendData;
+  bool isLoadingTrend = false;
+  bool hasErrorTrend = false;
+
+  int selectedFromYear = 2014;
+  int selectedToYear = DateTime.now().year;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_seededInitialAnalytics) {
+      _seedAnalyticsFromProvider();
+      _seededInitialAnalytics = true;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadPublicationTrend();
+      });
+    }
+  }
+
+  void _seedAnalyticsFromProvider() {
+    final provider = context.read<PublicationProvider>();
+
+    if (provider.currentTopic.trim().isEmpty) return;
+
+    fetchedTrendData = provider.publicationCountByYear;
+
+    fetchedPapers = provider.topInfluentialPapers
+        .take(selectedTopPapers ?? provider.topInfluentialPapers.length)
+        .toList();
+    fetchedJournalsData = Map.fromEntries(
+      provider.topJournals.entries.take(
+        selectedTopJournals ?? provider.topJournals.length,
+      ),
+    );
+    fetchedAuthorsData = Map.fromEntries(
+      provider.topAuthors.entries.take(
+        selectedTopAuthors ?? provider.topAuthors.length,
+      ),
+    );
+  }
+
+  Future<void> _loadPublicationTrend() async {
+    final provider = context.read<PublicationProvider>();
+    final keyword = provider.currentTopic;
+
+    if (keyword.trim().isEmpty) return;
+
+    setState(() {
+      isLoadingTrend = true;
+      hasErrorTrend = false;
+    });
+
+    try {
+      final service = OpenAlexService();
+      final result = await service.fetchPublicationTrend(
+        keyword: keyword,
+        fromYear: selectedFromYear,
+        toYear: selectedToYear,
+      );
+
+      if (mounted) {
+        setState(() {
+          fetchedTrendData = result;
+          isLoadingTrend = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          hasErrorTrend = true;
+          isLoadingTrend = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadInfluentialPapers({int? limit}) async {
+    final provider = context.read<PublicationProvider>();
+    final keyword = provider.currentTopic;
+    if (keyword.trim().isEmpty) return;
+
+    setState(() {
+      isLoadingPapers = true;
+      hasErrorPapers = false;
+    });
+
+    try {
+      final service = OpenAlexService();
+      final result = await service.fetchInfluentialPapers(
+        keyword: keyword,
+        limit: limit,
+      );
+
+      if (mounted) {
+        setState(() {
+          fetchedPapers = result;
+          isLoadingPapers = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          hasErrorPapers = true;
+          isLoadingPapers = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadTopResearchJournals({int? limit}) async {
+    final provider = context.read<PublicationProvider>();
+    final keyword = provider.currentTopic;
+    if (keyword.trim().isEmpty) return;
+
+    setState(() {
+      isLoadingJournals = true;
+      hasErrorJournals = false;
+    });
+
+    try {
+      final service = OpenAlexService();
+      final result = await service.fetchTopResearchJournals(
+        keyword: keyword,
+        limit: limit,
+      );
+
+      if (mounted) {
+        setState(() {
+          fetchedJournalsData = result;
+          isLoadingJournals = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          hasErrorJournals = true;
+          isLoadingJournals = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadTopContributingAuthors({int? limit}) async {
+    final provider = context.read<PublicationProvider>();
+    final keyword = provider.currentTopic;
+    if (keyword.trim().isEmpty) return;
+
+    setState(() {
+      isLoadingAuthors = true;
+      hasErrorAuthors = false;
+    });
+
+    try {
+      final service = OpenAlexService();
+      final result = await service.fetchTopContributingAuthors(
+        keyword: keyword,
+        limit: limit,
+      );
+
+      if (mounted) {
+        setState(() {
+          fetchedAuthorsData = result;
+          isLoadingAuthors = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          hasErrorAuthors = true;
+          isLoadingAuthors = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PublicationProvider>();
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F9FC),
       appBar: AppBar(
-        title: const Text('Trend Analysis'),
+        title: const Text(
+          'Trend Analysis',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            onPressed: () {
+              // Share action
+            },
+          ),
+        ],
       ),
-      body: provider.publications.isEmpty
+      body: provider.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : provider.publications.isEmpty && provider.errorMessage == null
           ? const Center(
               child: Text('Search a topic first to view trend analysis.'),
             )
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Text(
-                  'Publication Trend: ${provider.currentTopic}',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+          : provider.errorMessage != null
+          ? Center(
+              child: Text(
+                provider.errorMessage!,
+                style: const TextStyle(color: Colors.red),
+              ),
+            )
+          : SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 16,
+                  bottom: 100, // Padding bottom for the fixed bottom navigation
                 ),
-                const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: TrendChart(
-                      data: provider.publicationCountByYear,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                _SectionTitle(title: 'Top Influential Papers'),
-                const SizedBox(height: 8),
-                ...provider.topInfluentialPapers.map(
-                  (publication) => Card(
-                    child: ListTile(
-                      title: Text(
-                        publication.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      subtitle: Text(
-                        '${publication.displayYear} • ${publication.displayJournal}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: Text(
-                        '${publication.citedByCount} citations',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => PublicationDetailScreen(
-                              publication: publication,
+                child: Column(
+                  children: [
+                    AnalyticsChartCard(
+                      title:
+                          'Publication Trend: ${provider.currentTopic.isNotEmpty ? provider.currentTopic : "Topic"}',
+                      customDropdown: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          DropdownButton<int>(
+                            value: selectedFromYear,
+                            underline: const SizedBox.shrink(),
+                            items: List.generate(
+                              DateTime.now().year - 1990 + 1,
+                              (index) {
+                                final year = 1990 + index;
+                                return DropdownMenuItem(
+                                  value: year,
+                                  child: Text('$year'),
+                                );
+                              },
                             ),
+                            onChanged: (value) async {
+                              if (value == null) return;
+                              setState(() {
+                                selectedFromYear = value;
+                                if (selectedFromYear > selectedToYear) {
+                                  selectedToYear = selectedFromYear;
+                                }
+                              });
+                              await _loadPublicationTrend();
+                            },
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                _SectionTitle(title: 'Top Research Journals'),
-                const SizedBox(height: 8),
-                ...provider.topJournals.entries.map(
-                  (entry) => Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.menu_book),
-                      title: Text(entry.key),
-                      trailing: Text(
-                        '${entry.value} papers',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 6),
+                            child: Text('to'),
+                          ),
+                          DropdownButton<int>(
+                            value: selectedToYear,
+                            underline: const SizedBox.shrink(),
+                            items: List.generate(
+                              DateTime.now().year - 1990 + 1,
+                              (index) {
+                                final year = 1990 + index;
+                                return DropdownMenuItem(
+                                  value: year,
+                                  child: Text('$year'),
+                                );
+                              },
+                            ),
+                            onChanged: (value) async {
+                              if (value == null) return;
+                              setState(() {
+                                selectedToYear = value;
+                                if (selectedToYear < selectedFromYear) {
+                                  selectedFromYear = selectedToYear;
+                                }
+                              });
+                              await _loadPublicationTrend();
+                            },
+                          ),
+                        ],
                       ),
+                      child: isLoadingTrend
+                          ? const SizedBox(
+                              height: 300,
+                              child: Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            )
+                          : hasErrorTrend
+                          ? SizedBox(
+                              height: 300,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text(
+                                      'Failed to load publication trend.',
+                                    ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: _loadPublicationTrend,
+                                      child: const Text('Retry'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : (fetchedTrendData == null ||
+                                  fetchedTrendData!.isEmpty)
+                          ? const SizedBox(
+                              height: 300,
+                              child: Center(
+                                child: Text(
+                                  'No publication trend data available.',
+                                ),
+                              ),
+                            )
+                          : PublicationTrendLineChart(
+                              data: fetchedTrendData!,
+                            ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                _SectionTitle(title: 'Top Contributing Authors'),
-                const SizedBox(height: 8),
-                ...provider.topAuthors.entries.map(
-                  (entry) => Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.person),
-                      title: Text(entry.key),
-                      trailing: Text(
-                        '${entry.value} papers',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                    const SizedBox(height: 16),
+                    AnalyticsChartCard(
+                      title: 'Top Influential Papers',
+                      showInfoIcon: true,
+                      customDropdown: TopSelectorDropdown(
+                        value: selectedTopPapers,
+                        onChanged: (value) async {
+                          setState(() {
+                            selectedTopPapers = value;
+                          });
+                          await _loadInfluentialPapers(limit: value);
+                        },
                       ),
+                      child: isLoadingPapers || fetchedPapers == null
+                          ? const SizedBox(
+                              height: 260,
+                              child: Center(child: CircularProgressIndicator()),
+                            )
+                          : hasErrorPapers
+                          ? SizedBox(
+                              height: 260,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text(
+                                      'Failed to load influential papers.',
+                                    ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: () => _loadInfluentialPapers(
+                                        limit: selectedTopPapers,
+                                      ),
+                                      child: const Text('Retry'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : fetchedPapers!.isEmpty
+                          ? const SizedBox(
+                              height: 260,
+                              child: Center(
+                                child: Text('No influential papers available.'),
+                              ),
+                            )
+                          : TopInfluentialPapersHorizontalChart(
+                              papers: fetchedPapers!,
+                            ),
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    AnalyticsChartCard(
+                      title: 'Top Research Journals',
+                      showInfoIcon: true,
+                      customDropdown: TopSelectorDropdown(
+                        value: selectedTopJournals,
+                        onChanged: (value) async {
+                          setState(() {
+                            selectedTopJournals = value;
+                          });
+                          await _loadTopResearchJournals(limit: value);
+                        },
+                      ),
+                      child: isLoadingJournals || fetchedJournalsData == null
+                          ? const SizedBox(
+                              height: 260,
+                              child: Center(child: CircularProgressIndicator()),
+                            )
+                          : hasErrorJournals
+                          ? SizedBox(
+                              height: 260,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text(
+                                      'Failed to load research journals.',
+                                    ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: () => _loadTopResearchJournals(
+                                        limit: selectedTopJournals,
+                                      ),
+                                      child: const Text('Retry'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : fetchedJournalsData!.isEmpty
+                          ? const SizedBox(
+                              height: 260,
+                              child: Center(
+                                child: Text('No research journals available.'),
+                              ),
+                            )
+                          : TopResearchJournalsDonutChart(
+                              journalsData: fetchedJournalsData!,
+                            ),
+                    ),
+                    const SizedBox(height: 16),
+                    AnalyticsChartCard(
+                      title: 'Top Contributing Authors',
+                      showInfoIcon: true,
+                      customDropdown: TopSelectorDropdown(
+                        value: selectedTopAuthors,
+                        onChanged: (value) async {
+                          setState(() {
+                            selectedTopAuthors = value;
+                          });
+                          await _loadTopContributingAuthors(limit: value);
+                        },
+                      ),
+                      child: isLoadingAuthors || fetchedAuthorsData == null
+                          ? const SizedBox(
+                              height: 260,
+                              child: Center(child: CircularProgressIndicator()),
+                            )
+                          : hasErrorAuthors
+                          ? SizedBox(
+                              height: 260,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text(
+                                      'Failed to load contributing authors.',
+                                    ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: () =>
+                                          _loadTopContributingAuthors(
+                                            limit: selectedTopAuthors,
+                                          ),
+                                      child: const Text('Retry'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : fetchedAuthorsData!.isEmpty
+                          ? const SizedBox(
+                              height: 260,
+                              child: Center(
+                                child: Text(
+                                  'No contributing authors available.',
+                                ),
+                              ),
+                            )
+                          : TopContributingAuthorsColumnChart(
+                              authorsData: fetchedAuthorsData!,
+                            ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  final String title;
-
-  const _SectionTitle({
-    required this.title,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
     );
   }
 }
