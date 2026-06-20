@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/utils/formatters.dart';
 import '../../models/keyword/keyword_overview.dart';
 import 'keyword_status_chip.dart';
 
@@ -19,7 +20,10 @@ class HotKeywordHeroCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final format = NumberFormat.decimalPattern();
-    final growth = '${keyword.growthRate >= 0 ? '+' : ''}${keyword.growthRate.toStringAsFixed(1)}%';
+    final growth = Formatters.formatGrowthRate(
+      keyword.growthRate,
+      previousCount: keyword.previousPeriodCount,
+    );
     return Card(
       color: const Color(0xFFEAF3FF),
       child: Padding(

@@ -6,7 +6,6 @@ import 'package:openalex/models/keyword/keyword_trend_point.dart';
 import 'package:openalex/models/keyword/openalex_keyword.dart';
 import 'package:openalex/screens/keyword_analyzer_page.dart';
 import 'package:openalex/services/openalex_keyword_service.dart';
-import 'package:openalex/services/openalex_keyword_service.dart';
 import 'package:openalex/viewmodels/keyword_analyzer_view_model.dart';
 import 'package:provider/provider.dart';
 

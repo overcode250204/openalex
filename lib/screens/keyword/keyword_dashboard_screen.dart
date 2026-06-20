@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../core/utils/formatters.dart';
+
 import '../../models/keyword/keyword_dashboard_result.dart';
-import '../../models/keyword/keyword_overview.dart';
 import '../../models/keyword/openalex_keyword.dart';
 import '../../providers/keyword_dashboard_provider.dart';
 import '../../services/openalex_keyword_service.dart';
+import '../../widgets/keyword/charts/keyword_trend_comparison_chart.dart';
 import '../../widgets/keyword/hot_keyword_hero_card.dart';
 import '../../widgets/keyword/keyword_autocomplete_search.dart';
-import '../../widgets/keyword/keyword_dashboard_trend_chart.dart';
 import '../../widgets/keyword/keyword_empty_state.dart';
 import '../../widgets/keyword/keyword_error_state.dart'
     as err; // Aliasing to avoid duplicate
@@ -37,7 +37,8 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<KeywordDashboardProvider>().load();
+      // Tự động refresh khi bấm tới tab này
+      context.read<KeywordDashboardProvider>().refresh();
     });
   }
 
@@ -151,7 +152,6 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
     KeywordDashboardResult result,
     Future<void> Function() refresh,
   ) {
-    final format = NumberFormat.decimalPattern();
     final stats = result.statistics;
     return RefreshIndicator(
       onRefresh: refresh,
@@ -202,48 +202,69 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
           const SizedBox(height: 16),
           LayoutBuilder(
             builder: (context, constraints) {
-              final columns = constraints.maxWidth >= 1000
-                  ? 4
-                  : constraints.maxWidth >= 560
-                  ? 2
-                  : 1;
-              final width =
-                  (constraints.maxWidth - (columns - 1) * 10) / columns;
-              return Wrap(
-                spacing: 10,
-                runSpacing: 10,
+              // Always 2 columns on mobile, 4 on wide screens
+              final columns = constraints.maxWidth >= 900 ? 4 : 2;
+              final spacing = 10.0;
+              
+              final card1 = KeywordStatCard(
+                label: 'Total Keywords',
+                value: stats.totalKeywordsAnalyzed.toString(),
+                icon: Icons.key,
+              );
+              final card2 = KeywordStatCard(
+                label: 'Total Publications',
+                value: Formatters.formatCompactNumber(stats.totalRecentPublications),
+                icon: Icons.article_outlined,
+              );
+              final card3 = KeywordStatCard(
+                label: 'Hottest Keyword',
+                value: stats.hottestKeyword,
+                icon: Icons.local_fire_department_outlined,
+              );
+              final card4 = KeywordStatCard(
+                label: 'Fastest Growth',
+                value: Formatters.formatGrowthRate(stats.fastestGrowthRate),
+                icon: Icons.trending_up,
+              );
+
+              if (columns == 4) {
+                return IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: card1),
+                      SizedBox(width: spacing),
+                      Expanded(child: card2),
+                      SizedBox(width: spacing),
+                      Expanded(child: card3),
+                      SizedBox(width: spacing),
+                      Expanded(child: card4),
+                    ],
+                  ),
+                );
+              }
+
+              return Column(
                 children: [
-                  SizedBox(
-                    width: width,
-                    child: KeywordStatCard(
-                      label: 'Total Keywords Analyzed',
-                      value: format.format(stats.totalKeywordsAnalyzed),
-                      icon: Icons.key,
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: card1),
+                        SizedBox(width: spacing),
+                        Expanded(child: card2),
+                      ],
                     ),
                   ),
-                  SizedBox(
-                    width: width,
-                    child: KeywordStatCard(
-                      label: 'Total Recent Publications',
-                      value: format.format(stats.totalRecentPublications),
-                      icon: Icons.article_outlined,
-                    ),
-                  ),
-                  SizedBox(
-                    width: width,
-                    child: KeywordStatCard(
-                      label: 'Hottest Keyword',
-                      value: stats.hottestKeyword,
-                      icon: Icons.local_fire_department_outlined,
-                    ),
-                  ),
-                  SizedBox(
-                    width: width,
-                    child: KeywordStatCard(
-                      label: 'Fastest Growth Rate',
-                      value:
-                          '${stats.fastestGrowthRate >= 0 ? '+' : ''}${stats.fastestGrowthRate.toStringAsFixed(1)}%',
-                      icon: Icons.trending_up,
+                  SizedBox(height: spacing),
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: card3),
+                        SizedBox(width: spacing),
+                        Expanded(child: card4),
+                      ],
                     ),
                   ),
                 ],
@@ -261,7 +282,7 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
             onSelected: (keyword) => _openDetail(keyword.name),
           ),
           const SizedBox(height: 16),
-          KeywordDashboardTrendChart(series: result.trendSeries),
+          KeywordTrendComparisonChart(series: result.trendSeries),
           const SizedBox(height: 24),
         ],
       ),

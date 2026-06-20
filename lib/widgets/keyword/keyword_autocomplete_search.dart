@@ -46,7 +46,12 @@ class _KeywordAutocompleteSearchState extends State<KeywordAutocompleteSearch> {
           _showOverlay();
         }
       } else {
-        _hideOverlay();
+        // Delay hiding the overlay to allow onTap to process
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (mounted && !_focusNode.hasFocus) {
+            _hideOverlay();
+          }
+        });
       }
     });
     widget.controller.addListener(_onTextChanged);

@@ -6,9 +6,9 @@ import '../models/keyword/keyword_analysis_result.dart';
 import '../models/keyword/openalex_keyword.dart';
 import '../viewmodels/keyword_analyzer_view_model.dart';
 import '../widgets/analytics_chart_card.dart';
+import '../widgets/keyword/charts/keyword_publication_trend_chart.dart';
 import '../widgets/keyword/keyword_analysis_summary.dart';
 import '../widgets/keyword/keyword_paper_list_card.dart';
-import '../widgets/keyword/keyword_trend_chart.dart';
 import '../widgets/keyword/latest_papers_card.dart';
 import '../widgets/keyword/most_cited_papers_card.dart';
 import '../widgets/keyword/open_access_papers_card.dart';
@@ -231,7 +231,7 @@ class _KeywordDashboardState extends State<_KeywordDashboard> {
             ],
             KeywordAnalysisSummary(result: result),
             const SizedBox(height: 16),
-            KeywordTrendChart(
+            KeywordPublicationTrendChart(
               viewModel: context.read<KeywordAnalyzerViewModel>(),
               trend: result.trend,
             ),
