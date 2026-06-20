@@ -195,11 +195,7 @@ class TrendReportExportService {
   }
 
   static Future<Directory> _resolveExportDirectory() async {
-    Directory? baseDirectory;
-    if (Platform.isAndroid) {
-      baseDirectory = await getExternalStorageDirectory();
-    }
-    baseDirectory ??= await getApplicationDocumentsDirectory();
+    final baseDirectory = await getApplicationDocumentsDirectory();
 
     final exportDirectory = Directory(
       '${baseDirectory.path}${Platform.pathSeparator}OpenAlexReports',
