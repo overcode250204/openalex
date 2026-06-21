@@ -3,4 +3,5 @@ enum AppPage {
   searchTopic,
   trends,
   journals,
+  profile,
 }
