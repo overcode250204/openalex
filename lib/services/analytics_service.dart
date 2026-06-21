@@ -26,11 +26,11 @@ class AnalyticsResult {
   });
 
   static AnalyticsResult empty() => const AnalyticsResult(
-        publicationTrend: {},
-        topKeywords: {},
-        institutionRanking: {},
-        countryOutput: {},
-      );
+    publicationTrend: {},
+    topKeywords: {},
+    institutionRanking: {},
+    countryOutput: {},
+  );
 }
 
 class _TopPaper {
@@ -66,11 +66,14 @@ class AnalyticsService {
     final groups = body['group_by'] as List<dynamic>? ?? [];
 
     return Map.fromEntries(
-      groups.map((g) {
-        // key_display_name is always the human-readable label for all group_by fields
-        final displayName = g['key_display_name']?.toString() ?? g['key']?.toString() ?? '';
-        return MapEntry(displayName, (g['count'] as num? ?? 0).toInt());
-      }).where((e) => e.key.isNotEmpty),
+      groups
+          .map((g) {
+            // key_display_name is always the human-readable label for all group_by fields
+            final displayName =
+                g['key_display_name']?.toString() ?? g['key']?.toString() ?? '';
+            return MapEntry(displayName, (g['count'] as num? ?? 0).toInt());
+          })
+          .where((e) => e.key.isNotEmpty),
     );
   }
 
@@ -102,10 +105,7 @@ class AnalyticsService {
     );
   }
 
-  Future<AnalyticsResult> fetchAll(
-    String keyword,
-    SearchFilter filter,
-  ) async {
+  Future<AnalyticsResult> fetchAll(String keyword, SearchFilter filter) async {
     final baseParams = filter.toQueryParams(keyword, []);
 
     // Kick off the group-by aggregations and the top-paper lookup concurrently.

@@ -89,8 +89,9 @@ class _KeywordAutocompleteSearchState extends State<KeywordAutocompleteSearch> {
 
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 350), () async {
-      final results =
-          await _suggestionService.fetchOpenAlexKeywordSuggestions(query);
+      final results = await _suggestionService.fetchOpenAlexKeywordSuggestions(
+        query,
+      );
       if (!mounted) return;
 
       setState(() {

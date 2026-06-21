@@ -42,11 +42,11 @@ void main() {
     );
 
     final future = provider.fetchAnalytics('test', const SearchFilter(), []);
-    
+
     expect(provider.isLoading, true);
-    
+
     await future;
-    
+
     expect(provider.isLoading, false);
     expect(provider.error, isNull);
     expect(provider.hasData, true);
@@ -57,8 +57,9 @@ void main() {
   });
 
   test('fetchAnalytics loading failure', () async {
-    when(() => mockService.fetchAll(any(), any()))
-        .thenThrow(Exception('API Error'));
+    when(
+      () => mockService.fetchAll(any(), any()),
+    ).thenThrow(Exception('API Error'));
 
     await provider.fetchAnalytics('test', const SearchFilter(), []);
 
@@ -106,9 +107,9 @@ void main() {
   });
 
   test('author impact', () async {
-    when(() => mockService.fetchAll(any(), any())).thenAnswer(
-      (_) async => AnalyticsResult.empty(),
-    );
+    when(
+      () => mockService.fetchAll(any(), any()),
+    ).thenAnswer((_) async => AnalyticsResult.empty());
 
     final pubs = <Publication>[
       Publication(
@@ -141,12 +142,12 @@ void main() {
 
     final impact = provider.authorImpact;
     expect(impact.length, 2);
-    
+
     // Alice should have 2 papers, 30 citations
     final alice = impact.firstWhere((a) => a.name == 'Alice');
     expect(alice.paperCount, 2);
     expect(alice.totalCitations, 30);
-    
+
     // Bob should have 1 paper, 10 citations
     final bob = impact.firstWhere((a) => a.name == 'Bob');
     expect(bob.paperCount, 1);

@@ -24,7 +24,9 @@ class KeywordStatCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -39,17 +41,17 @@ class KeywordStatCard extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 value,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
             const SizedBox(height: 4),
             Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey.shade600,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),

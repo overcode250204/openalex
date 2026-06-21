@@ -11,7 +11,11 @@ import 'package:openalex/viewmodels/keyword_analyzer_view_model.dart';
 
 class _SuccessService extends OpenAlexKeywordService {
   @override
-  Future<KeywordAnalysisResult> analyzeKeyword(String kw, {int fromYear = 2011, int? toYear}) async {
+  Future<KeywordAnalysisResult> analyzeKeyword(
+    String kw, {
+    int fromYear = 2011,
+    int? toYear,
+  }) async {
     return KeywordAnalysisResult(
       keyword: kw,
       trend: const [KeywordTrendPoint(year: 2024, count: 5)],
@@ -25,14 +29,22 @@ class _SuccessService extends OpenAlexKeywordService {
 
 class _GenericErrorService extends OpenAlexKeywordService {
   @override
-  Future<KeywordAnalysisResult> analyzeKeyword(String keyword, {int fromYear = 2011, int? toYear}) async {
+  Future<KeywordAnalysisResult> analyzeKeyword(
+    String keyword, {
+    int fromYear = 2011,
+    int? toYear,
+  }) async {
     throw Exception('Network failure');
   }
 }
 
 class _KeywordNotFoundService extends OpenAlexKeywordService {
   @override
-  Future<KeywordAnalysisResult> analyzeKeyword(String keyword, {int fromYear = 2011, int? toYear}) async {
+  Future<KeywordAnalysisResult> analyzeKeyword(
+    String keyword, {
+    int fromYear = 2011,
+    int? toYear,
+  }) async {
     throw KeywordNotFoundException('Keyword "$keyword" was not found.');
   }
 }
@@ -144,7 +156,11 @@ class _CountingService extends OpenAlexKeywordService {
   _CountingService({required this.onCall});
 
   @override
-  Future<KeywordAnalysisResult> analyzeKeyword(String keyword, {int fromYear = 2011, int? toYear}) async {
+  Future<KeywordAnalysisResult> analyzeKeyword(
+    String keyword, {
+    int fromYear = 2011,
+    int? toYear,
+  }) async {
     onCall();
     return KeywordAnalysisResult(
       keyword: keyword,

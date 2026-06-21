@@ -22,9 +22,7 @@ class PublicationCard extends StatelessWidget {
           publication.title,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 8),
@@ -40,9 +38,7 @@ class PublicationCard extends StatelessWidget {
             const Icon(Icons.format_quote),
             Text(
               publication.citedByCount.toString(),
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
         ),

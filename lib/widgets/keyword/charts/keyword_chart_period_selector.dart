@@ -19,12 +19,18 @@ class KeywordChartPeriodSelector extends StatelessWidget {
       underline: const SizedBox.shrink(),
       icon: const Icon(Icons.keyboard_arrow_down, size: 20),
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+        fontWeight: FontWeight.w600,
+        color: Theme.of(context).colorScheme.primary,
+      ),
       items: const [
-        DropdownMenuItem(value: KeywordTrendRange.fiveYears, child: Text('5 Years')),
-        DropdownMenuItem(value: KeywordTrendRange.tenYears, child: Text('10 Years')),
+        DropdownMenuItem(
+          value: KeywordTrendRange.fiveYears,
+          child: Text('5 Years'),
+        ),
+        DropdownMenuItem(
+          value: KeywordTrendRange.tenYears,
+          child: Text('10 Years'),
+        ),
         DropdownMenuItem(value: KeywordTrendRange.all, child: Text('All')),
       ],
       onChanged: (value) {

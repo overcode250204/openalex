@@ -43,7 +43,6 @@ class FakeKeywordService extends OpenAlexKeywordService {
   }
 }
 
-
 void main() {
   group('KeywordAnalyzerViewModel', () {
     test('has initial state', () {

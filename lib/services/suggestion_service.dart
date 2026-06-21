@@ -100,7 +100,9 @@ class SuggestionService {
     }
   }
 
-  Future<List<OpenAlexKeyword>> fetchOpenAlexKeywordSuggestions(String query) async {
+  Future<List<OpenAlexKeyword>> fetchOpenAlexKeywordSuggestions(
+    String query,
+  ) async {
     if (query.trim().length < 2) return [];
 
     try {
@@ -129,9 +131,7 @@ class SuggestionService {
     }
   }
 
-  Future<List<JournalSuggestion>> fetchJournalSuggestions(
-    String query,
-  ) async {
+  Future<List<JournalSuggestion>> fetchJournalSuggestions(String query) async {
     final trimmedQuery = query.trim();
 
     if (trimmedQuery.length < 2) {
@@ -161,8 +161,7 @@ class SuggestionService {
 
       return results
           .map(
-            (item) =>
-                JournalSuggestion.fromJson(item as Map<String, dynamic>),
+            (item) => JournalSuggestion.fromJson(item as Map<String, dynamic>),
           )
           .where((journal) => journal.displayName.trim().isNotEmpty)
           .toList();

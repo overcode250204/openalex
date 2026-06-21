@@ -42,17 +42,17 @@ class KeywordChartCard extends StatelessWidget {
                     Text(
                       title,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
                     ),
                     if (subtitle != null) ...[
                       const SizedBox(height: 4),
                       Text(
                         subtitle!,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.grey.shade600,
-                            ),
+                          color: Colors.grey.shade600,
+                        ),
                       ),
                     ],
                   ],

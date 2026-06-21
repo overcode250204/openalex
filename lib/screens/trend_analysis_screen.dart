@@ -325,9 +325,7 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
                       child: isLoadingTrend
                           ? const SizedBox(
                               height: 300,
-                              child: Center(
-                                child: CircularProgressIndicator(),
-                              ),
+                              child: Center(child: CircularProgressIndicator()),
                             )
                           : hasErrorTrend
                           ? SizedBox(
@@ -349,7 +347,7 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
                               ),
                             )
                           : (fetchedTrendData == null ||
-                                  fetchedTrendData!.isEmpty)
+                                fetchedTrendData!.isEmpty)
                           ? const SizedBox(
                               height: 300,
                               child: Center(
@@ -358,9 +356,7 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
                                 ),
                               ),
                             )
-                          : PublicationTrendLineChart(
-                              data: fetchedTrendData!,
-                            ),
+                          : PublicationTrendLineChart(data: fetchedTrendData!),
                     ),
                     const SizedBox(height: 16),
                     AnalyticsChartCard(

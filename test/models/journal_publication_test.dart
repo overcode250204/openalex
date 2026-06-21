@@ -12,8 +12,12 @@ void main() {
         'doi': 'https://doi.org/10.1000/test',
         'cited_by_count': 42,
         'authorships': [
-          {'author': {'display_name': 'Ada Lovelace'}},
-          {'author': {'display_name': 'Grace Hopper'}},
+          {
+            'author': {'display_name': 'Ada Lovelace'},
+          },
+          {
+            'author': {'display_name': 'Grace Hopper'},
+          },
           {'author': {}}, // null display_name — should be filtered
         ],
         'primary_location': {
@@ -97,15 +101,18 @@ void main() {
       expect(publication.pdfUrl, 'https://best.com/oa.pdf');
     });
 
-    test('sets abstractText to null when abstract_inverted_index is not a map', () {
-      final publication = JournalPublication.fromJson({
-        'id': 'W1',
-        'display_name': 'Paper',
-        'abstract_inverted_index': 'not a map',
-      });
+    test(
+      'sets abstractText to null when abstract_inverted_index is not a map',
+      () {
+        final publication = JournalPublication.fromJson({
+          'id': 'W1',
+          'display_name': 'Paper',
+          'abstract_inverted_index': 'not a map',
+        });
 
-      expect(publication.abstractText, isNull);
-    });
+        expect(publication.abstractText, isNull);
+      },
+    );
 
     test('extracts sourceId from URL correctly', () {
       final publication = JournalPublication.fromJson({
@@ -133,14 +140,19 @@ void main() {
         'doi': '10.1000/full',
         'cited_by_count': 5,
         'authorships': [
-          {'author': {'display_name': 'Ada Lovelace'}},
+          {
+            'author': {'display_name': 'Ada Lovelace'},
+          },
         ],
         'primary_location': {
           'source': {'display_name': 'Nature'},
         },
       });
 
-      empty = JournalPublication.fromJson({'id': 'W2', 'display_name': 'Empty'});
+      empty = JournalPublication.fromJson({
+        'id': 'W2',
+        'display_name': 'Empty',
+      });
     });
 
     test('displayYear returns year string or fallback', () {
@@ -173,8 +185,12 @@ void main() {
         'id': 'W3',
         'display_name': 'Multi Author',
         'authorships': [
-          {'author': {'display_name': 'Ada'}},
-          {'author': {'display_name': 'Grace'}},
+          {
+            'author': {'display_name': 'Ada'},
+          },
+          {
+            'author': {'display_name': 'Grace'},
+          },
         ],
       });
 

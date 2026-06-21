@@ -8,9 +8,9 @@ void main() {
       const allValues = AppPage.values;
 
       expect(allValues, contains(AppPage.home));
-      expect(allValues, contains(AppPage.searchTopic));
-      expect(allValues, contains(AppPage.trends));
       expect(allValues, contains(AppPage.journals));
+      expect(allValues, contains(AppPage.keywords));
+      expect(allValues, contains(AppPage.profile));
     });
 
     test('has exactly 4 values', () {

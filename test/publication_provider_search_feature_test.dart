@@ -26,6 +26,11 @@ class FakeFilterOpenAlexService extends OpenAlexService {
 
     return responses[_callCount - 1];
   }
+
+  @override
+  Future<List<String>> getTopicIdsFromKeyword(String keyword) async {
+    return ['T10616', 'T10862', 'T12002'];
+  }
 }
 
 Publication publication(String id, {int? year = 2024}) {

@@ -31,10 +31,7 @@ class _AppShellState extends State<AppShell> {
 
     return Scaffold(
       // No drawer, no leading menu button — just content + bottom nav.
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _screens),
       bottomNavigationBar: _AppBottomNav(
         selectedIndex: _selectedIndex,
         onTap: (index) => setState(() => _selectedIndex = index),
@@ -60,11 +57,7 @@ class _AppBottomNav extends StatelessWidget {
   });
 
   static const _items = [
-    _NavItem(
-      label: 'Home',
-      icon: Icons.home_outlined,
-      activeIcon: Icons.home,
-    ),
+    _NavItem(label: 'Home', icon: Icons.home_outlined, activeIcon: Icons.home),
     _NavItem(
       label: 'Journal',
       icon: Icons.menu_book_outlined,
