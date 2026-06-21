@@ -52,24 +52,27 @@ void main() {
     testWidgets('initial empty UI', (tester) async {
       final provider = KeywordDashboardProvider(_FakeKeywordDashboardService());
       await tester.pumpWidget(buildTestWidget(provider));
-      await tester.pump();
+      // In initial state without load, it should show the loading skeleton.
+      // But if we load it, it will eventually show empty UI.
+      provider.load();
+      await tester.pumpAndSettle();
       
       expect(find.text('No recent keyword activity found.'), findsWidgets);
     });
 
     testWidgets('loading UI', (tester) async {
       final provider = KeywordDashboardProvider(_FakeKeywordDashboardService());
+      // Just pumping without load() leaves state as initial, which renders KeywordLoadingState (ListView)
       await tester.pumpWidget(buildTestWidget(provider));
       
       expect(find.byType(ListView), findsWidgets);
-      
-      await tester.pumpAndSettle();
     });
 
     testWidgets('error UI with retry button', (tester) async {
       final service = _FakeKeywordDashboardService()..fail = true;
       final provider = KeywordDashboardProvider(service);
       await tester.pumpWidget(buildTestWidget(provider));
+      provider.load(); // Trigger load after pumping so it transitions
       
       await tester.pumpAndSettle();
       
@@ -80,6 +83,7 @@ void main() {
     testWidgets('success UI with dashboard cards', (tester) async {
       final provider = KeywordDashboardProvider(_FakeKeywordDashboardService());
       await tester.pumpWidget(buildTestWidget(provider));
+      provider.load();
       
       await tester.pumpAndSettle();
       
@@ -90,6 +94,7 @@ void main() {
       final service = _FakeKeywordDashboardService()..fail = true;
       final provider = KeywordDashboardProvider(service);
       await tester.pumpWidget(buildTestWidget(provider));
+      provider.load();
       await tester.pumpAndSettle();
       
       expect(find.text('Unable to load keyword activity. Please try again.'), findsOneWidget);

@@ -34,14 +34,7 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
   int _mostFrequentTopN = 5;
   int _trendingTopN = 5;
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Tự động refresh khi bấm tới tab này
-      context.read<KeywordDashboardProvider>().refresh();
-    });
-  }
+
 
   @override
   void dispose() {

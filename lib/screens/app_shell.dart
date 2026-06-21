@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:provider/provider.dart';
+
+import '../providers/keyword_dashboard_provider.dart';
 import 'journal/journal_search_screen.dart';
 import 'keyword/keyword_dashboard_screen.dart';
 import 'trend_analyzer_home_page.dart';
@@ -32,7 +35,12 @@ class _AppShellState extends State<AppShell> {
       body: IndexedStack(index: _selectedIndex, children: _screens),
       bottomNavigationBar: _AppBottomNav(
         selectedIndex: _selectedIndex,
-        onTap: (index) => setState(() => _selectedIndex = index),
+        onTap: (index) {
+          if (index == 2 && _selectedIndex != 2) {
+            context.read<KeywordDashboardProvider>().load();
+          }
+          setState(() => _selectedIndex = index);
+        },
         primaryColor: colorScheme.primary,
       ),
     );
