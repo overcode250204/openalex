@@ -106,8 +106,8 @@ class KeywordDashboardService {
         : eligible.map((item) => item.growthRate).reduce(math.max);
     final result = KeywordDashboardResult(
       hottestKeyword: hottest,
-      mostFrequentKeywords: frequent.take(10).toList(),
-      trendingKeywords: trending.take(8).toList(),
+      mostFrequentKeywords: frequent.take(20).toList(),
+      trendingKeywords: trending.take(20).toList(),
       statistics: KeywordFrequencyStat(
         totalKeywordsAnalyzed: candidates.length,
         totalRecentPublications: eligible.fold(

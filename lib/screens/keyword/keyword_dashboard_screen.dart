@@ -31,6 +31,8 @@ class KeywordDashboardScreen extends StatefulWidget {
 class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _isResolving = false;
+  int _mostFrequentTopN = 5;
+  int _trendingTopN = 5;
 
   @override
   void initState() {
@@ -281,11 +283,19 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
           const SizedBox(height: 16),
           MostFrequentKeywordsChart(
             keywords: result.mostFrequentKeywords,
+            selectedTopN: _mostFrequentTopN,
+            onTopNChanged: (value) {
+              setState(() => _mostFrequentTopN = value);
+            },
             onSelected: (keyword) => _openDetail(keyword.name),
           ),
           const SizedBox(height: 16),
           TrendingKeywordsChart(
             keywords: result.trendingKeywords,
+            selectedTopN: _trendingTopN,
+            onTopNChanged: (value) {
+              setState(() => _trendingTopN = value);
+            },
             onSelected: (keyword) => _openDetail(keyword.name),
           ),
           const SizedBox(height: 16),
