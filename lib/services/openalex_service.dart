@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import '../models/publication.dart';
 
 class OpenAlexService {
+  static const String mailto = 'truongtuan20042004@gmail.com';
+
   final http.Client _client;
 
   OpenAlexService({http.Client? client}) : _client = client ?? http.Client();
@@ -61,7 +63,10 @@ class OpenAlexService {
   Future<(int total, List<Publication> publications)> searchWithFilter(
     Map<String, String> params,
   ) async {
-    final uri = Uri.https('api.openalex.org', '/works', params);
+    final uri = Uri.https('api.openalex.org', '/works', {
+      ...params,
+      'mailto': mailto,
+    });
     final response = await http.get(uri);
 
     if (response.statusCode != 200) {
@@ -174,7 +179,7 @@ class OpenAlexService {
         'sort': 'cited_by_count:desc',
         'per-page': '20',
         'page': '$page',
-        'mailto': "truongtuan@gmail.com",
+        'mailto': mailto,
       });
       final res = await http.get(uri);
       if (res.statusCode != 200) return [];

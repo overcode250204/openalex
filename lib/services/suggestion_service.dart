@@ -5,6 +5,8 @@ import '../models/journal_suggestion.dart';
 import '../models/keyword/openalex_keyword.dart';
 
 class SuggestionService {
+  static const String mailto = 'truongtuan20042004@gmail.com';
+
   final http.Client _client;
 
   SuggestionService({http.Client? client}) : _client = client ?? http.Client();
@@ -17,7 +19,7 @@ class SuggestionService {
         'search': query,
         'per-page': '5',
         'select': 'id,display_name,works_count',
-        'mailto': 'truongtuan20042004@gmail.com',
+        'mailto': mailto,
       });
 
       final response = await _client.get(uri);
@@ -38,7 +40,7 @@ class SuggestionService {
         'search': keyword,
         'per-page': '10',
         'select': 'concepts',
-        'mailto': 'your_email@example.com',
+        'mailto': mailto,
       });
 
       final response = await _client.get(uri);
@@ -76,7 +78,7 @@ class SuggestionService {
         'search': query.trim(),
         'per_page': '6',
         'select': 'id,display_name,works_count',
-        'mailto': 'truongtuan20042004@gmail.com',
+        'mailto': mailto,
       });
 
       final response = await _client.get(uri);
@@ -100,7 +102,9 @@ class SuggestionService {
     }
   }
 
-  Future<List<OpenAlexKeyword>> fetchOpenAlexKeywordSuggestions(String query) async {
+  Future<List<OpenAlexKeyword>> fetchOpenAlexKeywordSuggestions(
+    String query,
+  ) async {
     if (query.trim().length < 2) return [];
 
     try {
@@ -108,7 +112,7 @@ class SuggestionService {
         'search': query.trim(),
         'per_page': '6',
         'select': 'id,display_name,works_count,cited_by_count',
-        'mailto': 'truongtuan20042004@gmail.com',
+        'mailto': mailto,
       });
 
       final response = await _client.get(uri);
@@ -129,9 +133,7 @@ class SuggestionService {
     }
   }
 
-  Future<List<JournalSuggestion>> fetchJournalSuggestions(
-    String query,
-  ) async {
+  Future<List<JournalSuggestion>> fetchJournalSuggestions(String query) async {
     final trimmedQuery = query.trim();
 
     if (trimmedQuery.length < 2) {
@@ -145,7 +147,7 @@ class SuggestionService {
         'per-page': '6',
         'select':
             'id,display_name,works_count,issn_l,host_organization_name,type',
-        'mailto': 'truongtuan20042004@gmail.com',
+        'mailto': mailto,
       });
 
       final response = await _client.get(uri);
@@ -161,8 +163,7 @@ class SuggestionService {
 
       return results
           .map(
-            (item) =>
-                JournalSuggestion.fromJson(item as Map<String, dynamic>),
+            (item) => JournalSuggestion.fromJson(item as Map<String, dynamic>),
           )
           .where((journal) => journal.displayName.trim().isNotEmpty)
           .toList();
