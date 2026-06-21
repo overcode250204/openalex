@@ -6,13 +6,12 @@ import '../models/keyword/keyword_analysis_result.dart';
 import '../models/keyword/openalex_keyword.dart';
 import '../viewmodels/keyword_analyzer_view_model.dart';
 import '../widgets/analytics_chart_card.dart';
+import '../widgets/keyword/charts/keyword_publication_trend_chart.dart';
 import '../widgets/keyword/keyword_analysis_summary.dart';
 import '../widgets/keyword/keyword_paper_list_card.dart';
-import '../widgets/keyword/keyword_trend_chart.dart';
 import '../widgets/keyword/latest_papers_card.dart';
 import '../widgets/keyword/most_cited_papers_card.dart';
 import '../widgets/keyword/open_access_papers_card.dart';
-import '../widgets/search/keyword_suggestion_dropdown.dart';
 import '../widgets/top_contributing_authors_column_chart.dart';
 import '../widgets/top_research_journals_donut_chart.dart';
 import '../widgets/top_selector_dropdown.dart';
@@ -20,35 +19,37 @@ import 'publication_detail_screen.dart';
 
 class KeywordAnalyzerPage extends StatefulWidget {
   final VoidCallback? onOpenDrawer;
+  final OpenAlexKeyword? selectedKeyword;
+  final String? originalSearchText;
+  final bool showBackToDashboard;
 
-  const KeywordAnalyzerPage({super.key, this.onOpenDrawer});
+  const KeywordAnalyzerPage({
+    super.key,
+    this.onOpenDrawer,
+    this.selectedKeyword,
+    this.originalSearchText,
+    this.showBackToDashboard = false,
+  });
 
   @override
   State<KeywordAnalyzerPage> createState() => _KeywordAnalyzerPageState();
 }
 
 class _KeywordAnalyzerPageState extends State<KeywordAnalyzerPage> {
-  final TextEditingController _keywordController = TextEditingController();
-
   @override
-  void dispose() {
-    _keywordController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _analyzeInitial());
   }
 
-  Future<void> _analyze() async {
-    FocusScope.of(context).unfocus();
-    context.read<KeywordAnalyzerViewModel>().hideKeywordSuggestions();
-    await context.read<KeywordAnalyzerViewModel>().analyze(
-      _keywordController.text,
-    );
-  }
-
-  Future<void> _analyzeKeyword(String keyword) async {
-    FocusScope.of(context).unfocus();
+  Future<void> _analyzeInitial() async {
     final viewModel = context.read<KeywordAnalyzerViewModel>();
-    viewModel.hideKeywordSuggestions();
-    await viewModel.analyze(keyword);
+    if (widget.selectedKeyword != null) {
+      final text = widget.originalSearchText ?? widget.selectedKeyword!.displayName;
+      await viewModel.analyzeResolvedKeyword(text, widget.selectedKeyword!);
+    } else if (widget.originalSearchText != null && widget.originalSearchText!.trim().isNotEmpty) {
+      await viewModel.analyze(widget.originalSearchText!);
+    }
   }
 
   void _openPaper(KeywordAnalysisPaper paper) {
@@ -73,19 +74,20 @@ class _KeywordAnalyzerPageState extends State<KeywordAnalyzerPage> {
       backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
         title: const Text('Keyword Analyzer', overflow: TextOverflow.ellipsis),
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: widget.onOpenDrawer,
-        ),
+        leadingWidth: widget.showBackToDashboard ? 190 : null,
+        leading: widget.showBackToDashboard
+            ? TextButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Back to Dashboard'),
+              )
+            : IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: widget.onOpenDrawer,
+              ),
       ),
       body: Column(
         children: [
-          _KeywordSearchCard(
-            controller: _keywordController,
-            isLoading: viewModel.isLoading,
-            onAnalyze: _analyze,
-            onAnalyzeKeyword: _analyzeKeyword,
-          ),
           Expanded(
             child: _KeywordAnalyzerBody(
               viewModel: viewModel,
@@ -99,81 +101,6 @@ class _KeywordAnalyzerPageState extends State<KeywordAnalyzerPage> {
   }
 }
 
-class _KeywordSearchCard extends StatelessWidget {
-  final TextEditingController controller;
-  final bool isLoading;
-  final VoidCallback onAnalyze;
-  final ValueChanged<String> onAnalyzeKeyword;
-
-  const _KeywordSearchCard({
-    required this.controller,
-    required this.isLoading,
-    required this.onAnalyze,
-    required this.onAnalyzeKeyword,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.all(16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: controller,
-              enabled: !isLoading,
-              decoration: const InputDecoration(
-                labelText: 'Academic keyword',
-                hintText: 'Enter a keyword, e.g. machine learning',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.search),
-              ),
-              onChanged: (value) => context
-                  .read<KeywordAnalyzerViewModel>()
-                  .onQueryChanged(value),
-              onSubmitted: (_) {
-                if (!isLoading) {
-                  final keyword = controller.text.trim();
-                  context
-                      .read<KeywordAnalyzerViewModel>()
-                      .hideKeywordSuggestions();
-                  if (keyword.isNotEmpty) {
-                    onAnalyzeKeyword(keyword);
-                  }
-                }
-              },
-            ),
-            Consumer<KeywordAnalyzerViewModel>(
-              builder: (context, viewModel, _) {
-                if (!viewModel.showKeywordSuggestions ||
-                    viewModel.keywordSuggestions.isEmpty) {
-                  return const SizedBox.shrink();
-                }
-
-                return KeywordSuggestionDropdown(
-                  suggestions: viewModel.keywordSuggestions,
-                  onSelected: (keyword) {
-                    controller.text = keyword;
-                    viewModel.hideKeywordSuggestions();
-                    onAnalyzeKeyword(keyword);
-                  },
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: isLoading ? null : onAnalyze,
-              icon: const Icon(Icons.analytics),
-              label: const Text('Analyze Keyword'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _KeywordAnalyzerBody extends StatelessWidget {
   final KeywordAnalyzerViewModel viewModel;
@@ -304,7 +231,7 @@ class _KeywordDashboardState extends State<_KeywordDashboard> {
             ],
             KeywordAnalysisSummary(result: result),
             const SizedBox(height: 16),
-            KeywordTrendChart(
+            KeywordPublicationTrendChart(
               viewModel: context.read<KeywordAnalyzerViewModel>(),
               trend: result.trend,
             ),

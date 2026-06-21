@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:openalex/models/topic.dart';
 import '../models/journal_suggestion.dart';
+import '../models/keyword/openalex_keyword.dart';
 
 class SuggestionService {
   final http.Client _client;
@@ -93,6 +94,35 @@ class SuggestionService {
             return keyword['display_name']?.toString() ?? '';
           })
           .where((name) => name.trim().isNotEmpty)
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<List<OpenAlexKeyword>> fetchOpenAlexKeywordSuggestions(String query) async {
+    if (query.trim().length < 2) return [];
+
+    try {
+      final uri = Uri.https('api.openalex.org', '/keywords', {
+        'search': query.trim(),
+        'per_page': '6',
+        'select': 'id,display_name,works_count,cited_by_count',
+        'mailto': 'truongtuan20042004@gmail.com',
+      });
+
+      final response = await _client.get(uri);
+
+      if (response.statusCode != 200) {
+        return [];
+      }
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final results = data['results'] as List<dynamic>? ?? [];
+
+      return results
+          .map((item) => OpenAlexKeyword.fromJson(item as Map<String, dynamic>))
+          .where((keyword) => keyword.displayName.trim().isNotEmpty)
           .toList();
     } catch (_) {
       return [];
