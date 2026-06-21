@@ -15,9 +15,7 @@ import 'publication_detail_screen.dart';
 import 'trend_analysis_screen.dart';
 
 class TrendAnalyzerHomePage extends StatefulWidget {
-  final VoidCallback? onOpenDrawer;
-
-  const TrendAnalyzerHomePage({super.key, this.onOpenDrawer});
+  const TrendAnalyzerHomePage({super.key});
 
   @override
   State<TrendAnalyzerHomePage> createState() => _TrendAnalyzerHomePageState();
@@ -78,12 +76,6 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
       backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
         title: const Text('Trend Analyzer', overflow: TextOverflow.ellipsis),
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () {
-            widget.onOpenDrawer?.call();
-          },
-        ),
         actions: [
           Consumer<PublicationProvider>(
             builder: (context, provider, _) {

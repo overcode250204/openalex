@@ -18,12 +18,11 @@ import '../../widgets/keyword/keyword_loading_state.dart'
 import '../../widgets/keyword/keyword_stat_card.dart';
 import '../../widgets/keyword/most_frequent_keywords_chart.dart';
 import '../../widgets/keyword/trending_keywords_chart.dart';
+import '../../widgets/ai/ai_research_assistant_button.dart';
 import 'keyword_detail_screen.dart';
 
 class KeywordDashboardScreen extends StatefulWidget {
-  final VoidCallback? onOpenDrawer;
-
-  const KeywordDashboardScreen({super.key, this.onOpenDrawer});
+  const KeywordDashboardScreen({super.key});
 
   @override
   State<KeywordDashboardScreen> createState() => _KeywordDashboardScreenState();
@@ -104,10 +103,6 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: widget.onOpenDrawer,
-        ),
         title: const Text('Keyword Analyzer'),
         actions: [
           IconButton(
@@ -125,7 +120,17 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
           ),
         ],
       ),
-      body: _body(provider),
+      body: Stack(
+        children: [
+          _body(provider),
+          // Floating AI assistant — sits above the bottom nav bar
+          Positioned(
+            right: 16,
+            bottom: 20,
+            child: const AiResearchAssistantButton(),
+          ),
+        ],
+      ),
     );
   }
 

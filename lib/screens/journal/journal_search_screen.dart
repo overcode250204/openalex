@@ -17,9 +17,7 @@ String _formatCount(int n) {
 }
 
 class JournalSearchScreen extends StatefulWidget {
-  final VoidCallback? onOpenDrawer;
-
-  const JournalSearchScreen({super.key, this.onOpenDrawer});
+  const JournalSearchScreen({super.key});
 
   @override
   State<JournalSearchScreen> createState() => _JournalSearchScreenState();
@@ -82,10 +80,6 @@ class _JournalSearchScreenState extends State<JournalSearchScreen> {
       backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
         title: const Text('Journal Search', overflow: TextOverflow.ellipsis),
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: widget.onOpenDrawer,
-        ),
       ),
       body: NotificationListener<ScrollNotification>(
         onNotification: (scroll) {

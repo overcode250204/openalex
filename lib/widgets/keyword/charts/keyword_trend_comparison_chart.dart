@@ -60,9 +60,10 @@ class _KeywordTrendComparisonChartState
       );
     }
 
-    final minYear = allPoints.map((p) => p.year).reduce((a, b) => a < b ? a : b);
-    final maxYear = allPoints.map((p) => p.year).reduce((a, b) => a > b ? a : b);
-    
+    // Use user-selected range for x-axis bounds, not the actual data min/max
+    final minYear = _fromYear;
+    final maxYear = _toYear;
+
     // Only calculate max count based on visible series
     final visiblePoints = filtered.entries
         .where((e) => !_hiddenSeries.contains(e.key))
