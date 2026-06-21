@@ -150,16 +150,16 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
     if (provider.result == null || provider.result!.isEmpty) {
       return KeywordEmptyState(onRefresh: provider.refresh);
     }
-    return _dashboard(provider.result!, provider.refresh);
+    return _dashboard(provider.result!, provider);
   }
 
   Widget _dashboard(
     KeywordDashboardResult result,
-    Future<void> Function() refresh,
+    KeywordDashboardProvider provider,
   ) {
     final stats = result.statistics;
     return RefreshIndicator(
-      onRefresh: refresh,
+      onRefresh: provider.refresh,
       child: ListView(
         key: const PageStorageKey('keyword-dashboard-scroll'),
         padding: const EdgeInsets.all(16),
@@ -210,7 +210,7 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
               // Always 2 columns on mobile, 4 on wide screens
               final columns = constraints.maxWidth >= 900 ? 4 : 2;
               final spacing = 10.0;
-              
+
               final card1 = KeywordStatCard(
                 label: 'Total Keywords',
                 value: stats.totalKeywordsAnalyzed.toString(),
@@ -218,7 +218,9 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
               );
               final card2 = KeywordStatCard(
                 label: 'Total Publications',
-                value: Formatters.formatCompactNumber(stats.totalRecentPublications),
+                value: Formatters.formatCompactNumber(
+                  stats.totalRecentPublications,
+                ),
                 icon: Icons.article_outlined,
               );
               final card3 = KeywordStatCard(
@@ -287,7 +289,12 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
             onSelected: (keyword) => _openDetail(keyword.name),
           ),
           const SizedBox(height: 16),
-          KeywordTrendComparisonChart(series: result.trendSeries),
+          KeywordTrendComparisonChart(
+            series: result.trendSeries,
+            fromYear: provider.selectedFromYear,
+            toYear: provider.selectedToYear,
+            onYearRangeChanged: provider.updateTrendYearRange,
+          ),
           const SizedBox(height: 24),
         ],
       ),

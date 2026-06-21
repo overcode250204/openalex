@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/keyword/keyword_dashboard_result.dart';
@@ -17,6 +18,8 @@ class KeywordDashboardService {
   final int maxConcurrentRequests;
 
   KeywordDashboardResult? _cachedResult;
+  int? _cachedTrendStartYear;
+  int? _cachedTrendEndYear;
 
   KeywordDashboardService({
     http.Client? client,
@@ -35,14 +38,19 @@ class KeywordDashboardService {
     int? trendEndYear,
     bool forceRefresh = false,
   }) async {
-    if (!forceRefresh && _cachedResult != null) return _cachedResult!;
-
     final end = _dateOnly(asOf ?? _clock());
     final currentStart = _oneYearAfter(end, -1);
     final previousEnd = currentStart.subtract(const Duration(days: 1));
     final previousStart = _oneYearAfter(previousEnd, -1);
     final endYear = trendEndYear ?? end.year;
-    final startYear = trendStartYear ?? endYear - 9;
+    final startYear = trendStartYear ?? 2011;
+
+    if (!forceRefresh &&
+        _cachedResult != null &&
+        _cachedTrendStartYear == startYear &&
+        _cachedTrendEndYear == endYear) {
+      return _cachedResult!;
+    }
 
     var candidates = await _fetchRecentCandidates(currentStart, end);
     if (candidates.isEmpty) {
@@ -85,10 +93,11 @@ class KeywordDashboardService {
     final topForTrends = scored.take(3).toList();
     final trendSeries = <String, List<KeywordTrendPoint>>{};
     await _runBounded(topForTrends, (keyword) async {
-      trendSeries[keyword.name] = await _fetchTrend(
-        keyword.id,
-        startYear,
-        endYear,
+      trendSeries[keyword.name] = await fetchKeywordTrend(
+        keywordId: keyword.id,
+        keywordName: keyword.name,
+        startYear: startYear,
+        endYear: endYear,
       );
     });
 
@@ -117,6 +126,8 @@ class KeywordDashboardService {
     );
 
     _cachedResult = result;
+    _cachedTrendStartYear = startYear;
+    _cachedTrendEndYear = endYear;
     return result;
   }
 
@@ -235,24 +246,66 @@ class KeywordDashboardService {
     return (meta?['count'] as num? ?? 0).toInt();
   }
 
-  Future<List<KeywordTrendPoint>> _fetchTrend(
-    String keywordId,
-    int startYear,
-    int endYear,
-  ) async {
+  Future<List<KeywordTrendPoint>> fetchKeywordTrend({
+    required String keywordId,
+    required int startYear,
+    required int endYear,
+    String? keywordName,
+  }) async {
     final uri = Uri.https(OpenAlexKeywordService.host, '/works', {
-      'filter': 'keywords.id:$keywordId,publication_year:$startYear-$endYear',
+      'filter':
+          'keywords.id:$keywordId,'
+          'from_publication_date:$startYear-01-01,'
+          'to_publication_date:$endYear-12-31',
       'group_by': 'publication_year',
       'mailto': OpenAlexKeywordService.mailto,
     });
-    final body = await _getJson(uri);
+    final response = await _client.get(uri);
+    if (response.statusCode != 200) {
+      throw Exception('OpenAlex request failed (${response.statusCode}).');
+    }
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
     final groups = body['group_by'] as List<dynamic>? ?? [];
     final parsed = KeywordTrendPoint.parseGroupBy(groups);
-    final byYear = {for (final point in parsed) point.year: point.count};
+    final normalized = normalizeTrend(parsed, startYear, endYear);
+
+    if (kDebugMode) {
+      final label = keywordName ?? keywordId;
+      debugPrint('[Keyword trend] keyword=$label');
+      debugPrint('[Keyword trend] selected years=$startYear-$endYear');
+      debugPrint('[Keyword trend] request=${_maskedUri(uri)}');
+      debugPrint('[Keyword trend] raw response=${response.body}');
+      debugPrint(
+        '[Keyword trend] returned buckets='
+        '${parsed.map((point) => '${point.year}:${point.count}').join(', ')}',
+      );
+      debugPrint(
+        '[Keyword trend] chart points='
+        '${normalized.map((point) => '${point.year}:${point.count}').join(', ')}',
+      );
+    }
+
+    return normalized;
+  }
+
+  static List<KeywordTrendPoint> normalizeTrend(
+    Iterable<KeywordTrendPoint> points,
+    int startYear,
+    int endYear,
+  ) {
+    final firstYear = math.min(startYear, endYear);
+    final lastYear = math.max(startYear, endYear);
+    final byYear = {for (final point in points) point.year: point.count};
     return [
-      for (var year = startYear; year <= endYear; year++)
+      for (var year = firstYear; year <= lastYear; year++)
         KeywordTrendPoint(year: year, count: byYear[year] ?? 0),
     ];
+  }
+
+  static Uri _maskedUri(Uri uri) {
+    final params = Map<String, String>.from(uri.queryParameters);
+    if (params.containsKey('api_key')) params['api_key'] = '***';
+    return uri.replace(queryParameters: params);
   }
 
   Future<Map<String, dynamic>> _getJson(Uri uri) async {

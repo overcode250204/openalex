@@ -20,11 +20,15 @@ class KeywordDashboardProvider extends ChangeNotifier {
   KeywordDashboardState _state = KeywordDashboardState.initial;
   KeywordDashboardResult? _result;
   String? _errorMessage;
+  int _selectedFromYear = 2011;
+  int _selectedToYear = DateTime.now().year;
 
   KeywordDashboardState get state => _state;
   KeywordDashboardResult? get result => _result;
   String? get errorMessage => _errorMessage;
   bool get hasData => _result != null && !_result!.isEmpty;
+  int get selectedFromYear => _selectedFromYear;
+  int get selectedToYear => _selectedToYear;
 
   Future<void> load() async {
     if (_state == KeywordDashboardState.loading ||
@@ -43,6 +47,12 @@ class KeywordDashboardProvider extends ChangeNotifier {
 
   Future<void> refresh() => _fetch(forceRefresh: true, refreshing: true);
 
+  Future<void> updateTrendYearRange(int fromYear, int toYear) async {
+    _selectedFromYear = fromYear < toYear ? fromYear : toYear;
+    _selectedToYear = fromYear < toYear ? toYear : fromYear;
+    await _fetch(forceRefresh: true, refreshing: true);
+  }
+
   Future<void> _fetch({
     required bool forceRefresh,
     required bool refreshing,
@@ -55,6 +65,8 @@ class KeywordDashboardProvider extends ChangeNotifier {
 
     try {
       _result = await _service.fetchKeywordDashboard(
+        trendStartYear: _selectedFromYear,
+        trendEndYear: _selectedToYear,
         forceRefresh: forceRefresh,
       );
       _state = _result!.isEmpty
