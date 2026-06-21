@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import '../models/publication.dart';
 
 class OpenAlexService {
-  static const String mailto = 'truongtuan20042004@gmail.com';
+  static const String mailto = 'trandinhbao222@gmail.com';
 
   final http.Client _client;
 
@@ -27,7 +27,7 @@ class OpenAlexService {
       'search': trimmedKeyword,
       'per-page': perPage.toString(),
       'sort': sort,
-      'mailto': "truongtuan20042004@gmail.com",
+      'mailto': mailto,
     };
 
     final filters = <String>[];
@@ -91,7 +91,7 @@ class OpenAlexService {
     final uri = Uri.https('api.openalex.org', '/topics', {
       'search': keyword,
       'per-page': '3',
-      'mailto': 'truongtuan20042004@gmail.com',
+      'mailto': mailto,
     });
 
     final response = await _client.get(uri);
@@ -129,7 +129,7 @@ class OpenAlexService {
     try {
       final id = _normalizeId(workId);
       final uri = Uri.https('api.openalex.org', '/works/$id', {
-        'mailto': "truongtuan20042004@gmail.com",
+        'mailto': mailto,
       });
       final res = await http.get(uri);
       if (res.statusCode != 200) {
@@ -156,7 +156,7 @@ class OpenAlexService {
         'filter': 'ids.openalex:$batch',
         'select': _briefSelect,
         'per-page': '20',
-        'mailto': "truongtuan20042004@gmail.com",
+        'mailto': mailto,
       });
       final res = await http.get(uri);
       if (res.statusCode != 200) return [];
@@ -204,7 +204,7 @@ class OpenAlexService {
       'search': keyword,
       'sort': 'cited_by_count:desc',
       'per-page': limit == null ? '200' : limit.toString(),
-      'mailto': 'truongtuan20042004@gmail.com',
+      'mailto': mailto,
     };
 
     final uri = Uri.https('api.openalex.org', '/works', queryParams);
@@ -230,7 +230,7 @@ class OpenAlexService {
       'search': keyword,
       'sort': 'cited_by_count:desc',
       'per-page': '200',
-      'mailto': 'truongtuan20042004@gmail.com',
+      'mailto': mailto,
     };
 
     final uri = Uri.https('api.openalex.org', '/works', queryParams);
@@ -269,7 +269,7 @@ class OpenAlexService {
       'search': keyword,
       'sort': 'cited_by_count:desc',
       'per-page': '200',
-      'mailto': 'truongtuan20042004@gmail.com',
+      'mailto': mailto,
     };
 
     final uri = Uri.https('api.openalex.org', '/works', queryParams);
@@ -320,7 +320,7 @@ class OpenAlexService {
       'search': trimmedKeyword,
       'filter': 'publication_year:$fromYear-$endYear',
       'group_by': 'publication_year',
-      'mailto': 'truongtuan20042004@gmail.com',
+      'mailto': mailto,
     };
 
     final uri = Uri.https('api.openalex.org', '/works', queryParams);

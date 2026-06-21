@@ -7,7 +7,7 @@ import '../models/journal/journal_source.dart';
 
 class OpenAlexJournalService {
   static const String host = 'api.openalex.org';
-  static const String mailto = 'truongtuan20042004@gmail.com';
+  static const String mailto = 'trandinhbao222@gmail.com';
 
   final http.Client _client;
 

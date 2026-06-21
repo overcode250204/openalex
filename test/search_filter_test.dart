@@ -5,13 +5,14 @@ void main() {
   group('SearchFilter', () {
     test('builds default OpenAlex query parameters', () {
       final params = const SearchFilter().toQueryParams(
-        'artificial intelligence', List.empty()
+        'artificial intelligence',
+        List.empty(),
       );
 
       expect(params, {
         'search': 'artificial intelligence',
         'per-page': '50',
-        'mailto': 'truongtuan20042004@gmail.com',
+        'mailto': 'trandinhbao222@gmail.com',
       });
       expect(params, isNot(contains('filter')));
       expect(params, isNot(contains('sort')));

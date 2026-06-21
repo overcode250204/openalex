@@ -51,7 +51,7 @@ void main() {
       );
       expect(
         requestedUri?.queryParameters['mailto'],
-        'truongtuan20042004@gmail.com',
+        'trandinhbao222@gmail.com',
       );
       expect(result, ['Machine learning', 'Artificial intelligence']);
     });

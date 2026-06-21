@@ -16,7 +16,7 @@ class KeywordNotFoundException implements Exception {
 
 class OpenAlexKeywordService {
   static const String host = 'api.openalex.org';
-  static const String mailto = 'truongtuan20042004@gmail.com';
+  static const String mailto = 'trandinhbao222@gmail.com';
 
   final http.Client _client;
 
@@ -315,10 +315,7 @@ class OpenAlexKeywordService {
 
     for (int year = fromYear; year <= endYear; year++) {
       completedTrend.add(
-        KeywordTrendPoint(
-          year: year,
-          count: trendMap[year] ?? 0,
-        ),
+        KeywordTrendPoint(year: year, count: trendMap[year] ?? 0),
       );
     }
 

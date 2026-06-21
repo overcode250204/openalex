@@ -5,7 +5,7 @@ import '../models/journal_suggestion.dart';
 import '../models/keyword/openalex_keyword.dart';
 
 class SuggestionService {
-  static const String mailto = 'truongtuan20042004@gmail.com';
+  static const String mailto = 'trandinhbao222@gmail.com';
 
   final http.Client _client;
 
