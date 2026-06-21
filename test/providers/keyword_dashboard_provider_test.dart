@@ -1,8 +1,30 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openalex/providers/keyword_dashboard_provider.dart';
-import 'package:openalex/services/keyword_dashboard_service.dart';
 import 'package:openalex/models/keyword/keyword_dashboard_result.dart';
 import 'package:openalex/models/keyword/keyword_frequency_stat.dart';
+import 'package:openalex/providers/keyword_dashboard_provider.dart';
+import 'package:openalex/services/keyword_dashboard_service.dart';
+
+KeywordDashboardResult _emptyResult() {
+  return KeywordDashboardResult(
+    hottestKeyword: null,
+    mostFrequentKeywords: [],
+    trendingKeywords: [],
+    statistics: const KeywordFrequencyStat(
+      totalKeywordsAnalyzed: 0,
+      totalRecentPublications: 0,
+      hottestKeyword: '-',
+      fastestGrowthRate: 0.0,
+    ),
+    trendSeries: {},
+    currentPeriodStart: DateTime.now(),
+    currentPeriodEnd: DateTime.now(),
+    previousPeriodStart: DateTime.now(),
+    previousPeriodEnd: DateTime.now(),
+    fetchedAt: DateTime.now(),
+  );
+}
 
 class _FakeKeywordDashboardService extends KeywordDashboardService {
   final KeywordDashboardResult? mockResult;
@@ -20,24 +42,23 @@ class _FakeKeywordDashboardService extends KeywordDashboardService {
   }) async {
     callCount++;
     if (mockError != null) throw mockError!;
-    return mockResult ??
-        KeywordDashboardResult(
-          hottestKeyword: null,
-          mostFrequentKeywords: [],
-          trendingKeywords: [],
-          statistics: const KeywordFrequencyStat(
-            totalKeywordsAnalyzed: 0,
-            totalRecentPublications: 0,
-            hottestKeyword: '-',
-            fastestGrowthRate: 0.0,
-          ),
-          trendSeries: {},
-          currentPeriodStart: DateTime.now(),
-          currentPeriodEnd: DateTime.now(),
-          previousPeriodStart: DateTime.now(),
-          previousPeriodEnd: DateTime.now(),
-          fetchedAt: DateTime.now(),
-        );
+    return mockResult ?? _emptyResult();
+  }
+}
+
+class _DelayedKeywordDashboardService extends _FakeKeywordDashboardService {
+  final Completer<KeywordDashboardResult> completer =
+      Completer<KeywordDashboardResult>();
+
+  @override
+  Future<KeywordDashboardResult> fetchKeywordDashboard({
+    DateTime? asOf,
+    bool forceRefresh = false,
+    int? trendEndYear,
+    int? trendStartYear,
+  }) {
+    callCount++;
+    return completer.future;
   }
 }
 
@@ -72,7 +93,9 @@ void main() {
     });
 
     test('error state and retry after error', () async {
-      final service = _FakeKeywordDashboardService(mockError: Exception('Failed'));
+      final service = _FakeKeywordDashboardService(
+        mockError: Exception('Failed'),
+      );
       final provider = KeywordDashboardProvider(service);
 
       await provider.refresh();
@@ -88,6 +111,36 @@ void main() {
 
       await provider.refresh();
       expect(notifyCount, greaterThan(1));
+    });
+
+    test('refresh does not start another fetch while loading', () async {
+      final service = _DelayedKeywordDashboardService();
+      final provider = KeywordDashboardProvider(service);
+
+      final loadFuture = provider.load();
+      await provider.refresh();
+
+      expect(service.callCount, 1);
+
+      service.completer.complete(_emptyResult());
+      await loadFuture;
+    });
+
+    test('year range update is ignored while loading', () async {
+      final service = _DelayedKeywordDashboardService();
+      final provider = KeywordDashboardProvider(service);
+      final originalFromYear = provider.selectedFromYear;
+      final originalToYear = provider.selectedToYear;
+
+      final loadFuture = provider.load();
+      await provider.updateTrendYearRange(2015, 2020);
+
+      expect(service.callCount, 1);
+      expect(provider.selectedFromYear, originalFromYear);
+      expect(provider.selectedToYear, originalToYear);
+
+      service.completer.complete(_emptyResult());
+      await loadFuture;
     });
   });
 }
