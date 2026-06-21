@@ -105,7 +105,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Keyword Matched'), findsOneWidget);
-    expect(find.text('Keyword Trend'), findsOneWidget);
+    expect(find.text('Publication Trend'), findsOneWidget);
     expect(find.text('Papers Using This Keyword'), findsOneWidget);
     expect(find.text('Most Cited Papers Using This Keyword'), findsOneWidget);
 
@@ -147,17 +147,18 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('Keyword Trend'));
+    await tester.ensureVisible(find.text('Publication Trend'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Keyword Trend'), findsOneWidget);
-    expect(find.text('to'), findsOneWidget);
-    expect(find.text('2011'), findsOneWidget);
+    expect(find.text('Publication Trend'), findsOneWidget);
 
-    final dropdowns = find.byType(DropdownButton<int>);
-    expect(dropdowns, findsWidgets);
+    final startYearDropdown = find.byKey(const Key('keyword_trend_start_year_dropdown'));
+    final endYearDropdown = find.byKey(const Key('keyword_trend_end_year_dropdown'));
 
-    await tester.tap(dropdowns.first);
+    expect(startYearDropdown, findsOneWidget);
+    expect(endYearDropdown, findsOneWidget);
+
+    await tester.tap(startYearDropdown);
     await tester.pumpAndSettle();
 
     final year2020 = find.text('2020').last;

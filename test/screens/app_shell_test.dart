@@ -16,6 +16,10 @@ import 'package:openalex/services/openalex_keyword_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
 import 'package:openalex/viewmodels/keyword_analyzer_view_model.dart';
+import 'package:openalex/providers/keyword_dashboard_provider.dart';
+import 'package:openalex/services/keyword_dashboard_service.dart';
+import 'package:openalex/models/keyword/keyword_dashboard_result.dart';
+import 'package:openalex/models/keyword/keyword_frequency_stat.dart';
 import 'package:provider/provider.dart';
 
 // ---------------------------------------------------------------------------
@@ -77,6 +81,28 @@ class _FakeSuggestionService extends SuggestionService {
   Future<List<String>> fetchRelatedKeywords(String keyword) async => [];
 }
 
+class _FakeKeywordDashboardService extends KeywordDashboardService {
+  Future<KeywordDashboardResult> fetchDashboardData() async {
+    return KeywordDashboardResult(
+      hottestKeyword: null,
+      mostFrequentKeywords: [],
+      trendingKeywords: [],
+      statistics: const KeywordFrequencyStat(
+        totalKeywordsAnalyzed: 0,
+        totalRecentPublications: 0,
+        hottestKeyword: '',
+        fastestGrowthRate: 0.0,
+      ),
+      trendSeries: {},
+      currentPeriodStart: DateTime.now(),
+      currentPeriodEnd: DateTime.now(),
+      previousPeriodStart: DateTime.now(),
+      previousPeriodEnd: DateTime.now(),
+      fetchedAt: DateTime.now(),
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Helper: wrap AppShell with all required providers
 // ---------------------------------------------------------------------------
@@ -99,6 +125,9 @@ Widget _appShellWidget() {
       ),
       ChangeNotifierProvider(
         create: (_) => KeywordAnalyzerViewModel(_FakeKeywordService()),
+      ),
+      ChangeNotifierProvider(
+        create: (_) => KeywordDashboardProvider(_FakeKeywordDashboardService()),
       ),
     ],
     child: const MaterialApp(home: AppShell()),
@@ -131,46 +160,25 @@ void main() {
     });
   });
 
-  group('AppShell – page switching via drawer', () {
-    testWidgets('navigates to Keyword Analyzer (Trends) via drawer', (
+  group('AppShell – page switching via bottom nav', () {
+    testWidgets('navigates to Keyword Analyzer (Keywords) via bottom nav', (
       tester,
     ) async {
       await tester.pumpWidget(_appShellWidget());
       await tester.pump();
 
-      // Open drawer
-      final scaffoldFinder = find.byType(Scaffold).first;
-      final ScaffoldState scaffold = tester.state<ScaffoldState>(
-        scaffoldFinder,
-      );
-      scaffold.openDrawer();
-      await tester.pumpAndSettle();
-
-      // Expand Keywords group if needed
       await tester.tap(find.text('Keywords'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Trends'));
       await tester.pumpAndSettle();
 
       // KeywordAnalyzerPage has 'Keyword Analyzer' label
       expect(find.text('Keyword Analyzer'), findsOneWidget);
     });
 
-    testWidgets('navigates to Journal Search via drawer', (tester) async {
+    testWidgets('navigates to Journal Search via bottom nav', (tester) async {
       await tester.pumpWidget(_appShellWidget());
       await tester.pump();
 
-      final ScaffoldState scaffold = tester.state<ScaffoldState>(
-        find.byType(Scaffold).first,
-      );
-      scaffold.openDrawer();
-      await tester.pumpAndSettle();
-
       await tester.tap(find.text('Journal'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Search Journal'));
       await tester.pumpAndSettle();
 
       // JournalSearchScreen renders a search field

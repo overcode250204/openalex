@@ -21,30 +21,40 @@ class KeywordCustomYearRangePicker extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _buildYearDropdown(context, fromYear, years, (val) {
-          if (val != null) {
-            // Ensure fromYear is not greater than toYear
-            if (val > toYear) {
-              onChanged(val, val);
-            } else {
-              onChanged(val, toYear);
+        _buildYearDropdown(
+          context,
+          fromYear,
+          years,
+          const Key('keyword_trend_start_year_dropdown'),
+          (val) {
+            if (val != null) {
+              if (val > toYear) {
+                onChanged(val, val);
+              } else {
+                onChanged(val, toYear);
+              }
             }
-          }
-        }),
+          },
+        ),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 4),
           child: Text('-', style: TextStyle(color: Colors.grey)),
         ),
-        _buildYearDropdown(context, toYear, years, (val) {
-          if (val != null) {
-            // Ensure toYear is not less than fromYear
-            if (val < fromYear) {
-              onChanged(val, val);
-            } else {
-              onChanged(fromYear, val);
+        _buildYearDropdown(
+          context,
+          toYear,
+          years,
+          const Key('keyword_trend_end_year_dropdown'),
+          (val) {
+            if (val != null) {
+              if (val < fromYear) {
+                onChanged(val, val);
+              } else {
+                onChanged(fromYear, val);
+              }
             }
-          }
-        }),
+          },
+        ),
       ],
     );
   }
@@ -53,6 +63,7 @@ class KeywordCustomYearRangePicker extends StatelessWidget {
     BuildContext context,
     int selectedValue,
     List<int> years,
+    Key key,
     ValueChanged<int?> onChanged,
   ) {
     return Container(
@@ -63,6 +74,7 @@ class KeywordCustomYearRangePicker extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: DropdownButton<int>(
+        key: key,
         value: years.contains(selectedValue) ? selectedValue : years.first,
         underline: const SizedBox.shrink(),
         icon: const Icon(Icons.keyboard_arrow_down, size: 16),

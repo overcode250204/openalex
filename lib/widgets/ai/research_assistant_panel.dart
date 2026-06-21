@@ -17,9 +17,6 @@ class ResearchAssistantPanel extends StatefulWidget {
 }
 
 class _ResearchAssistantPanelState extends State<ResearchAssistantPanel> {
-  static const _primaryBlue = Color(0xFF2F6FB0);
-  static const _lightBlue = Color(0xFFEAF3FF);
-
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();

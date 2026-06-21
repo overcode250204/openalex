@@ -305,13 +305,12 @@ class _MutableCandidate {
   final String id;
   final String name;
   int currentPeriodCount;
-  int previousPeriodCount;
+  int previousPeriodCount = 0;
 
   _MutableCandidate({
     required this.id,
     required this.name,
     this.currentPeriodCount = 0,
-    this.previousPeriodCount = 0,
   });
 
   double get growthRate => KeywordDashboardService.calculateGrowthRate(
