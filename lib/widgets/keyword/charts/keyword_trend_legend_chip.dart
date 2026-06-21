@@ -27,13 +27,9 @@ class KeywordTrendLegendChip extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: isVisible
-                ? color.withValues(alpha: 0.1)
-                : Colors.transparent,
+            color: isVisible ? color.withValues(alpha: 0.1) : Colors.transparent,
             border: Border.all(
-              color: isVisible
-                  ? color.withValues(alpha: 0.3)
-                  : Colors.grey.shade300,
+              color: isVisible ? color.withValues(alpha: 0.3) : Colors.grey.shade300,
             ),
             borderRadius: BorderRadius.circular(16),
           ),

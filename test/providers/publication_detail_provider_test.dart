@@ -43,7 +43,9 @@ Publication _samplePublication() {
 void main() {
   group('PublicationDetailProvider', () {
     test('starts in idle state with no publication', () {
-      final provider = PublicationDetailProvider(service: _FakeDetailService());
+      final provider = PublicationDetailProvider(
+        service: _FakeDetailService(),
+      );
 
       expect(provider.state, DetailState.idle);
       expect(provider.publication, isNull);

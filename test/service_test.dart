@@ -77,8 +77,10 @@ void main() {
           return http.Response(
             jsonEncode({
               "meta": {"count": 0},
-              "results": [],
-            }),
+              "results": [
+      
+            ]
+          }),
             200,
           );
         }),

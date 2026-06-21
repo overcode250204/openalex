@@ -13,8 +13,7 @@ void main() {
         'works_count': 78000,
         'cited_by_count': 900000,
         'summary_stats': {'h_index': 84},
-        'host_organization_name':
-            'Institute of Electrical and Electronics Engineers',
+        'host_organization_name': 'Institute of Electrical and Electronics Engineers',
       });
 
       expect(source.id, 'https://openalex.org/S2770115547');
@@ -26,10 +25,7 @@ void main() {
       expect(source.worksCount, 78000);
       expect(source.citedByCount, 900000);
       expect(source.hIndex, 84);
-      expect(
-        source.hostOrganizationName,
-        'Institute of Electrical and Electronics Engineers',
-      );
+      expect(source.hostOrganizationName, 'Institute of Electrical and Electronics Engineers');
     });
 
     test('applies default fallbacks for missing fields', () {
@@ -124,24 +120,21 @@ void main() {
       expect(source.displayPublisher, 'Unknown publisher');
     });
 
-    test(
-      'returns Unknown publisher when hostOrganizationName is whitespace',
-      () {
-        final source = JournalSource(
-          id: 'S1',
-          sourceId: 'S1',
-          displayName: 'Journal',
-          type: 'journal',
-          issnL: null,
-          issn: [],
-          worksCount: 0,
-          citedByCount: 0,
-          hIndex: null,
-          hostOrganizationName: '   ',
-        );
+    test('returns Unknown publisher when hostOrganizationName is whitespace', () {
+      final source = JournalSource(
+        id: 'S1',
+        sourceId: 'S1',
+        displayName: 'Journal',
+        type: 'journal',
+        issnL: null,
+        issn: [],
+        worksCount: 0,
+        citedByCount: 0,
+        hIndex: null,
+        hostOrganizationName: '   ',
+      );
 
-        expect(source.displayPublisher, 'Unknown publisher');
-      },
-    );
+      expect(source.displayPublisher, 'Unknown publisher');
+    });
   });
 }

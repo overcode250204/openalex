@@ -38,7 +38,10 @@ class TopSelectorDropdown extends StatelessWidget {
           onChanged: onChanged,
           items: options.map((int? option) {
             final String label = option == null ? 'All' : 'Top $option';
-            return DropdownMenuItem<int?>(value: option, child: Text(label));
+            return DropdownMenuItem<int?>(
+              value: option,
+              child: Text(label),
+            );
           }).toList(),
         ),
       ),

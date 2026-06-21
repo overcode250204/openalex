@@ -29,10 +29,10 @@ class _PublicationListScreenState extends State<PublicationListScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PublicationListProvider>().load(
-        type: widget.type,
-        workId: widget.workId,
-        ids: widget.ids,
-      );
+            type: widget.type,
+            workId: widget.workId,
+            ids: widget.ids,
+          );
     });
   }
 
@@ -63,7 +63,8 @@ class _PublicationListScreenState extends State<PublicationListScreen> {
               return false;
             },
             child: ListView.builder(
-              itemCount: provider.items.length + (provider.hasMore ? 1 : 0),
+              itemCount:
+                  provider.items.length + (provider.hasMore ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == provider.items.length) {
                   return const Center(

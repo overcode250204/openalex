@@ -17,10 +17,7 @@ class CountryOutputChart extends StatelessWidget {
 
     if (analytics.isLoading) {
       return const Card(
-        child: SizedBox(
-          height: 200,
-          child: Center(child: CircularProgressIndicator()),
-        ),
+        child: SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
       );
     }
 
@@ -38,19 +35,12 @@ class CountryOutputChart extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text(
-                  'Country Research Output',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                ),
+                Text('Country Research Output',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
                 const Spacer(),
                 Icon(Icons.swipe, size: 14, color: Colors.grey[400]),
                 const SizedBox(width: 4),
-                Text(
-                  'swipe',
-                  style: TextStyle(fontSize: 10, color: Colors.grey[400]),
-                ),
+                Text('swipe', style: TextStyle(fontSize: 10, color: Colors.grey[400])),
               ],
             ),
             const SizedBox(height: 12),
@@ -70,12 +60,9 @@ class CountryOutputChart extends StatelessWidget {
                           fitInsideHorizontally: true,
                           getTooltipItem: (group, groupIndex, rod, rodIndex) =>
                               BarTooltipItem(
-                                '${entries[group.x].key}\n${_fmt(rod.toY.toInt())} papers',
-                                const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                ),
-                              ),
+                            '${entries[group.x].key}\n${_fmt(rod.toY.toInt())} papers',
+                            const TextStyle(color: Colors.white, fontSize: 11),
+                          ),
                         ),
                       ),
                       titlesData: FlTitlesData(
@@ -85,15 +72,12 @@ class CountryOutputChart extends StatelessWidget {
                             reservedSize: 36,
                             getTitlesWidget: (v, meta) {
                               final idx = v.toInt();
-                              if (idx < 0 || idx >= entries.length)
-                                return const SizedBox();
+                              if (idx < 0 || idx >= entries.length) return const SizedBox();
                               final label = entries[idx].key;
                               return Padding(
                                 padding: const EdgeInsets.only(top: 6),
                                 child: Text(
-                                  label.length > 12
-                                      ? '${label.substring(0, 11)}…'
-                                      : label,
+                                  label.length > 12 ? '${label.substring(0, 11)}…' : label,
                                   style: const TextStyle(fontSize: 9),
                                   textAlign: TextAlign.center,
                                 ),
@@ -111,12 +95,8 @@ class CountryOutputChart extends StatelessWidget {
                             ),
                           ),
                         ),
-                        topTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
+                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                       ),
                       borderData: FlBorderData(show: false),
                       gridData: const FlGridData(drawVerticalLine: false),
@@ -128,9 +108,7 @@ class CountryOutputChart extends StatelessWidget {
                               toY: e.value.value.toDouble(),
                               color: Colors.teal,
                               width: _barWidth,
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(4),
-                              ),
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
                             ),
                           ],
                         );

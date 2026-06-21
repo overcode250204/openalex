@@ -14,18 +14,14 @@ void main() {
       expect(find.text('No trend data available.'), findsOneWidget);
     });
 
-    testWidgets('renders chart and Publications label with data', (
-      tester,
-    ) async {
+    testWidgets('renders chart and Publications label with data', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
             body: SizedBox(
               width: 400,
               height: 400,
-              child: PublicationTrendLineChart(
-                data: {2020: 5, 2021: 12, 2022: 8},
-              ),
+              child: PublicationTrendLineChart(data: {2020: 5, 2021: 12, 2022: 8}),
             ),
           ),
         ),
@@ -36,9 +32,7 @@ void main() {
       expect(find.text('Publications'), findsOneWidget);
     });
 
-    testWidgets('does not show empty state when data is provided', (
-      tester,
-    ) async {
+    testWidgets('does not show empty state when data is provided', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(

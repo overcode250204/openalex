@@ -1,6 +1,7 @@
-enum SortOption { relevance, citedDesc, citedAsc, yearDesc, yearAsc }
 
-enum DocumentType { all, article, preprint, book, dataset }
+
+enum SortOption {relevance, citedDesc, citedAsc, yearDesc, yearAsc}
+enum DocumentType {all, article, preprint, book, dataset}
 
 class SearchFilter {
   final int? yearFrom;
@@ -16,68 +17,68 @@ class SearchFilter {
     this.isOpenAccess,
     this.language,
     this.documentType = DocumentType.all,
-    this.sortOption = SortOption.relevance,
+    this.sortOption = SortOption.relevance
   });
 
-  SearchFilter copyWith({
-    int? yearFrom,
-    int? yearTo,
-    bool? isOpenAccess,
-    bool clearOpenAccess = false,
-    String? language,
-    DocumentType? documentType,
-    SortOption? sortOption,
-  }) {
+  SearchFilter copyWith(
+    {
+      
+  int? yearFrom,
+   int? yearTo,
+   bool? isOpenAccess,
+   bool clearOpenAccess = false,
+   String? language,
+   DocumentType? documentType,
+   SortOption? sortOption,
+  }
+  ){
     return SearchFilter(
-      yearFrom: yearFrom ?? this.yearFrom,
-      yearTo: yearTo ?? this.yearTo,
-      isOpenAccess: clearOpenAccess
-          ? null
-          : (isOpenAccess ?? this.isOpenAccess),
-      language: language,
-      documentType: documentType ?? this.documentType,
-      sortOption: sortOption ?? this.sortOption,
-    );
+      yearFrom: yearFrom ?? this.yearFrom, 
+      yearTo: yearTo ?? this.yearTo, 
+      isOpenAccess: clearOpenAccess ? null: (isOpenAccess ?? this.isOpenAccess), 
+      language: language, 
+      documentType: documentType?? this.documentType, 
+      sortOption: sortOption ?? this.sortOption);
   }
 
   Map<String, String> toQueryParams(String keyword, List<String> topicIds) {
     final params = <String, String>{
-      'search': keyword,
-      'per-page': '50',
-      'mailto': 'truongtuan20042004@gmail.com',
+      'search' : keyword,
+      'per-page' : '50',
+      'mailto' : 'truongtuan20042004@gmail.com'
     };
 
     final filters = <String>[];
 
-    if (yearFrom != null && yearTo != null) {
+    if(yearFrom != null && yearTo != null){
       filters.add('publication_year:$yearFrom-$yearTo');
-    } else if (yearFrom != null) {
+    }else if (yearFrom != null){
       filters.add('publication_year:>$yearFrom');
-    } else if (yearTo != null) {
+    }else if (yearTo != null){
       filters.add('publication_year:<$yearTo');
     }
 
-    if (isOpenAccess != null) {
+    if (isOpenAccess != null){
       filters.add('is_oa:$isOpenAccess');
     }
 
-    if (language != null && language!.isNotEmpty) {
+    if(language != null && language!.isNotEmpty){
       filters.add('language:$language');
     }
 
-    if (documentType != DocumentType.all) {
+    if(documentType != DocumentType.all){
       filters.add('type:${documentType.name}');
     }
 
-    if (topicIds.isNotEmpty) {
-      filters.add('primary_topic.id:${topicIds.join('|')}');
+    if(topicIds.isNotEmpty){
+     filters.add('primary_topic.id:${topicIds.join('|')}');
     }
 
-    if (filters.isNotEmpty) {
+    if(filters.isNotEmpty){
       params['filter'] = filters.join(',');
     }
 
-    switch (sortOption) {
+    switch (sortOption){
       case SortOption.citedDesc:
         params['sort'] = 'cited_by_count:desc';
         break;
@@ -91,8 +92,10 @@ class SearchFilter {
         params['sort'] = 'publication_date:asc';
         break;
       case SortOption.relevance:
-        break;
+        break;  
     }
     return params;
   }
+
 }
+

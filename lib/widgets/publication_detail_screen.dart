@@ -6,15 +6,18 @@ import '../models/publication.dart';
 class PublicationDetailScreen extends StatelessWidget {
   final Publication publication;
 
-  const PublicationDetailScreen({super.key, required this.publication});
+  const PublicationDetailScreen({
+    super.key,
+    required this.publication,
+  });
 
   Future<void> _openDoi(BuildContext context) async {
     final doi = publication.doi;
 
     if (doi == null || doi.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('DOI is not available.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('DOI is not available.')),
+      );
       return;
     }
 
@@ -23,28 +26,29 @@ class PublicationDetailScreen extends StatelessWidget {
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (!context.mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Cannot open DOI link.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cannot open DOI link.')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final abstractText =
-        publication.abstractText ??
-        'No abstract available for this publication.';
+        publication.abstractText ?? 'No abstract available for this publication.';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Publication Detail')),
+      appBar: AppBar(
+        title: const Text('Publication Detail'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(
             publication.title,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 16),
           _InfoTile(
@@ -82,12 +86,15 @@ class PublicationDetailScreen extends StatelessWidget {
           const SizedBox(height: 24),
           Text(
             'Abstract',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 8),
-          Text(abstractText, textAlign: TextAlign.justify),
+          Text(
+            abstractText,
+            textAlign: TextAlign.justify,
+          ),
         ],
       ),
     );

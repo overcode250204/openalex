@@ -8,12 +8,13 @@ void main() {
       const allValues = AppPage.values;
 
       expect(allValues, contains(AppPage.home));
+      expect(allValues, contains(AppPage.searchTopic));
+      expect(allValues, contains(AppPage.trends));
       expect(allValues, contains(AppPage.journals));
-      expect(allValues, contains(AppPage.keywords));
     });
 
-    test('has exactly 3 values', () {
-      expect(AppPage.values.length, 3);
+    test('has exactly 4 values', () {
+      expect(AppPage.values.length, 4);
     });
 
     test('supports equality comparison', () {

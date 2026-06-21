@@ -38,10 +38,7 @@ class AiResearchAssistantButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(32),
-            border: Border.all(
-              color: _primaryBlue.withValues(alpha: 0.25),
-              width: 1.5,
-            ),
+            border: Border.all(color: _primaryBlue.withValues(alpha: 0.25), width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: _primaryBlue.withValues(alpha: 0.18),
@@ -70,7 +67,9 @@ class AiResearchAssistantButton extends StatelessWidget {
                       color: _lightBlue,
                       border: Border.all(color: _primaryBlue, width: 2),
                     ),
-                    child: const Center(child: _RobotFace()),
+                    child: const Center(
+                      child: _RobotFace(),
+                    ),
                   ),
                   // Online indicator
                   Positioned(
@@ -133,7 +132,10 @@ class _RobotFace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(size: const Size(26, 26), painter: _RobotPainter());
+    return CustomPaint(
+      size: const Size(26, 26),
+      painter: _RobotPainter(),
+    );
   }
 }
 
@@ -157,11 +159,7 @@ class _RobotPainter extends CustomPainter {
       ..color = blue
       ..strokeWidth = w * 0.1
       ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-      Offset(w * 0.5, h * 0.18),
-      Offset(w * 0.5, h * 0.05),
-      antennaPaint,
-    );
+    canvas.drawLine(Offset(w * 0.5, h * 0.18), Offset(w * 0.5, h * 0.05), antennaPaint);
     canvas.drawCircle(Offset(w * 0.5, h * 0.03), w * 0.08, paint);
 
     // Eyes (white)

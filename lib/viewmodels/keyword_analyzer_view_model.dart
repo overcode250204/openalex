@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../models/keyword/keyword_analysis_result.dart';
 import '../models/keyword/openalex_keyword.dart';
 import '../services/openalex_keyword_service.dart';
-
 class KeywordAnalyzerViewModel extends ChangeNotifier {
   final OpenAlexKeywordService _service;
 
@@ -119,9 +118,7 @@ class KeywordAnalyzerViewModel extends ChangeNotifier {
   }
 
   Future<void> analyzeResolvedKeyword(
-    String keyword,
-    OpenAlexKeyword resolvedKeyword,
-  ) async {
+      String keyword, OpenAlexKeyword resolvedKeyword) async {
     final trimmedKeyword = keyword.trim();
     _keyword = trimmedKeyword;
     _isLoading = true;
@@ -158,4 +155,6 @@ class KeywordAnalyzerViewModel extends ChangeNotifier {
     _hasTrendError = false;
     notifyListeners();
   }
+
+
 }

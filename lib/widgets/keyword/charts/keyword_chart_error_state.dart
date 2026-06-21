@@ -19,11 +19,18 @@ class KeywordChartErrorState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 32, color: Colors.red.shade300),
+            Icon(
+              Icons.error_outline,
+              size: 32,
+              color: Colors.red.shade300,
+            ),
             const SizedBox(height: 16),
             Text(
               message,
-              style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+              style: TextStyle(
+                color: Colors.grey.shade700,
+                fontSize: 14,
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),

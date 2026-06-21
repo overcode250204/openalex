@@ -12,16 +12,18 @@ class FakeOpenAlexService extends OpenAlexService {
   final List<Publication> results;
   final int total;
 
-  @override
+ @override
   Future<(int total, List<Publication> publications)> searchPublications({
     required String keyword,
     int perPage = 50,
     String sort = 'cited_by_count:desc',
-    List<String>? topicIds,
+    List<String>? topicIds
   }) async {
+
     return (total, results);
   }
 }
+
 
 class FakeSearchHistoryService extends SearchHistoryService {
   @override
@@ -65,7 +67,7 @@ Publication publication({
     abstractText: null,
     authors: authors,
     referencedWorkIds: ["1", "2"],
-    relatedWorkIds: ["1", "2"],
+    relatedWorkIds:  ["1", "2"],
     oaUrl: "123",
   );
 }
@@ -88,7 +90,8 @@ void main() {
           journal: 'Journal A',
           authors: ['Ada Lovelace', 'Grace Hopper'],
         ),
-      ], total: 2),
+        
+      ],total: 2),
     );
     await provider.searchPublications(keyword: 'Artificial Intelligence');
 

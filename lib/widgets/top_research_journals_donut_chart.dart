@@ -4,15 +4,16 @@ import 'package:flutter/material.dart';
 class TopResearchJournalsDonutChart extends StatefulWidget {
   final Map<String, int> journalsData;
 
-  const TopResearchJournalsDonutChart({super.key, required this.journalsData});
+  const TopResearchJournalsDonutChart({
+    super.key,
+    required this.journalsData,
+  });
 
   @override
-  State<TopResearchJournalsDonutChart> createState() =>
-      _TopResearchJournalsDonutChartState();
+  State<TopResearchJournalsDonutChart> createState() => _TopResearchJournalsDonutChartState();
 }
 
-class _TopResearchJournalsDonutChartState
-    extends State<TopResearchJournalsDonutChart> {
+class _TopResearchJournalsDonutChartState extends State<TopResearchJournalsDonutChart> {
   int touchedIndex = -1;
 
   final List<Color> chartColors = [
@@ -30,7 +31,9 @@ class _TopResearchJournalsDonutChartState
     if (widget.journalsData.isEmpty) {
       return const SizedBox(
         height: 330,
-        child: Center(child: Text('No research journals data available.')),
+        child: Center(
+          child: Text('No research journals data available.'),
+        ),
       );
     }
 
@@ -45,7 +48,7 @@ class _TopResearchJournalsDonutChartState
     return LayoutBuilder(
       builder: (context, constraints) {
         final isSmallScreen = constraints.maxWidth < 300;
-
+        
         final chartWidget = SizedBox(
           height: 200,
           width: 200,
@@ -63,9 +66,7 @@ class _TopResearchJournalsDonutChartState
                           touchedIndex = -1;
                           return;
                         }
-                        touchedIndex = pieTouchResponse
-                            .touchedSection!
-                            .touchedSectionIndex;
+                        touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
                       });
                     },
                   ),
@@ -77,13 +78,9 @@ class _TopResearchJournalsDonutChartState
                     final fontSize = isTouched ? 14.0 : 12.0;
                     final radius = isTouched ? 60.0 : 50.0;
                     final entry = donutEntries[i];
-                    final percentage = totalPapers > 0
-                        ? (entry.value / totalPapers) * 100
-                        : 0.0;
-                    final color = entry.key == 'Others'
-                        ? Colors.grey.shade300
-                        : chartColors[i % chartColors.length];
-
+                    final percentage = totalPapers > 0 ? (entry.value / totalPapers) * 100 : 0.0;
+                    final color = entry.key == 'Others' ? Colors.grey.shade300 : chartColors[i % chartColors.length];
+                    
                     return PieChartSectionData(
                       color: color,
                       value: entry.value.toDouble(),
@@ -110,7 +107,10 @@ class _TopResearchJournalsDonutChartState
                   ),
                   Text(
                     'Journals',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
                   ),
                 ],
               ),
@@ -152,7 +152,10 @@ class _TopResearchJournalsDonutChartState
                   const SizedBox(width: 8),
                   Text(
                     '${entry.value} ${entry.value == 1 ? 'paper' : 'papers'}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
                   ),
                 ],
               ),
@@ -162,7 +165,11 @@ class _TopResearchJournalsDonutChartState
 
         if (isSmallScreen) {
           return Column(
-            children: [chartWidget, const SizedBox(height: 24), legendWidget],
+            children: [
+              chartWidget,
+              const SizedBox(height: 24),
+              legendWidget,
+            ],
           );
         }
 

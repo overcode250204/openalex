@@ -97,9 +97,7 @@ void main() {
       ChangeNotifierProvider(
         create: (_) => KeywordAnalyzerViewModel(FakeKeywordService()),
         child: const MaterialApp(
-          home: KeywordAnalyzerPage(
-            originalSearchText: 'Artificial Intelligence',
-          ),
+          home: KeywordAnalyzerPage(originalSearchText: 'Artificial Intelligence'),
         ),
       ),
     );
@@ -142,9 +140,7 @@ void main() {
       ChangeNotifierProvider(
         create: (_) => KeywordAnalyzerViewModel(FakeKeywordService()),
         child: const MaterialApp(
-          home: KeywordAnalyzerPage(
-            originalSearchText: 'Artificial Intelligence',
-          ),
+          home: KeywordAnalyzerPage(originalSearchText: 'Artificial Intelligence'),
         ),
       ),
     );
@@ -156,12 +152,8 @@ void main() {
 
     expect(find.text('Publication Trend'), findsOneWidget);
 
-    final startYearDropdown = find.byKey(
-      const Key('keyword_trend_start_year_dropdown'),
-    );
-    final endYearDropdown = find.byKey(
-      const Key('keyword_trend_end_year_dropdown'),
-    );
+    final startYearDropdown = find.byKey(const Key('keyword_trend_start_year_dropdown'));
+    final endYearDropdown = find.byKey(const Key('keyword_trend_end_year_dropdown'));
 
     expect(startYearDropdown, findsOneWidget);
     expect(endYearDropdown, findsOneWidget);
@@ -176,6 +168,8 @@ void main() {
 
     expect(find.text('2020'), findsWidgets);
   });
+
+
 
   testWidgets('shows Top Contributing Authors card after analysis', (
     tester,

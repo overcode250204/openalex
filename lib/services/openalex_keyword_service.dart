@@ -315,7 +315,10 @@ class OpenAlexKeywordService {
 
     for (int year = fromYear; year <= endYear; year++) {
       completedTrend.add(
-        KeywordTrendPoint(year: year, count: trendMap[year] ?? 0),
+        KeywordTrendPoint(
+          year: year,
+          count: trendMap[year] ?? 0,
+        ),
       );
     }
 

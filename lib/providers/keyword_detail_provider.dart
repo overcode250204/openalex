@@ -7,14 +7,23 @@ import '../models/keyword/openalex_keyword.dart';
 import '../services/openalex_keyword_service.dart';
 import '../services/suggestion_service.dart';
 
-enum KeywordDetailState { idle, searching, resolved, loading, loaded, error }
+enum KeywordDetailState {
+  idle,
+  searching,
+  resolved,
+  loading,
+  loaded,
+  error,
+}
 
 class KeywordDetailProvider extends ChangeNotifier {
   final OpenAlexKeywordService _service;
   final SuggestionService _suggestionService;
 
-  KeywordDetailProvider(this._service, {SuggestionService? suggestionService})
-    : _suggestionService = suggestionService ?? SuggestionService();
+  KeywordDetailProvider(
+    this._service, {
+    SuggestionService? suggestionService,
+  }) : _suggestionService = suggestionService ?? SuggestionService();
 
   KeywordDetailState _state = KeywordDetailState.idle;
   String _keyword = '';
@@ -40,8 +49,7 @@ class KeywordDetailProvider extends ChangeNotifier {
   int get selectedToYear => _selectedToYear;
   bool get isLoadingTrend => _isLoadingTrend;
   bool get hasTrendError => _hasTrendError;
-  bool get isLoading =>
-      _state == KeywordDetailState.searching ||
+  bool get isLoading => _state == KeywordDetailState.searching ||
       _state == KeywordDetailState.resolved ||
       _state == KeywordDetailState.loading;
 
@@ -141,9 +149,8 @@ class KeywordDetailProvider extends ChangeNotifier {
     notifyListeners();
     _debounce = Timer(const Duration(milliseconds: 350), () async {
       try {
-        _keywordSuggestions = await _suggestionService.fetchKeywordSuggestions(
-          trimmed,
-        );
+        _keywordSuggestions =
+            await _suggestionService.fetchKeywordSuggestions(trimmed);
       } catch (_) {
         _keywordSuggestions = [];
       }

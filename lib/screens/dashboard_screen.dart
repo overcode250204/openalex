@@ -113,11 +113,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           label: 'Total Publications',
                           value: loading
                               ? '…'
-                              : _compactNumber(
-                                  analytics.totalWorks > 0
-                                      ? analytics.totalWorks
-                                      : provider.totalResults,
-                                ),
+                              : _compactNumber(analytics.totalWorks > 0
+                                  ? analytics.totalWorks
+                                  : provider.totalResults),
                           icon: Icons.public,
                           color: Colors.teal,
                         ),
@@ -146,8 +144,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           value: loading
                               ? '…'
                               : (analytics.mostCitedCount > 0
-                                    ? _compactNumber(analytics.mostCitedCount)
-                                    : 'N/A'),
+                                  ? _compactNumber(analytics.mostCitedCount)
+                                  : 'N/A'),
                           icon: Icons.local_fire_department_outlined,
                           color: Colors.orange,
                         ),
@@ -156,9 +154,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Expanded(
                         child: _MetricTile(
                           label: 'Top Keyword',
-                          value: loading
-                              ? '…'
-                              : (analytics.topKeywordName ?? 'N/A'),
+                          value:
+                              loading ? '…' : (analytics.topKeywordName ?? 'N/A'),
                           icon: Icons.tag,
                           color: Colors.green,
                         ),
@@ -185,17 +182,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: 24),
                 Text(
                   'Analytics',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Aggregated across the full matching dataset on OpenAlex, '
                   'not just the loaded sample.',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: Colors.grey.shade600),
                 ),
                 const SizedBox(height: 12),
                 _YearRangeFilterCard(
@@ -381,9 +380,10 @@ class _YearRangeFilterCard extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   'Filter by year',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleSmall
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
                 if (hasFilter)

@@ -94,9 +94,10 @@ void main() {
 
     test('returns empty list when results are empty', () async {
       final service = OpenAlexService(
-        client: MockClient(
-          (request) async => http.Response(jsonEncode({'results': []}), 200),
-        ),
+        client: MockClient((request) async => http.Response(
+          jsonEncode({'results': []}),
+          200,
+        )),
       );
 
       final ids = await service.getTopicIdsFromKeyword('AI');
@@ -106,28 +107,24 @@ void main() {
 
     test('returns exact match id when a topic name matches exactly', () async {
       final service = OpenAlexService(
-        client: MockClient(
-          (request) async => http.Response(
-            jsonEncode({
-              'results': [
-                {
-                  'id': 'https://openalex.org/T_EXACT',
-                  'display_name': 'Artificial Intelligence',
-                },
-                {
-                  'id': 'https://openalex.org/T_OTHER',
-                  'display_name': 'AI Applications',
-                },
-              ],
-            }),
-            200,
-          ),
-        ),
+        client: MockClient((request) async => http.Response(
+          jsonEncode({
+            'results': [
+              {
+                'id': 'https://openalex.org/T_EXACT',
+                'display_name': 'Artificial Intelligence',
+              },
+              {
+                'id': 'https://openalex.org/T_OTHER',
+                'display_name': 'AI Applications',
+              },
+            ],
+          }),
+          200,
+        )),
       );
 
-      final ids = await service.getTopicIdsFromKeyword(
-        'Artificial Intelligence',
-      );
+      final ids = await service.getTopicIdsFromKeyword('Artificial Intelligence');
 
       expect(ids, hasLength(1));
       expect(ids.single, 'T_EXACT');
@@ -135,22 +132,17 @@ void main() {
 
     test('returns up to 3 topic ids when no exact match exists', () async {
       final service = OpenAlexService(
-        client: MockClient(
-          (request) async => http.Response(
-            jsonEncode({
-              'results': [
-                {
-                  'id': 'https://openalex.org/T1',
-                  'display_name': 'AI Overview',
-                },
-                {'id': 'https://openalex.org/T2', 'display_name': 'AI Systems'},
-                {'id': 'https://openalex.org/T3', 'display_name': 'AI Models'},
-                {'id': 'https://openalex.org/T4', 'display_name': 'AI Ethics'},
-              ],
-            }),
-            200,
-          ),
-        ),
+        client: MockClient((request) async => http.Response(
+          jsonEncode({
+            'results': [
+              {'id': 'https://openalex.org/T1', 'display_name': 'AI Overview'},
+              {'id': 'https://openalex.org/T2', 'display_name': 'AI Systems'},
+              {'id': 'https://openalex.org/T3', 'display_name': 'AI Models'},
+              {'id': 'https://openalex.org/T4', 'display_name': 'AI Ethics'},
+            ],
+          }),
+          200,
+        )),
       );
 
       final ids = await service.getTopicIdsFromKeyword('AI');
@@ -167,30 +159,16 @@ void main() {
   group('OpenAlexService.fetchTopResearchJournals', () {
     test('aggregates publication counts per journal name', () async {
       final service = OpenAlexService(
-        client: MockClient(
-          (request) async => http.Response(
-            jsonEncode({
-              'results': [
-                {
-                  'primary_location': {
-                    'source': {'display_name': 'Nature'},
-                  },
-                },
-                {
-                  'primary_location': {
-                    'source': {'display_name': 'Nature'},
-                  },
-                },
-                {
-                  'primary_location': {
-                    'source': {'display_name': 'IEEE'},
-                  },
-                },
-              ],
-            }),
-            200,
-          ),
-        ),
+        client: MockClient((request) async => http.Response(
+          jsonEncode({
+            'results': [
+              {'primary_location': {'source': {'display_name': 'Nature'}}},
+              {'primary_location': {'source': {'display_name': 'Nature'}}},
+              {'primary_location': {'source': {'display_name': 'IEEE'}}},
+            ],
+          }),
+          200,
+        )),
       );
 
       final journals = await service.fetchTopResearchJournals(keyword: 'AI');
@@ -201,16 +179,14 @@ void main() {
 
     test('uses Unknown Journal for missing source', () async {
       final service = OpenAlexService(
-        client: MockClient(
-          (request) async => http.Response(
-            jsonEncode({
-              'results': [
-                {'primary_location': null},
-              ],
-            }),
-            200,
-          ),
-        ),
+        client: MockClient((request) async => http.Response(
+          jsonEncode({
+            'results': [
+              {'primary_location': null},
+            ],
+          }),
+          200,
+        )),
       );
 
       final journals = await service.fetchTopResearchJournals(keyword: 'AI');
@@ -220,30 +196,16 @@ void main() {
 
     test('respects the limit parameter', () async {
       final service = OpenAlexService(
-        client: MockClient(
-          (request) async => http.Response(
-            jsonEncode({
-              'results': [
-                {
-                  'primary_location': {
-                    'source': {'display_name': 'Journal A'},
-                  },
-                },
-                {
-                  'primary_location': {
-                    'source': {'display_name': 'Journal B'},
-                  },
-                },
-                {
-                  'primary_location': {
-                    'source': {'display_name': 'Journal C'},
-                  },
-                },
-              ],
-            }),
-            200,
-          ),
-        ),
+        client: MockClient((request) async => http.Response(
+          jsonEncode({
+            'results': [
+              {'primary_location': {'source': {'display_name': 'Journal A'}}},
+              {'primary_location': {'source': {'display_name': 'Journal B'}}},
+              {'primary_location': {'source': {'display_name': 'Journal C'}}},
+            ],
+          }),
+          200,
+        )),
       );
 
       final journals = await service.fetchTopResearchJournals(
@@ -272,32 +234,24 @@ void main() {
   group('OpenAlexService.fetchTopContributingAuthors', () {
     test('counts author appearances across works', () async {
       final service = OpenAlexService(
-        client: MockClient(
-          (request) async => http.Response(
-            jsonEncode({
-              'results': [
-                {
-                  'authorships': [
-                    {
-                      'author': {'display_name': 'Ada Lovelace'},
-                    },
-                    {
-                      'author': {'display_name': 'Grace Hopper'},
-                    },
-                  ],
-                },
-                {
-                  'authorships': [
-                    {
-                      'author': {'display_name': 'Ada Lovelace'},
-                    },
-                  ],
-                },
-              ],
-            }),
-            200,
-          ),
-        ),
+        client: MockClient((request) async => http.Response(
+          jsonEncode({
+            'results': [
+              {
+                'authorships': [
+                  {'author': {'display_name': 'Ada Lovelace'}},
+                  {'author': {'display_name': 'Grace Hopper'}},
+                ],
+              },
+              {
+                'authorships': [
+                  {'author': {'display_name': 'Ada Lovelace'}},
+                ],
+              },
+            ],
+          }),
+          200,
+        )),
       );
 
       final authors = await service.fetchTopContributingAuthors(keyword: 'AI');
@@ -308,25 +262,19 @@ void main() {
 
     test('skips authors with null display_name', () async {
       final service = OpenAlexService(
-        client: MockClient(
-          (request) async => http.Response(
-            jsonEncode({
-              'results': [
-                {
-                  'authorships': [
-                    {
-                      'author': {'display_name': null},
-                    },
-                    {
-                      'author': {'display_name': 'Known Author'},
-                    },
-                  ],
-                },
-              ],
-            }),
-            200,
-          ),
-        ),
+        client: MockClient((request) async => http.Response(
+          jsonEncode({
+            'results': [
+              {
+                'authorships': [
+                  {'author': {'display_name': null}},
+                  {'author': {'display_name': 'Known Author'}},
+                ],
+              },
+            ],
+          }),
+          200,
+        )),
       );
 
       final authors = await service.fetchTopContributingAuthors(keyword: 'AI');
@@ -337,28 +285,20 @@ void main() {
 
     test('respects the limit parameter', () async {
       final service = OpenAlexService(
-        client: MockClient(
-          (request) async => http.Response(
-            jsonEncode({
-              'results': [
-                {
-                  'authorships': [
-                    {
-                      'author': {'display_name': 'Author A'},
-                    },
-                    {
-                      'author': {'display_name': 'Author B'},
-                    },
-                    {
-                      'author': {'display_name': 'Author C'},
-                    },
-                  ],
-                },
-              ],
-            }),
-            200,
-          ),
-        ),
+        client: MockClient((request) async => http.Response(
+          jsonEncode({
+            'results': [
+              {
+                'authorships': [
+                  {'author': {'display_name': 'Author A'}},
+                  {'author': {'display_name': 'Author B'}},
+                  {'author': {'display_name': 'Author C'}},
+                ],
+              },
+            ],
+          }),
+          200,
+        )),
       );
 
       final authors = await service.fetchTopContributingAuthors(
@@ -382,9 +322,10 @@ void main() {
 
     test('returns empty map for empty results', () async {
       final service = OpenAlexService(
-        client: MockClient(
-          (request) async => http.Response(jsonEncode({'results': []}), 200),
-        ),
+        client: MockClient((request) async => http.Response(
+          jsonEncode({'results': []}),
+          200,
+        )),
       );
 
       final authors = await service.fetchTopContributingAuthors(keyword: 'AI');

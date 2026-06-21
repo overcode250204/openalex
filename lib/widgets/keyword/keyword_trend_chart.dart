@@ -27,10 +27,16 @@ class KeywordTrendChart extends StatelessWidget {
           DropdownButton<int>(
             value: viewModel.selectedFromYear,
             underline: const SizedBox.shrink(),
-            items: List.generate(DateTime.now().year - 1990 + 1, (index) {
-              final year = 1990 + index;
-              return DropdownMenuItem(value: year, child: Text('$year'));
-            }),
+            items: List.generate(
+              DateTime.now().year - 1990 + 1,
+              (index) {
+                final year = 1990 + index;
+                return DropdownMenuItem(
+                  value: year,
+                  child: Text('$year'),
+                );
+              },
+            ),
             onChanged: (value) async {
               if (value == null) return;
               final fromYear = value;
@@ -48,10 +54,16 @@ class KeywordTrendChart extends StatelessWidget {
           DropdownButton<int>(
             value: viewModel.selectedToYear,
             underline: const SizedBox.shrink(),
-            items: List.generate(DateTime.now().year - 1990 + 1, (index) {
-              final year = 1990 + index;
-              return DropdownMenuItem(value: year, child: Text('$year'));
-            }),
+            items: List.generate(
+              DateTime.now().year - 1990 + 1,
+              (index) {
+                final year = 1990 + index;
+                return DropdownMenuItem(
+                  value: year,
+                  child: Text('$year'),
+                );
+              },
+            ),
             onChanged: (value) async {
               if (value == null) return;
               final toYear = value;
@@ -89,7 +101,9 @@ class KeywordTrendChart extends StatelessWidget {
           : trend.isEmpty
           ? const SizedBox(
               height: 280,
-              child: Center(child: Text('No keyword trend data available.')),
+              child: Center(
+                child: Text('No keyword trend data available.'),
+              ),
             )
           : _TrendLineChart(points: trend),
     );

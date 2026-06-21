@@ -69,7 +69,7 @@ class _KeywordTrendComparisonChartState
         .where((e) => !_hiddenSeries.contains(e.key))
         .expand((e) => e.value)
         .toList();
-
+        
     final maxCount = visiblePoints.isNotEmpty
         ? visiblePoints.map((p) => p.count).reduce((a, b) => a > b ? a : b)
         : 1;
@@ -77,7 +77,7 @@ class _KeywordTrendComparisonChartState
     final adjustedMinYear = minYear == maxYear ? minYear - 1 : minYear;
     final adjustedMaxYear = minYear == maxYear ? maxYear + 1 : maxYear;
     final xInterval = (adjustedMaxYear - adjustedMinYear) > 10 ? 2.0 : 1.0;
-
+    
     final yInterval = maxCount > 4 ? (maxCount / 4).ceilToDouble() : 1.0;
 
     return KeywordChartCard(
@@ -163,19 +163,13 @@ class _KeywordTrendComparisonChartState
                       interval: yInterval,
                       getTitlesWidget: (value, meta) {
                         if (value % 1 != 0 || value == 0) {
-                          if (value == 0) {
-                            return SideTitleWidget(
-                              axisSide: meta.axisSide,
-                              child: Text(
-                                '0',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey.shade500,
-                                ),
-                              ),
-                            );
-                          }
-                          return const SizedBox.shrink();
+                           if (value == 0) {
+                              return SideTitleWidget(
+                                axisSide: meta.axisSide,
+                                child: Text('0', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                              );
+                           }
+                           return const SizedBox.shrink();
                         }
                         return SideTitleWidget(
                           axisSide: meta.axisSide,
@@ -217,41 +211,36 @@ class _KeywordTrendComparisonChartState
                 ),
                 lineTouchData: LineTouchData(
                   handleBuiltInTouches: true,
-                  getTouchedSpotIndicator:
-                      (LineChartBarData barData, List<int> spotIndexes) {
-                        return spotIndexes.map((spotIndex) {
-                          return TouchedSpotIndicatorData(
-                            FlLine(
-                              color: Colors.grey.shade300,
+                  getTouchedSpotIndicator: (LineChartBarData barData, List<int> spotIndexes) {
+                    return spotIndexes.map((spotIndex) {
+                      return TouchedSpotIndicatorData(
+                        FlLine(
+                          color: Colors.grey.shade300,
+                          strokeWidth: 2,
+                          dashArray: [4, 4],
+                        ),
+                        FlDotData(
+                          getDotPainter: (spot, percent, barData, index) {
+                            return FlDotCirclePainter(
+                              radius: 4,
+                              color: Colors.white,
                               strokeWidth: 2,
-                              dashArray: [4, 4],
-                            ),
-                            FlDotData(
-                              getDotPainter: (spot, percent, barData, index) {
-                                return FlDotCirclePainter(
-                                  radius: 4,
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                  strokeColor: barData.color ?? Colors.blue,
-                                );
-                              },
-                            ),
-                          );
-                        }).toList();
-                      },
+                              strokeColor: barData.color ?? Colors.blue,
+                            );
+                          },
+                        ),
+                      );
+                    }).toList();
+                  },
                   touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (touchedSpot) =>
-                        Colors.black.withValues(alpha: 0.8),
-                    tooltipPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
+                    getTooltipColor: (touchedSpot) => Colors.black.withValues(alpha: 0.8),
+                    tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     tooltipRoundedRadius: 8,
                     getTooltipItems: (touchedSpots) {
                       return touchedSpots.map((spot) {
                         final keyword = topKeywords[spot.barIndex];
                         if (_hiddenSeries.contains(keyword)) return null;
-
+                        
                         final color = _colors[spot.barIndex % _colors.length];
                         return LineTooltipItem(
                           '',
@@ -274,8 +263,7 @@ class _KeywordTrendComparisonChartState
                               ),
                             ),
                             TextSpan(
-                              text:
-                                  '${Formatters.formatCompactAxis(spot.y.toInt())} works',
+                              text: '${Formatters.formatCompactAxis(spot.y.toInt())} works',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
@@ -296,9 +284,7 @@ class _KeywordTrendComparisonChartState
                   return LineChartBarData(
                     show: isVisible,
                     spots: filtered[keyword]!
-                        .map(
-                          (p) => FlSpot(p.year.toDouble(), p.count.toDouble()),
-                        )
+                        .map((p) => FlSpot(p.year.toDouble(), p.count.toDouble()))
                         .toList(),
                     isCurved: true,
                     curveSmoothness: 0.35,

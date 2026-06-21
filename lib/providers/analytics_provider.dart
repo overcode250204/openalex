@@ -19,7 +19,7 @@ class AnalyticsProvider extends ChangeNotifier {
   final AnalyticsService _analyticsService;
 
   AnalyticsProvider({AnalyticsService? analyticsService})
-    : _analyticsService = analyticsService ?? AnalyticsService();
+      : _analyticsService = analyticsService ?? AnalyticsService();
 
   AnalyticsResult _result = AnalyticsResult.empty();
   List<Publication> _publications = [];
@@ -28,8 +28,7 @@ class AnalyticsProvider extends ChangeNotifier {
 
   bool get isLoading => _isLoading;
   String? get error => _error;
-  bool get hasData =>
-      _result.publicationTrend.isNotEmpty ||
+  bool get hasData => _result.publicationTrend.isNotEmpty ||
       _result.topKeywords.isNotEmpty ||
       _publications.isNotEmpty;
 
@@ -44,9 +43,10 @@ class AnalyticsProvider extends ChangeNotifier {
     if (trend.length < 2) return 0;
 
     final currentYear = DateTime.now().year;
-    final completeYears =
-        trend.entries.where((e) => e.key < currentYear).toList()
-          ..sort((a, b) => a.key.compareTo(b.key));
+    final completeYears = trend.entries
+        .where((e) => e.key < currentYear)
+        .toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
 
     if (completeYears.length < 2) return 0;
 
@@ -59,9 +59,10 @@ class AnalyticsProvider extends ChangeNotifier {
   // The most recent complete year used for growth rate
   int? get latestCompleteYear {
     final currentYear = DateTime.now().year;
-    final years =
-        _result.publicationTrend.keys.where((y) => y < currentYear).toList()
-          ..sort();
+    final years = _result.publicationTrend.keys
+        .where((y) => y < currentYear)
+        .toList()
+      ..sort();
     return years.isNotEmpty ? years.last : null;
   }
 
@@ -125,25 +126,19 @@ class AnalyticsProvider extends ChangeNotifier {
     final Map<String, _AuthorAccumulator> accum = {};
     for (final pub in _publications) {
       for (final author in pub.authors) {
-        final entry = accum.putIfAbsent(
-          author,
-          () => _AuthorAccumulator(author),
-        );
+        final entry = accum.putIfAbsent(author, () => _AuthorAccumulator(author));
         entry.paperCount++;
         entry.totalCitations += pub.citedByCount;
       }
     }
-    final list =
-        accum.values
-            .map(
-              (a) => AuthorImpact(
-                name: a.name,
-                paperCount: a.paperCount,
-                totalCitations: a.totalCitations,
-              ),
-            )
-            .toList()
-          ..sort((a, b) => b.totalCitations.compareTo(a.totalCitations));
+    final list = accum.values
+        .map((a) => AuthorImpact(
+              name: a.name,
+              paperCount: a.paperCount,
+              totalCitations: a.totalCitations,
+            ))
+        .toList()
+      ..sort((a, b) => b.totalCitations.compareTo(a.totalCitations));
     return list.take(30).toList();
   }
 

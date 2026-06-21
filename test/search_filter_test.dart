@@ -5,8 +5,7 @@ void main() {
   group('SearchFilter', () {
     test('builds default OpenAlex query parameters', () {
       final params = const SearchFilter().toQueryParams(
-        'artificial intelligence',
-        List.empty(),
+        'artificial intelligence', List.empty()
       );
 
       expect(params, {

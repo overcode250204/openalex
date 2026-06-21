@@ -5,23 +5,28 @@ import '../core/utils/formatters.dart';
 class PublicationTrendLineChart extends StatelessWidget {
   final Map<int, int> data;
 
-  const PublicationTrendLineChart({super.key, required this.data});
+  const PublicationTrendLineChart({
+    super.key,
+    required this.data,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (data.isEmpty) {
       return const SizedBox(
         height: 280,
-        child: Center(child: Text('No trend data available.')),
+        child: Center(
+          child: Text('No trend data available.'),
+        ),
       );
     }
 
     final entries = data.entries.toList();
     entries.sort((a, b) => a.key.compareTo(b.key));
-
+    
     final minYear = entries.first.key.toDouble();
     final maxYear = entries.last.key.toDouble();
-
+    
     int maxCountValue = 0;
     for (var entry in entries) {
       if (entry.value > maxCountValue) maxCountValue = entry.value;
@@ -29,7 +34,12 @@ class PublicationTrendLineChart extends StatelessWidget {
     final maxCount = maxCountValue.toDouble();
 
     final spots = entries
-        .map((entry) => FlSpot(entry.key.toDouble(), entry.value.toDouble()))
+        .map(
+          (entry) => FlSpot(
+            entry.key.toDouble(),
+            entry.value.toDouble(),
+          ),
+        )
         .toList();
 
     return SizedBox(
@@ -39,7 +49,10 @@ class PublicationTrendLineChart extends StatelessWidget {
         children: [
           Text(
             'Publications',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
           ),
           const SizedBox(height: 16),
           Expanded(
@@ -52,118 +65,108 @@ class PublicationTrendLineChart extends StatelessWidget {
               ),
               child: LineChart(
                 LineChartData(
-                  minX: minYear,
-                  maxX: maxYear,
-                  minY: 0,
-                  maxY: maxCount + (maxCount * 0.2), // Add some top padding
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    horizontalInterval: maxCount > 5
-                        ? (maxCount / 5).ceilToDouble()
-                        : 1,
-                    getDrawingHorizontalLine: (value) {
-                      return FlLine(
-                        color: Colors.grey.shade200,
-                        strokeWidth: 1,
-                        dashArray: [5, 5],
-                      );
-                    },
+                minX: minYear,
+                maxX: maxYear,
+                minY: 0,
+                maxY: maxCount + (maxCount * 0.2), // Add some top padding
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: maxCount > 5 ? (maxCount / 5).ceilToDouble() : 1,
+                  getDrawingHorizontalLine: (value) {
+                    return FlLine(
+                      color: Colors.grey.shade200,
+                      strokeWidth: 1,
+                      dashArray: [5, 5],
+                    );
+                  },
+                ),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
                   ),
-                  borderData: FlBorderData(show: false),
-                  titlesData: FlTitlesData(
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 36,
-                        interval: maxCount > 5
-                            ? (maxCount / 5).ceilToDouble()
-                            : 1,
-                        getTitlesWidget: (value, TitleMeta meta) {
-                          if (value % 1 != 0) {
-                            return const SizedBox.shrink();
-                          }
-                          return SideTitleWidget(
-                            axisSide: meta.axisSide,
-                            child: Text(
-                              Formatters.formatCompactAxis(value.toInt()),
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 36,
-                        interval: 1,
-                        getTitlesWidget: (value, TitleMeta meta) {
-                          final year = value.toInt();
-                          if (!data.containsKey(year)) {
-                            return const SizedBox.shrink();
-                          }
-                          return SideTitleWidget(
-                            axisSide: meta.axisSide,
-                            space: 10,
-                            child: Text(
-                              year.toString(),
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.black54,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
                   ),
-                  lineTouchData: LineTouchData(
-                    touchTooltipData: LineTouchTooltipData(
-                      getTooltipItems: (touchedSpots) {
-                        return touchedSpots.map((LineBarSpot touchedSpot) {
-                          final year = touchedSpot.x.toInt();
-                          final publications = touchedSpot.y.toInt();
-                          return LineTooltipItem(
-                            '$year\n',
-                            const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            children: [
-                              TextSpan(
-                                text: 'Publications: $publications',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontWeight: FontWeight.normal,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          );
-                        }).toList();
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 36,
+                      interval: maxCount > 5 ? (maxCount / 5).ceilToDouble() : 1,
+                      getTitlesWidget: (value, TitleMeta meta) {
+                        if (value % 1 != 0) {
+                          return const SizedBox.shrink();
+                        }
+                        return SideTitleWidget(
+                          axisSide: meta.axisSide,
+                          child: Text(
+                            Formatters.formatCompactAxis(value.toInt()),
+                            style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                          ),
+                        );
                       },
                     ),
-                    handleBuiltInTouches: true,
                   ),
-                  showingTooltipIndicators: spots.asMap().entries.map((e) {
-                    return ShowingTooltipIndicators([
-                      LineBarSpot(
-                        lineBarsData[0],
-                        0,
-                        lineBarsData[0].spots[e.key],
-                      ),
-                    ]);
-                  }).toList(),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 36,
+                      interval: 1,
+                      getTitlesWidget: (value, TitleMeta meta) {
+                        final year = value.toInt();
+                        if (!data.containsKey(year)) {
+                          return const SizedBox.shrink();
+                        }
+                        return SideTitleWidget(
+                          axisSide: meta.axisSide,
+                          space: 10,
+                          child: Text(
+                            year.toString(),
+                            style: const TextStyle(fontSize: 11, color: Colors.black54),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipItems: (touchedSpots) {
+                      return touchedSpots.map((LineBarSpot touchedSpot) {
+                        final year = touchedSpot.x.toInt();
+                        final publications = touchedSpot.y.toInt();
+                        return LineTooltipItem(
+                          '$year\n',
+                          const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          children: [
+                            TextSpan(
+                              text: 'Publications: $publications',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.normal,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList();
+                    },
+                  ),
+                  handleBuiltInTouches: true,
+                ),
+                showingTooltipIndicators: spots.asMap().entries.map((e) {
+                  return ShowingTooltipIndicators([
+                    LineBarSpot(
+                      lineBarsData[0],
+                      0,
+                      lineBarsData[0].spots[e.key],
+                    )
+                  ]);
+                }).toList(),
                   lineBarsData: lineBarsData,
                 ),
               ),
@@ -176,11 +179,7 @@ class PublicationTrendLineChart extends StatelessWidget {
 
   List<LineChartBarData> get lineBarsData => [
     LineChartBarData(
-      spots:
-          data.entries
-              .map((e) => FlSpot(e.key.toDouble(), e.value.toDouble()))
-              .toList()
-            ..sort((a, b) => a.x.compareTo(b.x)),
+      spots: data.entries.map((e) => FlSpot(e.key.toDouble(), e.value.toDouble())).toList()..sort((a, b) => a.x.compareTo(b.x)),
       isCurved: true,
       color: Colors.blue.shade500,
       barWidth: 2,

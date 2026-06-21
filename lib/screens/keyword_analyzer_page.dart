@@ -45,11 +45,9 @@ class _KeywordAnalyzerPageState extends State<KeywordAnalyzerPage> {
   Future<void> _analyzeInitial() async {
     final viewModel = context.read<KeywordAnalyzerViewModel>();
     if (widget.selectedKeyword != null) {
-      final text =
-          widget.originalSearchText ?? widget.selectedKeyword!.displayName;
+      final text = widget.originalSearchText ?? widget.selectedKeyword!.displayName;
       await viewModel.analyzeResolvedKeyword(text, widget.selectedKeyword!);
-    } else if (widget.originalSearchText != null &&
-        widget.originalSearchText!.trim().isNotEmpty) {
+    } else if (widget.originalSearchText != null && widget.originalSearchText!.trim().isNotEmpty) {
       await viewModel.analyze(widget.originalSearchText!);
     }
   }
@@ -102,6 +100,7 @@ class _KeywordAnalyzerPageState extends State<KeywordAnalyzerPage> {
     );
   }
 }
+
 
 class _KeywordAnalyzerBody extends StatelessWidget {
   final KeywordAnalyzerViewModel viewModel;

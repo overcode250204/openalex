@@ -20,7 +20,7 @@ class FakeOpenAlexService extends OpenAlexService {
     required String keyword,
     int perPage = 50,
     String sort = 'cited_by_count:desc',
-    List<String>? topicIds,
+    List<String>? topicIds
   }) async {
     requestedKeyword = keyword;
 
@@ -30,6 +30,8 @@ class FakeOpenAlexService extends OpenAlexService {
 
     return (total, results);
   }
+
+  
 }
 
 class FakeSearchHistoryService extends SearchHistoryService {
@@ -80,7 +82,7 @@ Publication publication({
     authors: authors,
     referencedWorkIds: List.empty(),
     relatedWorkIds: List.empty(),
-    oaUrl: "",
+    oaUrl: ""
   );
 }
 
@@ -130,7 +132,9 @@ void main() {
     final loadingStates = <bool>[];
     provider.addListener(() => loadingStates.add(provider.isLoading));
 
-    await provider.searchPublications(keyword: '  AI  ');
+    await provider.searchPublications(
+      keyword: '  AI  ',
+    );
 
     expect(service.requestedKeyword, '  AI  ');
     expect(loadingStates, [true, false]);

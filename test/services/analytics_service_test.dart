@@ -21,21 +21,19 @@ void main() {
   });
 
   test('fetchAll returns AnalyticsResult on success', () async {
-    when(() => mockClient.get(any())).thenAnswer(
-      (_) async => http.Response(
-        jsonEncode({
-          'meta': {'count': 100},
-          'results': [
-            {'display_name': 'Test Paper', 'cited_by_count': 50},
-          ],
-          'group_by': [
-            {'key': '2023', 'key_display_name': '2023', 'count': 10},
-            {'key': '2022', 'key_display_name': '2022', 'count': 20},
-          ],
-        }),
-        200,
-      ),
-    );
+    when(() => mockClient.get(any())).thenAnswer((_) async => http.Response(
+          jsonEncode({
+            'meta': {'count': 100},
+            'results': [
+              {'display_name': 'Test Paper', 'cited_by_count': 50}
+            ],
+            'group_by': [
+              {'key': '2023', 'key_display_name': '2023', 'count': 10},
+              {'key': '2022', 'key_display_name': '2022', 'count': 20},
+            ]
+          }),
+          200,
+        ));
 
     final result = await service.fetchAll('test', const SearchFilter());
 
@@ -47,16 +45,14 @@ void main() {
   });
 
   test('fetchAll handles empty results', () async {
-    when(() => mockClient.get(any())).thenAnswer(
-      (_) async => http.Response(
-        jsonEncode({
-          'meta': {'count': 0},
-          'results': [],
-          'group_by': [],
-        }),
-        200,
-      ),
-    );
+    when(() => mockClient.get(any())).thenAnswer((_) async => http.Response(
+          jsonEncode({
+            'meta': {'count': 0},
+            'results': [],
+            'group_by': []
+          }),
+          200,
+        ));
 
     final result = await service.fetchAll('test', const SearchFilter());
 
@@ -67,9 +63,8 @@ void main() {
   });
 
   test('fetchAll handles non-200 response', () async {
-    when(
-      () => mockClient.get(any()),
-    ).thenAnswer((_) async => http.Response('Error', 500));
+    when(() => mockClient.get(any()))
+        .thenAnswer((_) async => http.Response('Error', 500));
 
     final result = await service.fetchAll('test', const SearchFilter());
 
@@ -89,21 +84,19 @@ void main() {
       throwsException,
     );
   });
-
+  
   test('fetchAll query params check', () async {
-    when(() => mockClient.get(any())).thenAnswer(
-      (_) async => http.Response(
-        jsonEncode({
-          'meta': {'count': 0},
-          'results': [],
-          'group_by': [],
-        }),
-        200,
-      ),
-    );
+    when(() => mockClient.get(any())).thenAnswer((_) async => http.Response(
+          jsonEncode({
+            'meta': {'count': 0},
+            'results': [],
+            'group_by': []
+          }),
+          200,
+        ));
 
     await service.fetchAll('test', const SearchFilter(yearFrom: 2020));
-
+    
     // verify the client was called
     verify(() => mockClient.get(any())).called(greaterThan(0));
   });
