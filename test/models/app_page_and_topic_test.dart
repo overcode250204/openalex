@@ -10,11 +10,10 @@ void main() {
       expect(allValues, contains(AppPage.home));
       expect(allValues, contains(AppPage.journals));
       expect(allValues, contains(AppPage.keywords));
-      expect(allValues, contains(AppPage.profile));
     });
 
-    test('has exactly 4 values', () {
-      expect(AppPage.values.length, 4);
+    test('has exactly 3 values', () {
+      expect(AppPage.values.length, 3);
     });
 
     test('supports equality comparison', () {

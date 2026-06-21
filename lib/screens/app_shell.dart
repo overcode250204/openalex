@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'journal/journal_search_screen.dart';
 import 'keyword/keyword_dashboard_screen.dart';
-import 'profile_screen.dart';
 import 'trend_analyzer_home_page.dart';
 
 /// The root navigation shell of the app. Uses an [IndexedStack] + [BottomNavigationBar]
@@ -22,7 +21,6 @@ class _AppShellState extends State<AppShell> {
     const TrendAnalyzerHomePage(),
     const JournalSearchScreen(),
     const KeywordDashboardScreen(),
-    const ProfileScreen(),
   ];
 
   @override
@@ -67,11 +65,6 @@ class _AppBottomNav extends StatelessWidget {
       label: 'Keywords',
       icon: Icons.sell_outlined,
       activeIcon: Icons.sell,
-    ),
-    _NavItem(
-      label: 'Profile',
-      icon: Icons.person_outline,
-      activeIcon: Icons.person,
     ),
   ];
 

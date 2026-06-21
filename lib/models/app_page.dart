@@ -1,1 +1,5 @@
-enum AppPage { home, journals, keywords, profile }
+enum AppPage {
+  home,
+  journals,
+  keywords,
+}
