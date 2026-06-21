@@ -6,12 +6,27 @@ import 'package:openalex/providers/publication_provider.dart';
 import 'package:openalex/services/openalex_service.dart';
 
 class FakeFilterOpenAlexService extends OpenAlexService {
-  FakeFilterOpenAlexService({required this.responses, this.errorOnCall});
+  FakeFilterOpenAlexService({
+    required this.responses,
+    this.errorOnCall,
+    List<String>? topicIds,
+  }) : topicIds = topicIds ?? const ['T10616', 'T10862', 'T12002'];
 
   final List<(int total, List<Publication> publications)> responses;
   final int? errorOnCall;
+
+  // Topic IDs giả lập cho keyword search.
+  final List<String> topicIds;
+
   final List<Map<String, String>> requestedParams = [];
+
   var _callCount = 0;
+
+  // THÊM HÀM NÀY: đây là phần đang thiếu.
+  @override
+  Future<List<String>> getTopicIdsFromKeyword(String keyword) async {
+    return List<String>.from(topicIds);
+  }
 
   @override
   Future<(int total, List<Publication> publications)> searchWithFilter(

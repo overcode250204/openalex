@@ -89,8 +89,9 @@ class _KeywordAutocompleteSearchState extends State<KeywordAutocompleteSearch> {
 
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 350), () async {
-      final results =
-          await _suggestionService.fetchOpenAlexKeywordSuggestions(query);
+      final results = await _suggestionService.fetchOpenAlexKeywordSuggestions(
+        query,
+      );
       if (!mounted) return;
 
       setState(() {
@@ -251,6 +252,18 @@ class _KeywordAutocompleteSearchState extends State<KeywordAutocompleteSearch> {
             decoration: InputDecoration(
               hintText: widget.hintText,
               prefixIcon: const Icon(Icons.search),
+              suffixIcon: widget.controller.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        widget.controller.clear();
+                        setState(() {
+                          _showSuggestions = false;
+                        });
+                        _hideOverlay();
+                      },
+                    )
+                  : null,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),

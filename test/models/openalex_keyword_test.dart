@@ -11,7 +11,10 @@ void main() {
         'cited_by_count': 199170687,
       });
 
-      expect(keyword.id, 'https://openalex.org/keywords/artificial-intelligence');
+      expect(
+        keyword.id,
+        'https://openalex.org/keywords/artificial-intelligence',
+      );
       expect(keyword.displayName, 'Artificial intelligence');
       expect(keyword.worksCount, 12911371);
       expect(keyword.citedByCount, 199170687);

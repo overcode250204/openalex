@@ -264,7 +264,8 @@ class _JournalDetailView extends StatelessWidget {
               const SizedBox(height: 20),
               _SectionHeader(
                 title: 'Publications',
-                subtitle: '${_formatCount(journal.worksCount)} works in OpenAlex',
+                subtitle:
+                    '${_formatCount(journal.worksCount)} works in OpenAlex',
               ),
               const SizedBox(height: 12),
             ]),
@@ -284,24 +285,21 @@ class _JournalDetailView extends StatelessWidget {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  if (index == provider.publications.length) {
-                    return provider.isLoadingMorePublications
-                        ? const Padding(
-                            padding: EdgeInsets.all(20),
-                            child: Center(child: CircularProgressIndicator()),
-                          )
-                        : const SizedBox(height: 24);
-                  }
-                  return JournalPublicationCard(
-                    publication: provider.publications[index],
-                    onViewDetail: () =>
-                        onOpenPublication(provider.publications[index]),
-                  );
-                },
-                childCount: provider.publications.length + 1,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                if (index == provider.publications.length) {
+                  return provider.isLoadingMorePublications
+                      ? const Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      : const SizedBox(height: 24);
+                }
+                return JournalPublicationCard(
+                  publication: provider.publications[index],
+                  onViewDetail: () =>
+                      onOpenPublication(provider.publications[index]),
+                );
+              }, childCount: provider.publications.length + 1),
             ),
           ),
       ],
@@ -331,8 +329,7 @@ class _JournalHeaderBanner extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               child: Padding(
                 padding: const EdgeInsets.all(6),
-                child:
-                    Icon(Icons.arrow_back, color: scheme.onPrimaryContainer),
+                child: Icon(Icons.arrow_back, color: scheme.onPrimaryContainer),
               ),
             ),
             const SizedBox(width: 10),
@@ -485,9 +482,11 @@ class _SearchBar extends StatelessWidget {
                 prefixIcon: Icon(Icons.search),
               ),
               onChanged: onChanged,
-              onSubmitted: onSubmitted ?? (_) {
-                if (!isLoading) onSearch();
-              },
+              onSubmitted:
+                  onSubmitted ??
+                  (_) {
+                    if (!isLoading) onSearch();
+                  },
             ),
             const SizedBox(height: 12),
             FilledButton.icon(
@@ -521,19 +520,17 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         if (subtitle != null) ...[
           const SizedBox(height: 2),
           Text(
             subtitle!,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: Colors.grey.shade600),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
           ),
         ],
       ],
@@ -566,10 +563,7 @@ class _InfoBanner extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              message,
-              style: TextStyle(color: color.shade800),
-            ),
+            child: Text(message, style: TextStyle(color: color.shade800)),
           ),
         ],
       ),

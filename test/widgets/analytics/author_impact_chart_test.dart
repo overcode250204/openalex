@@ -73,9 +73,10 @@ void main() {
   testWidgets('long label does not crash', (tester) async {
     when(() => mockProvider.authorImpact).thenReturn([
       AuthorImpact(
-          name: 'A Very Very Very Long Author Name Indeed',
-          paperCount: 5,
-          totalCitations: 20),
+        name: 'A Very Very Very Long Author Name Indeed',
+        paperCount: 5,
+        totalCitations: 20,
+      ),
     ]);
 
     await tester.pumpWidget(buildChart());

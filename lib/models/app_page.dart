@@ -1,6 +1,1 @@
-enum AppPage {
-  home,
-  searchTopic,
-  trends,
-  journals,
-}
+enum AppPage { home, searchTopic, trends, journals }

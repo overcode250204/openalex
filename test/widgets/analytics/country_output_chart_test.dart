@@ -49,10 +49,7 @@ void main() {
 
   testWidgets('non-empty data renders safely', (tester) async {
     when(() => mockProvider.isLoading).thenReturn(false);
-    when(() => mockProvider.countryOutput).thenReturn({
-      'USA': 100,
-      'UK': 80,
-    });
+    when(() => mockProvider.countryOutput).thenReturn({'USA': 100, 'UK': 80});
 
     await tester.pumpWidget(buildChart());
     expect(find.byType(CountryOutputChart), findsOneWidget);
@@ -61,10 +58,7 @@ void main() {
 
   testWidgets('zero values do not crash', (tester) async {
     when(() => mockProvider.isLoading).thenReturn(false);
-    when(() => mockProvider.countryOutput).thenReturn({
-      'USA': 0,
-      'UK': 0,
-    });
+    when(() => mockProvider.countryOutput).thenReturn({'USA': 0, 'UK': 0});
 
     await tester.pumpWidget(buildChart());
     expect(find.byType(CountryOutputChart), findsOneWidget);
@@ -73,9 +67,9 @@ void main() {
 
   testWidgets('multiple items render safely', (tester) async {
     when(() => mockProvider.isLoading).thenReturn(false);
-    when(() => mockProvider.countryOutput).thenReturn({
-      for (int i = 0; i < 20; i++) 'Country $i': i * 10,
-    });
+    when(
+      () => mockProvider.countryOutput,
+    ).thenReturn({for (int i = 0; i < 20; i++) 'Country $i': i * 10});
 
     await tester.pumpWidget(buildChart());
     expect(find.byType(CountryOutputChart), findsOneWidget);

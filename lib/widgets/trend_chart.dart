@@ -4,17 +4,12 @@ import 'package:flutter/material.dart';
 class TrendChart extends StatelessWidget {
   final Map<int, int> data;
 
-  const TrendChart({
-    super.key,
-    required this.data,
-  });
+  const TrendChart({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
     if (data.isEmpty) {
-      return const Center(
-        child: Text('No trend data available.'),
-      );
+      return const Center(child: Text('No trend data available.'));
     }
 
     final entries = data.entries.toList();
@@ -26,12 +21,7 @@ class TrendChart extends StatelessWidget {
         .toDouble();
 
     final spots = entries
-        .map(
-          (entry) => FlSpot(
-            entry.key.toDouble(),
-            entry.value.toDouble(),
-          ),
-        )
+        .map((entry) => FlSpot(entry.key.toDouble(), entry.value.toDouble()))
         .toList();
 
     return SizedBox(

@@ -64,7 +64,8 @@ class _ResearchAssistantPanelState extends State<ResearchAssistantPanel> {
     _focusNode.unfocus();
 
     // Simulate AI reply
-    final reply = _demoReplies[trimmed] ??
+    final reply =
+        _demoReplies[trimmed] ??
         "That's a great research question! Let me analyze the OpenAlex data for you. Based on recent publication trends, this area shows significant activity. Would you like a detailed breakdown by year or by institution?";
 
     Future.delayed(const Duration(milliseconds: 600), () {
@@ -94,7 +95,8 @@ class _ResearchAssistantPanelState extends State<ResearchAssistantPanel> {
     final bottomInset = mediaQuery.viewInsets.bottom;
     final screenHeight = mediaQuery.size.height;
     // Panel takes up ~70% on mobile, 55% on wide screens
-    final panelHeight = screenHeight * (mediaQuery.size.width >= 600 ? 0.55 : 0.72);
+    final panelHeight =
+        screenHeight * (mediaQuery.size.width >= 600 ? 0.55 : 0.72);
 
     return Container(
       height: panelHeight + bottomInset,
@@ -227,8 +229,11 @@ class _PanelHeader extends StatelessWidget {
               color: const Color(0xFFEAF3FF),
               border: Border.all(color: const Color(0xFF2F6FB0), width: 2),
             ),
-            child: const Icon(Icons.smart_toy_outlined,
-                size: 20, color: Color(0xFF2F6FB0)),
+            child: const Icon(
+              Icons.smart_toy_outlined,
+              size: 20,
+              color: Color(0xFF2F6FB0),
+            ),
           ),
           const SizedBox(width: 12),
           const Expanded(
@@ -245,10 +250,7 @@ class _PanelHeader extends StatelessWidget {
                 ),
                 Row(
                   children: [
-                    CircleAvatar(
-                      radius: 4,
-                      backgroundColor: Color(0xFF22C55E),
-                    ),
+                    CircleAvatar(radius: 4, backgroundColor: Color(0xFF22C55E)),
                     SizedBox(width: 4),
                     Text(
                       'Online · Powered by OpenAlex data',
@@ -280,8 +282,9 @@ class _MessageBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
-        mainAxisAlignment:
-            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isUser) ...[
@@ -293,8 +296,11 @@ class _MessageBubble extends StatelessWidget {
                 color: const Color(0xFFEAF3FF),
                 border: Border.all(color: const Color(0xFF2F6FB0), width: 1.5),
               ),
-              child: const Icon(Icons.smart_toy_outlined,
-                  size: 15, color: Color(0xFF2F6FB0)),
+              child: const Icon(
+                Icons.smart_toy_outlined,
+                size: 15,
+                color: Color(0xFF2F6FB0),
+              ),
             ),
             const SizedBox(width: 8),
           ],

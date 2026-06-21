@@ -46,20 +46,15 @@ class JournalSuggestionDropdown extends StatelessWidget {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: suggestions.length,
-        separatorBuilder: (_, i) => Divider(
-          height: 1,
-          color: Colors.grey.shade100,
-        ),
+        separatorBuilder: (_, i) =>
+            Divider(height: 1, color: Colors.grey.shade100),
         itemBuilder: (context, index) {
           final journal = suggestions[index];
 
           return InkWell(
             onTap: () => onSelected(journal),
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Row(
                 children: [
                   Icon(

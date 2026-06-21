@@ -16,7 +16,10 @@ class KeywordCustomYearRangePicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentYear = DateTime.now().year;
     // Generate a list of years from 1990 to current year
-    final years = List<int>.generate(currentYear - 1990 + 1, (i) => currentYear - i);
+    final years = List<int>.generate(
+      currentYear - 1990 + 1,
+      (i) => currentYear - i,
+    );
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -79,9 +82,9 @@ class KeywordCustomYearRangePicker extends StatelessWidget {
         underline: const SizedBox.shrink(),
         icon: const Icon(Icons.keyboard_arrow_down, size: 16),
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+          fontWeight: FontWeight.w600,
+          color: Theme.of(context).colorScheme.primary,
+        ),
         items: years.map((year) {
           return DropdownMenuItem<int>(
             value: year,

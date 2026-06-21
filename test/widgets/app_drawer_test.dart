@@ -43,11 +43,13 @@ void main() {
   });
 
   group('AppDrawer navigation callbacks', () {
-    testWidgets('calls onPageSelected when a nav item is tapped', (tester) async {
+    testWidgets('calls onPageSelected when a nav item is tapped', (
+      tester,
+    ) async {
       AppPage? selected;
-      await tester.pumpWidget(buildDrawer(
-        onPageSelected: (page) => selected = page,
-      ));
+      await tester.pumpWidget(
+        buildDrawer(onPageSelected: (page) => selected = page),
+      );
 
       await tester.tap(find.text('Search Topic'));
       await tester.pump();
@@ -55,10 +57,9 @@ void main() {
       expect(selected, AppPage.searchTopic);
     });
 
-
-
-    testWidgets('Search Topic item is active when selectedPage is home',
-        (tester) async {
+    testWidgets('Search Topic item is active when selectedPage is home', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildDrawer(selectedPage: AppPage.home));
 
       // The Search Topic tile should have bold styling when selected
@@ -76,8 +77,9 @@ void main() {
   });
 
   group('AppDrawer expansion tiles', () {
-    testWidgets('Journal group expands on tap and shows subitems',
-        (tester) async {
+    testWidgets('Journal group expands on tap and shows subitems', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildDrawer());
 
       await tester.tap(find.text('Journal'));
@@ -95,8 +97,9 @@ void main() {
       expect(find.text('Trends'), findsOneWidget);
     });
 
-    testWidgets('Journal group is pre-expanded when selectedPage is journals',
-        (tester) async {
+    testWidgets('Journal group is pre-expanded when selectedPage is journals', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildDrawer(selectedPage: AppPage.journals));
       await tester.pumpAndSettle();
 

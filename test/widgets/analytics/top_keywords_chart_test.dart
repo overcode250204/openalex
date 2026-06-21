@@ -49,10 +49,7 @@ void main() {
 
   testWidgets('non-empty data renders safely', (tester) async {
     when(() => mockProvider.isLoading).thenReturn(false);
-    when(() => mockProvider.topKeywords).thenReturn({
-      'AI': 100,
-      'ML': 80,
-    });
+    when(() => mockProvider.topKeywords).thenReturn({'AI': 100, 'ML': 80});
 
     await tester.pumpWidget(buildChart());
     expect(find.byType(TopKeywordsChart), findsOneWidget);
@@ -61,10 +58,7 @@ void main() {
 
   testWidgets('zero values do not crash', (tester) async {
     when(() => mockProvider.isLoading).thenReturn(false);
-    when(() => mockProvider.topKeywords).thenReturn({
-      'AI': 0,
-      'ML': 0,
-    });
+    when(() => mockProvider.topKeywords).thenReturn({'AI': 0, 'ML': 0});
 
     await tester.pumpWidget(buildChart());
     expect(find.byType(TopKeywordsChart), findsOneWidget);
@@ -73,9 +67,9 @@ void main() {
 
   testWidgets('multiple items render safely', (tester) async {
     when(() => mockProvider.isLoading).thenReturn(false);
-    when(() => mockProvider.topKeywords).thenReturn({
-      for (int i = 0; i < 20; i++) 'Keyword $i': i * 10,
-    });
+    when(
+      () => mockProvider.topKeywords,
+    ).thenReturn({for (int i = 0; i < 20; i++) 'Keyword $i': i * 10});
 
     await tester.pumpWidget(buildChart());
     expect(find.byType(TopKeywordsChart), findsOneWidget);

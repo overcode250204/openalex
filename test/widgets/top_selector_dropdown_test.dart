@@ -10,10 +10,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TopSelectorDropdown(
-              value: 5,
-              onChanged: (v) => selected = v,
-            ),
+            body: TopSelectorDropdown(value: 5, onChanged: (v) => selected = v),
           ),
         ),
       );
@@ -27,10 +24,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: TopSelectorDropdown(
-              value: null,
-              onChanged: (_) {},
-            ),
+            body: TopSelectorDropdown(value: null, onChanged: (_) {}),
           ),
         ),
       );
