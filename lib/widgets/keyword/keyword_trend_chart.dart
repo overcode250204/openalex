@@ -1,10 +1,10 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
-import '../../core/utils/formatters.dart';
+import '../../utils/formatters.dart';
 import '../../models/keyword/keyword_trend_point.dart';
 import '../../viewmodels/keyword_analyzer_view_model.dart';
-import '../analytics_chart_card.dart';
+import '../analytics/analytics_chart_card.dart';
 
 class KeywordTrendChart extends StatelessWidget {
   final KeywordAnalyzerViewModel viewModel;

@@ -13,7 +13,7 @@ void main() {
         hotScore: 0.0,
         status: KeywordStatus.stable,
       );
-      
+
       expect(overview.id, 'k1');
       expect(overview.name, 'Test');
       expect(overview.currentPeriodCount, 0);
@@ -33,7 +33,7 @@ void main() {
         hotScore: 0.0,
         status: KeywordStatus.stable,
       );
-      
+
       final copy = overview.copyWith(hotScore: 5.0);
       expect(copy.hotScore, 5.0);
       expect(copy.id, 'k1');

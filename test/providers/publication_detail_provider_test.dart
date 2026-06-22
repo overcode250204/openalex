@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openalex/models/publication.dart';
-import 'package:openalex/providers/publication_detail_provider.dart';
+import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/viewmodels/publication_detail_view_model.dart';
 import 'package:openalex/services/openalex_service.dart';
 
 // ---------------------------------------------------------------------------
@@ -41,9 +41,11 @@ Publication _samplePublication() {
 // ---------------------------------------------------------------------------
 
 void main() {
-  group('PublicationDetailProvider', () {
+  group('PublicationDetailViewModel', () {
     test('starts in idle state with no publication', () {
-      final provider = PublicationDetailProvider(service: _FakeDetailService());
+      final provider = PublicationDetailViewModel(
+        service: _FakeDetailService(),
+      );
 
       expect(provider.state, DetailState.idle);
       expect(provider.publication, isNull);
@@ -52,7 +54,7 @@ void main() {
 
     test('transitions to loading then success on valid workId', () async {
       final service = _FakeDetailService(result: _samplePublication());
-      final provider = PublicationDetailProvider(service: service);
+      final provider = PublicationDetailViewModel(service: service);
 
       final states = <DetailState>[];
       provider.addListener(() => states.add(provider.state));
@@ -67,7 +69,7 @@ void main() {
     });
 
     test('transitions to error state when service returns null', () async {
-      final provider = PublicationDetailProvider(
+      final provider = PublicationDetailViewModel(
         service: _FakeDetailService(result: null),
       );
 
@@ -85,7 +87,7 @@ void main() {
 
     test('clears previous publication before loading new one', () async {
       final service = _FakeDetailService(result: _samplePublication());
-      final provider = PublicationDetailProvider(service: service);
+      final provider = PublicationDetailViewModel(service: service);
 
       await provider.loadDetail('W1');
       expect(provider.publication, isNotNull);
@@ -103,7 +105,7 @@ void main() {
     });
 
     test('notifies listeners on state transitions', () async {
-      final provider = PublicationDetailProvider(
+      final provider = PublicationDetailViewModel(
         service: _FakeDetailService(result: _samplePublication()),
       );
       var notifyCount = 0;

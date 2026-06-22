@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:openalex/providers/publication_provider.dart';
+import 'package:openalex/viewmodels/home_view_model.dart';
 import 'package:provider/provider.dart';
 
 class RelatedKeywordsBar extends StatelessWidget {
@@ -9,7 +9,7 @@ class RelatedKeywordsBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<PublicationProvider>(
+    return Consumer<HomeViewModel>(
       builder: (context, provider, _) {
         if (provider.relatedKeywords.isEmpty) return const SizedBox();
 

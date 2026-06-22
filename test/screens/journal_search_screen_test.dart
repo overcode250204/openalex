@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/models/journal/journal_publication.dart';
 import 'package:openalex/models/journal/journal_source.dart';
-import 'package:openalex/providers/journal_search_provider.dart';
+import 'package:openalex/viewmodels/journal_view_model.dart';
 import 'package:openalex/screens/journal/journal_search_screen.dart';
 import 'package:openalex/services/openalex_journal_service.dart';
 import 'package:provider/provider.dart';
@@ -11,7 +11,7 @@ import 'package:provider/provider.dart';
 // Fakes
 // ---------------------------------------------------------------------------
 import 'package:openalex/services/suggestion_service.dart';
-import 'package:openalex/models/journal_suggestion.dart';
+import 'package:openalex/models/journal/journal_suggestion.dart';
 
 class _FakeSuggestionService extends SuggestionService {
   final List<JournalSuggestion> suggestions;
@@ -69,7 +69,7 @@ JournalSource _source({String id = 'S1', String name = 'IEEE Access'}) {
   );
 }
 
-Widget _buildScreen(JournalSearchProvider provider) {
+Widget _buildScreen(JournalViewModel provider) {
   return ChangeNotifierProvider.value(
     value: provider,
     child: const MaterialApp(home: JournalSearchScreen()),
@@ -83,7 +83,7 @@ Widget _buildScreen(JournalSearchProvider provider) {
 void main() {
   group('JournalSearchScreen initial state', () {
     testWidgets('typing in search field shows suggestions', (tester) async {
-      final provider = JournalSearchProvider(
+      final provider = JournalViewModel(
         _FakeJournalService(),
         suggestionService: _FakeSuggestionService(
           suggestions: [
@@ -118,7 +118,7 @@ void main() {
     testWidgets('renders search results correctly after searching', (
       tester,
     ) async {
-      final provider = JournalSearchProvider(
+      final provider = JournalViewModel(
         _FakeJournalService(journalResults: []),
       );
       await tester.pumpWidget(_buildScreen(provider));
@@ -131,7 +131,7 @@ void main() {
     });
 
     testWidgets('renders Search Journal label', (tester) async {
-      final provider = JournalSearchProvider(_FakeJournalService());
+      final provider = JournalViewModel(_FakeJournalService());
       await tester.pumpWidget(_buildScreen(provider));
 
       expect(find.text('Journal Search'), findsOneWidget);
@@ -146,7 +146,7 @@ void main() {
           _source(id: 'S2', name: 'Science'),
         ],
       );
-      final provider = JournalSearchProvider(service);
+      final provider = JournalViewModel(service);
       await tester.pumpWidget(_buildScreen(provider));
 
       // Trigger search
@@ -157,7 +157,7 @@ void main() {
     });
 
     testWidgets('shows error message when no journals found', (tester) async {
-      final provider = JournalSearchProvider(
+      final provider = JournalViewModel(
         _FakeJournalService(journalResults: []),
       );
       await tester.pumpWidget(_buildScreen(provider));
@@ -169,7 +169,7 @@ void main() {
     });
 
     testWidgets('shows error message when query is blank', (tester) async {
-      final provider = JournalSearchProvider(_FakeJournalService());
+      final provider = JournalViewModel(_FakeJournalService());
       await tester.pumpWidget(_buildScreen(provider));
 
       // Clear the text field
@@ -191,7 +191,7 @@ void main() {
         journalResults: [source],
         publications: [],
       );
-      final provider = JournalSearchProvider(service);
+      final provider = JournalViewModel(service);
       await tester.pumpWidget(_buildScreen(provider));
 
       // Search

@@ -1,14 +1,14 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/analytics_provider.dart';
+import '../../viewmodels/analytics_view_model.dart';
 
 class CitationTrendChart extends StatelessWidget {
   const CitationTrendChart({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final analytics = context.watch<AnalyticsProvider>();
+    final analytics = context.watch<AnalyticsViewModel>();
     final data = analytics.publicationTrend;
 
     if (analytics.isLoading) {

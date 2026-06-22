@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/utils/formatters.dart';
+import '../../utils/formatters.dart';
 import '../../models/keyword/keyword_analysis_result.dart';
 
 class KeywordAnalysisSummary extends StatelessWidget {

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
-import 'package:openalex/models/search_filter.dart';
+import 'package:openalex/models/search/search_filter.dart';
 import 'package:openalex/services/analytics_service.dart';
 
 class MockClient extends Mock implements http.Client {}

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
-import '../../../core/utils/formatters.dart';
+import '../../../utils/formatters.dart';
 import '../../../models/keyword/keyword_trend_point.dart';
 import 'keyword_chart_card.dart';
 import 'keyword_chart_empty_state.dart';

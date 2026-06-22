@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/models/journal/journal_publication.dart';
 import 'package:openalex/models/journal/journal_source.dart';
-import 'package:openalex/providers/journal_search_provider.dart';
+import 'package:openalex/viewmodels/journal_view_model.dart';
 import 'package:openalex/services/openalex_journal_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
-import 'package:openalex/models/journal_suggestion.dart';
+import 'package:openalex/models/journal/journal_suggestion.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -106,9 +106,9 @@ JournalPublication _publication(String id) {
 // ---------------------------------------------------------------------------
 
 void main() {
-  group('JournalSearchProvider initial state', () {
+  group('JournalViewModel initial state', () {
     test('has correct defaults', () {
-      final provider = JournalSearchProvider(
+      final provider = JournalViewModel(
         _FakeJournalService(),
         suggestionService: _FakeSuggestionService(),
       );
@@ -132,10 +132,10 @@ void main() {
     });
   });
 
-  group('JournalSearchProvider.searchJournals', () {
+  group('JournalViewModel.searchJournals', () {
     test('sets errorMessage and skips HTTP when query is blank', () async {
       final service = _FakeJournalService(journalResults: [_source()]);
-      final provider = JournalSearchProvider(service);
+      final provider = JournalViewModel(service);
 
       await provider.searchJournals('   ');
 
@@ -146,7 +146,7 @@ void main() {
 
     test('populates journals and clears error on success', () async {
       final service = _FakeJournalService(journalResults: [_source()]);
-      final provider = JournalSearchProvider(service);
+      final provider = JournalViewModel(service);
 
       final loadingStates = <bool>[];
       provider.addListener(
@@ -161,7 +161,7 @@ void main() {
     });
 
     test('sets error when no journals are found', () async {
-      final provider = JournalSearchProvider(
+      final provider = JournalViewModel(
         _FakeJournalService(journalResults: []),
       );
 
@@ -172,7 +172,7 @@ void main() {
     });
 
     test('sets generic error message on service exception', () async {
-      final provider = JournalSearchProvider(
+      final provider = JournalViewModel(
         _FakeJournalService(searchError: Exception('network error')),
       );
 
@@ -184,7 +184,7 @@ void main() {
 
     test('resets state before new search', () async {
       final service = _FakeJournalService(journalResults: [_source()]);
-      final provider = JournalSearchProvider(service);
+      final provider = JournalViewModel(service);
 
       await provider.searchJournals('IEEE');
       expect(provider.journals, hasLength(1));
@@ -197,7 +197,7 @@ void main() {
     });
   });
 
-  group('JournalSearchProvider.selectJournal', () {
+  group('JournalViewModel.selectJournal', () {
     test('loads publications and highest cited in parallel', () async {
       final pub = _publication('1');
       final cited = _publication('99');
@@ -205,7 +205,7 @@ void main() {
         publicationResults: [pub],
         highestCited: cited,
       );
-      final provider = JournalSearchProvider(service);
+      final provider = JournalViewModel(service);
 
       await provider.selectJournal(_source());
 
@@ -217,7 +217,7 @@ void main() {
     });
 
     test('sets empty publications message when no papers exist', () async {
-      final provider = JournalSearchProvider(
+      final provider = JournalViewModel(
         _FakeJournalService(publicationResults: []),
       );
 
@@ -227,7 +227,7 @@ void main() {
     });
 
     test('sets error message when loading publications fails', () async {
-      final provider = JournalSearchProvider(
+      final provider = JournalViewModel(
         _FakeJournalService(publicationsError: Exception('boom')),
       );
 
@@ -238,7 +238,7 @@ void main() {
     });
   });
 
-  group('JournalSearchProvider.loadMorePublications', () {
+  group('JournalViewModel.loadMorePublications', () {
     test('appends next page and updates hasMore', () async {
       // Page 1 returns 20 results (full page → hasMore = true)
       final page1 = List.generate(20, (i) => _publication('P1_$i'));
@@ -247,7 +247,7 @@ void main() {
 
       // Use anonymous override approach via extended fake
       final flexService = _FlexJournalService([page1, page2]);
-      final provider = JournalSearchProvider(flexService);
+      final provider = JournalViewModel(flexService);
 
       await provider.selectJournal(_source());
       expect(provider.publications, hasLength(20));
@@ -265,7 +265,7 @@ void main() {
       final service = _FakeJournalService(
         publicationResults: List.generate(5, (i) => _publication('$i')),
       );
-      final provider = JournalSearchProvider(service);
+      final provider = JournalViewModel(service);
       await provider.selectJournal(_source()); // loads 5 < 20 → hasMore=false
 
       final countBefore = service.getPublicationsCalls;
@@ -276,7 +276,7 @@ void main() {
 
     test('does nothing when no journal is selected', () async {
       final service = _FakeJournalService();
-      final provider = JournalSearchProvider(service);
+      final provider = JournalViewModel(service);
 
       await provider.loadMorePublications(); // should be a no-op
 
@@ -284,11 +284,11 @@ void main() {
     });
   });
 
-  group('JournalSearchProvider.selectPublication', () {
+  group('JournalViewModel.selectPublication', () {
     test('stores the selected publication and notifies', () async {
       final pub = _publication('42');
       final service = _FakeJournalService(publicationResults: [pub]);
-      final provider = JournalSearchProvider(service);
+      final provider = JournalViewModel(service);
       await provider.selectJournal(_source());
 
       var notified = false;
@@ -301,7 +301,7 @@ void main() {
     });
   });
 
-  group('JournalSearchProvider.clearSelection', () {
+  group('JournalViewModel.clearSelection', () {
     test('resets all journal-related state', () async {
       final pub = _publication('1');
       final cited = _publication('99');
@@ -309,7 +309,7 @@ void main() {
         publicationResults: [pub],
         highestCited: cited,
       );
-      final provider = JournalSearchProvider(service);
+      final provider = JournalViewModel(service);
       await provider.selectJournal(_source());
 
       provider.selectPublication(pub);
@@ -331,12 +331,12 @@ void main() {
     });
   });
 
-  group('JournalSearchProvider journal suggestions', () {
+  group('JournalViewModel journal suggestions', () {
     test('onJournalQueryChanged fetches suggestions and shows them', () async {
       final mockSuggestions = [
         JournalSuggestion(id: '1', displayName: 'Nature', worksCount: 100),
       ];
-      final provider = JournalSearchProvider(
+      final provider = JournalViewModel(
         _FakeJournalService(),
         suggestionService: _FakeSuggestionService(
           mockSuggestions: mockSuggestions,
@@ -354,7 +354,7 @@ void main() {
     });
 
     test('onJournalQueryChanged hides suggestions if query is short', () async {
-      final provider = JournalSearchProvider(
+      final provider = JournalViewModel(
         _FakeJournalService(),
         suggestionService: _FakeSuggestionService(),
       );
@@ -368,7 +368,7 @@ void main() {
     });
 
     test('hideJournalSuggestions sets showJournalSuggestions to false', () {
-      final provider = JournalSearchProvider(
+      final provider = JournalViewModel(
         _FakeJournalService(),
         suggestionService: _FakeSuggestionService(),
       );

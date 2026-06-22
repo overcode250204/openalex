@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/publication.dart';
+import '../models/publication/publication.dart';
 
 class PublicationCard extends StatelessWidget {
   final Publication publication;

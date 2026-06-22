@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/main.dart';
-import 'package:openalex/models/app_page.dart';
+import 'package:openalex/models/app/app_page.dart';
 import 'package:openalex/models/journal/journal_publication.dart';
 import 'package:openalex/models/journal/journal_source.dart';
 import 'package:openalex/models/keyword/keyword_analysis_result.dart';
 import 'package:openalex/models/keyword/keyword_trend_point.dart';
-import 'package:openalex/models/publication.dart';
-import 'package:openalex/providers/journal_search_provider.dart';
-import 'package:openalex/providers/publication_detail_provider.dart';
-import 'package:openalex/providers/publication_provider.dart';
-import 'package:openalex/screens/app_shell.dart';
+import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/viewmodels/journal_view_model.dart';
+import 'package:openalex/viewmodels/publication_detail_view_model.dart';
+import 'package:openalex/viewmodels/home_view_model.dart';
+import 'package:openalex/screens/app/app_shell_screen.dart';
 import 'package:openalex/services/openalex_journal_service.dart';
 import 'package:openalex/services/openalex_keyword_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
+import 'package:openalex/viewmodels/selected_topic_view_model.dart';
 import 'package:openalex/viewmodels/keyword_analyzer_view_model.dart';
-import 'package:openalex/providers/keyword_dashboard_provider.dart';
+import 'package:openalex/viewmodels/keyword_dashboard_view_model.dart';
 import 'package:openalex/services/keyword_dashboard_service.dart';
 import 'package:openalex/models/keyword/keyword_dashboard_result.dart';
 import 'package:openalex/models/keyword/keyword_frequency_stat.dart';
@@ -111,23 +112,25 @@ Widget _appShellWidget() {
   final openAlexService = _FakeOpenAlexService();
   return MultiProvider(
     providers: [
+      ChangeNotifierProvider(create: (_) => SelectedTopicViewModel()),
       ChangeNotifierProvider(
-        create: (_) => PublicationProvider(
+        create: (_) => HomeViewModel(
           openAlexService,
           suggestionService: _FakeSuggestionService(),
         ),
       ),
       ChangeNotifierProvider(
-        create: (_) => JournalSearchProvider(_FakeJournalService()),
+        create: (_) => JournalViewModel(_FakeJournalService()),
       ),
       ChangeNotifierProvider(
-        create: (_) => PublicationDetailProvider(service: openAlexService),
+        create: (_) => PublicationDetailViewModel(service: openAlexService),
       ),
       ChangeNotifierProvider(
         create: (_) => KeywordAnalyzerViewModel(_FakeKeywordService()),
       ),
       ChangeNotifierProvider(
-        create: (_) => KeywordDashboardProvider(_FakeKeywordDashboardService()),
+        create: (_) =>
+            KeywordDashboardViewModel(_FakeKeywordDashboardService()),
       ),
     ],
     child: const MaterialApp(home: AppShell()),

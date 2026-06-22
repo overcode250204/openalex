@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openalex/core/utils/abstract_converter.dart';
+import 'package:openalex/utils/abstract_converter.dart';
 import 'package:openalex/mappers/zotero_mapper.dart';
-import 'package:openalex/models/publication.dart';
-import 'package:openalex/models/zotero.dart';
+import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/models/zotero/zotero.dart';
 
 void main() {
   group('AbstractConverter', () {

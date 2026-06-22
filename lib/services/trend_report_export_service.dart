@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
 
-import '../models/publication.dart';
-import '../models/trend_report_snapshot.dart';
+import '../models/publication/publication.dart';
+import '../models/trend/trend_report_snapshot.dart';
 
 class TrendReportExportResult {
   final File file;

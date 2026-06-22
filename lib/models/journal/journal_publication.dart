@@ -1,4 +1,4 @@
-import '../../core/utils/abstract_converter.dart';
+import '../../utils/abstract_converter.dart';
 
 class JournalPublication {
   final String id;

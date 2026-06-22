@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/main.dart';
-import 'package:openalex/models/publication.dart';
-import 'package:openalex/models/search_filter.dart';
-import 'package:openalex/models/topic.dart';
-import 'package:openalex/providers/analytics_provider.dart';
-import 'package:openalex/providers/publication_detail_provider.dart';
-import 'package:openalex/providers/publication_provider.dart';
-import 'package:openalex/screens/dashboard_screen.dart';
-import 'package:openalex/screens/publication_detail_screen.dart'
+import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/models/search/search_filter.dart';
+import 'package:openalex/models/topic/topic.dart';
+import 'package:openalex/viewmodels/analytics_view_model.dart';
+import 'package:openalex/viewmodels/dashboard_view_model.dart';
+import 'package:openalex/viewmodels/publication_detail_view_model.dart';
+import 'package:openalex/viewmodels/home_view_model.dart';
+import 'package:openalex/screens/dashboard/dashboard_screen.dart';
+import 'package:openalex/screens/publication/publication_detail_screen.dart'
     as screen_detail;
-import 'package:openalex/screens/search_screen.dart';
-import 'package:openalex/screens/trend_analysis_screen.dart';
+import 'package:openalex/screens/search/search_screen.dart';
+import 'package:openalex/screens/trend/trend_analysis_screen.dart';
 import 'package:openalex/services/history_service.dart';
 import 'package:openalex/services/analytics_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
+import 'package:openalex/services/trend_report_export_service.dart';
+import 'package:openalex/viewmodels/trend_analysis_view_model.dart';
 import 'package:openalex/widgets/publication_card.dart';
 import 'package:openalex/widgets/publication_detail_screen.dart'
     as widget_detail;
@@ -48,6 +51,33 @@ class FakeDetailService extends OpenAlexService {
   Future<Publication?> fetchDetail(String workId) async {
     return publication;
   }
+}
+
+class FakeTrendService extends OpenAlexService {
+  @override
+  Future<Map<int, int>> fetchPublicationTrend({
+    required String keyword,
+    int fromYear = 2014,
+    int? toYear,
+  }) async => {2023: 1, 2024: 1};
+
+  @override
+  Future<List<Publication>> fetchInfluentialPapers({
+    required String keyword,
+    int? limit,
+  }) async => [];
+
+  @override
+  Future<Map<String, int>> fetchTopResearchJournals({
+    required String keyword,
+    int? limit,
+  }) async => {};
+
+  @override
+  Future<Map<String, int>> fetchTopContributingAuthors({
+    required String keyword,
+    int? limit,
+  }) async => {};
 }
 
 class FakeSearchHistoryService extends SearchHistoryService {
@@ -89,8 +119,8 @@ class FakeAnalyticsService extends AnalyticsService {
   }
 }
 
-PublicationProvider testProvider(OpenAlexService service) {
-  return PublicationProvider(
+HomeViewModel testProvider(OpenAlexService service) {
+  return HomeViewModel(
     service,
     historyService: FakeSearchHistoryService(),
     suggestionService: FakeSuggestionService(),
@@ -121,21 +151,26 @@ Publication publication({
   );
 }
 
-Future<PublicationProvider> seededProvider(
-  List<Publication> publications,
-) async {
+Future<HomeViewModel> seededProvider(List<Publication> publications) async {
   final provider = testProvider(FakeOpenAlexService(publications, 1));
   await provider.searchPublications(keyword: 'AI');
   return provider;
 }
 
-Widget appWithProvider(Widget child, PublicationProvider provider) {
+Widget appWithProvider(Widget child, HomeViewModel provider) {
   return MultiProvider(
     providers: [
-      ChangeNotifierProvider<PublicationProvider>.value(value: provider),
+      ChangeNotifierProvider<HomeViewModel>.value(value: provider),
       ChangeNotifierProvider(
         create: (_) =>
-            AnalyticsProvider(analyticsService: FakeAnalyticsService()),
+            AnalyticsViewModel(analyticsService: FakeAnalyticsService()),
+      ),
+      ChangeNotifierProvider(
+        create: (_) => TrendAnalysisViewModel(service: FakeTrendService()),
+      ),
+      ChangeNotifierProvider(
+        create: (_) =>
+            DashboardViewModel(exportService: const TrendReportExportService()),
       ),
     ],
     child: MaterialApp(home: child),
@@ -227,7 +262,7 @@ void main() {
   testWidgets('DashboardScreen shows empty and populated states', (
     tester,
   ) async {
-    final emptyProvider = PublicationProvider(FakeOpenAlexService([], 1));
+    final emptyProvider = HomeViewModel(FakeOpenAlexService([], 1));
     await tester.pumpWidget(
       appWithProvider(const DashboardScreen(), emptyProvider),
     );
@@ -260,6 +295,7 @@ void main() {
     await tester.pumpWidget(
       appWithProvider(const TrendAnalysisScreen(), provider),
     );
+    await tester.pumpAndSettle();
 
     expect(find.text('Publication Trend: AI'), findsOneWidget);
 
@@ -289,7 +325,7 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         ChangeNotifierProvider(
-          create: (_) => PublicationDetailProvider(
+          create: (_) => PublicationDetailViewModel(
             service: FakeDetailService(
               Publication(
                 id: '1',
