@@ -313,6 +313,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('Total Publications'), findsOneWidget);
+    expect(find.text('Average Citations'), findsOneWidget);
+    expect(find.text('Most Active Year'), findsOneWidget);
+    expect(find.text('Top Author'), findsOneWidget);
+    expect(find.text('Top Journal'), findsOneWidget);
+    expect(find.text('Most Influential Paper'), findsOneWidget);
     expect(find.text('Publication Trend: AI'), findsOneWidget);
 
     expect(find.text('Top Influential Papers'), findsOneWidget);

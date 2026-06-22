@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/search/search_filter.dart';
+import '../../routes/app_routes.dart';
+import '../../routes/route_arguments.dart';
+import '../../viewmodels/analytics_view_model.dart';
 import '../../viewmodels/home_view_model.dart';
+import '../../viewmodels/selected_topic_view_model.dart';
+import '../../viewmodels/trend_analysis_view_model.dart';
 import '../../widgets/analytics/analytics_chart_card.dart';
+import '../../widgets/analytics/topic_summary_grid.dart';
 import '../../widgets/publication_trend_line_chart.dart';
+import '../../widgets/top_selector_dropdown.dart';
 import '../../widgets/top_influential_papers_horizontal_chart.dart';
 import '../../widgets/top_research_journals_donut_chart.dart';
 import '../../widgets/top_contributing_authors_column_chart.dart';
-
-import '../../viewmodels/trend_analysis_view_model.dart';
-import '../../widgets/top_selector_dropdown.dart';
 
 class TrendAnalysisScreen extends StatefulWidget {
   const TrendAnalysisScreen({super.key});
@@ -20,6 +25,7 @@ class TrendAnalysisScreen extends StatefulWidget {
 
 class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
   bool _isInitializationScheduled = false;
+  String? _lastAnalyticsSignature;
 
   @override
   void didChangeDependencies() {
@@ -41,10 +47,46 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
     });
   }
 
+  void _syncAnalytics(
+    HomeViewModel provider,
+    TrendAnalysisViewModel trendViewModel,
+  ) {
+    final selectedTopic = context.read<SelectedTopicViewModel>();
+    final topicId = selectedTopic.selectedSuggestion?.id;
+    final filter = SearchFilter(
+      yearFrom: trendViewModel.selectedFromYear,
+      yearTo: trendViewModel.selectedToYear,
+      isOpenAccess: provider.filter.isOpenAccess,
+      language: provider.filter.language,
+      documentType: provider.filter.documentType,
+      sortOption: provider.filter.sortOption,
+    );
+    final signature =
+        '$topicId|${provider.currentTopic}|'
+        '${filter.yearFrom}|${filter.yearTo}';
+    if (signature == _lastAnalyticsSignature) return;
+    _lastAnalyticsSignature = signature;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<AnalyticsViewModel>().fetchAnalytics(
+        provider.currentTopic,
+        filter,
+        provider.publications,
+        topicId: topicId,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<HomeViewModel>();
     final viewModel = context.watch<TrendAnalysisViewModel>();
+    final analytics = context.watch<AnalyticsViewModel>();
+
+    if (provider.publications.isNotEmpty) {
+      _syncAnalytics(provider, viewModel);
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),
@@ -92,6 +134,38 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
                 ),
                 child: Column(
                   children: [
+                    TopicSummaryGrid(
+                      isLoading: analytics.isLoading,
+                      totalPublications: analytics.hasLoaded
+                          ? _compactNumber(analytics.totalWorks)
+                          : 'N/A',
+                      averageCitations:
+                          analytics.averageCitations?.toStringAsFixed(1) ??
+                          'N/A',
+                      mostActiveYear:
+                          analytics.mostActiveYear?.toString() ?? 'N/A',
+                      topAuthor: analytics.topAuthorName ?? 'N/A',
+                      topJournal: analytics.topJournalName ?? 'N/A',
+                      mostInfluentialPaper:
+                          analytics.mostCitedTitle ?? 'N/A',
+                      influentialPaperDetails:
+                          _influentialPaperDetails(analytics),
+                      onInfluentialPaperTap:
+                          analytics.mostInfluentialPaper?.id.isNotEmpty == true
+                          ? () {
+                              final paper = analytics.mostInfluentialPaper!;
+                              Navigator.pushNamed(
+                                context,
+                                AppRoutes.publicationDetail,
+                                arguments: PublicationDetailRouteArgs(
+                                  workId: paper.id,
+                                  initialTitle: paper.title,
+                                ),
+                              );
+                            }
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
                     AnalyticsChartCard(
                       title:
                           'Publication Trend: ${provider.currentTopic.isNotEmpty ? provider.currentTopic : "Topic"}',
@@ -327,4 +401,21 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
             ),
     );
   }
+}
+
+String _compactNumber(int value) {
+  if (value >= 1000000) {
+    return '${(value / 1000000).toStringAsFixed(1)}M';
+  }
+  if (value >= 1000) {
+    return '${(value / 1000).toStringAsFixed(1)}k';
+  }
+  return value.toString();
+}
+
+String? _influentialPaperDetails(AnalyticsViewModel analytics) {
+  final paper = analytics.mostInfluentialPaper;
+  if (paper == null) return null;
+  final year = paper.publicationYear?.toString() ?? 'Unknown year';
+  return '${_compactNumber(paper.citedByCount)} citations • $year';
 }
