@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/models/keyword/keyword_dashboard_result.dart';
 import 'package:openalex/models/keyword/keyword_frequency_stat.dart';
-import 'package:openalex/providers/keyword_dashboard_provider.dart';
 import 'package:openalex/services/keyword_dashboard_service.dart';
+import 'package:openalex/viewmodels/keyword_dashboard_view_model.dart';
 
 KeywordDashboardResult _emptyResult() {
   return KeywordDashboardResult(
@@ -27,11 +27,10 @@ KeywordDashboardResult _emptyResult() {
 }
 
 class _FakeKeywordDashboardService extends KeywordDashboardService {
-  final KeywordDashboardResult? mockResult;
   final Exception? mockError;
   int callCount = 0;
 
-  _FakeKeywordDashboardService({this.mockResult, this.mockError});
+  _FakeKeywordDashboardService({this.mockError});
 
   @override
   Future<KeywordDashboardResult> fetchKeywordDashboard({
@@ -42,7 +41,7 @@ class _FakeKeywordDashboardService extends KeywordDashboardService {
   }) async {
     callCount++;
     if (mockError != null) throw mockError!;
-    return mockResult ?? _emptyResult();
+    return _emptyResult();
   }
 }
 
@@ -99,7 +98,7 @@ void main() {
       final service = _FakeKeywordDashboardService(
         mockError: Exception('Failed'),
       );
-      final provider = KeywordDashboardProvider(service);
+      final provider = KeywordDashboardViewModel(service);
 
       await provider.refresh();
       expect(provider.state, KeywordDashboardState.error);
@@ -120,7 +119,7 @@ void main() {
 
     test('refresh does not start another fetch while loading', () async {
       final service = _DelayedKeywordDashboardService();
-      final provider = KeywordDashboardProvider(service);
+      final provider = KeywordDashboardViewModel(service);
 
       final loadFuture = provider.load();
       await provider.refresh();
@@ -133,7 +132,7 @@ void main() {
 
     test('year range update is ignored while loading', () async {
       final service = _DelayedKeywordDashboardService();
-      final provider = KeywordDashboardProvider(service);
+      final provider = KeywordDashboardViewModel(service);
       final originalFromYear = provider.selectedFromYear;
       final originalToYear = provider.selectedToYear;
 

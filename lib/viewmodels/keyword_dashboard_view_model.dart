@@ -31,16 +31,7 @@ class KeywordDashboardViewModel extends ChangeNotifier {
   int get selectedToYear => _selectedToYear;
 
   Future<void> load() async {
-    if (_isFetching) {
-      return;
-    }
-    if (_result != null) {
-      _state = _result!.isEmpty
-          ? KeywordDashboardState.empty
-          : KeywordDashboardState.loaded;
-      notifyListeners();
-      return;
-    }
+    if (_state != KeywordDashboardState.initial || _result != null) return;
     await _fetch(forceRefresh: false, refreshing: false);
   }
 
@@ -49,6 +40,11 @@ class KeywordDashboardViewModel extends ChangeNotifier {
       return;
     }
     await _fetch(forceRefresh: true, refreshing: true);
+  }
+
+  Future<void> retry() async {
+    if (_state != KeywordDashboardState.error) return;
+    await _fetch(forceRefresh: true, refreshing: false);
   }
 
   Future<void> updateTrendYearRange(int fromYear, int toYear) async {

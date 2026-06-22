@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'package:provider/provider.dart';
 
-import '../providers/keyword_dashboard_provider.dart';
-import 'journal/journal_search_screen.dart';
-import 'keyword/keyword_dashboard_screen.dart';
-import 'trend_analyzer_home_page.dart';
+import '../../utils/app_keys.dart';
+import '../../viewmodels/keyword_dashboard_view_model.dart';
+import '../journal/journal_search_screen.dart';
+import '../keyword/keyword_dashboard_screen.dart';
+import '../profile/profile_screen.dart';
+import '../trend/trend_analyzer_home_page_screen.dart';
 
 /// The root navigation shell of the app. Uses an [IndexedStack] + [BottomNavigationBar]
 /// so each tab preserves its state when the user switches between tabs.
@@ -38,7 +40,7 @@ class _AppShellState extends State<AppShell> {
         selectedIndex: _selectedIndex,
         onTap: (index) {
           if (index == 2 && _selectedIndex != 2) {
-            context.read<KeywordDashboardProvider>().load();
+            context.read<KeywordDashboardViewModel>().load();
           }
           setState(() => _selectedIndex = index);
         },
