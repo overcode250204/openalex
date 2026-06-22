@@ -58,21 +58,24 @@ class AnalyticsService {
     final normalizedTopicId = topicId
         ?.replaceAll('https://openalex.org/', '')
         .trim();
-    final params = filter.toQueryParams(
-      normalizedTopicId == null || normalizedTopicId.isEmpty ? keyword : '',
-      normalizedTopicId == null || normalizedTopicId.isEmpty
-          ? const []
-          : [normalizedTopicId],
-    );
-
-    params
-      ..remove('per-page')
-      ..remove('sort')
-      ..['mailto'] = _mailto;
-
-    if (params['search']?.trim().isEmpty ?? false) {
-      params.remove('search');
-    }
+    final filters = <String>[
+      if (normalizedTopicId != null && normalizedTopicId.isNotEmpty)
+        'topics.id:$normalizedTopicId',
+      if (filter.yearFrom != null)
+        'from_publication_date:${filter.yearFrom}-01-01',
+      if (filter.yearTo != null) 'to_publication_date:${filter.yearTo}-12-31',
+      if (filter.isOpenAccess != null) 'is_oa:${filter.isOpenAccess}',
+      if (filter.language?.trim().isNotEmpty == true)
+        'language:${filter.language}',
+      if (filter.documentType != DocumentType.all)
+        'type:${filter.documentType.name}',
+    ];
+    final params = <String, String>{
+      if (normalizedTopicId == null || normalizedTopicId.isEmpty)
+        'search': keyword.trim(),
+      if (filters.isNotEmpty) 'filter': filters.join(','),
+      'mailto': _mailto,
+    };
     return params;
   }
 
@@ -80,10 +83,7 @@ class AnalyticsService {
     Map<String, String> baseParams,
     String groupByField,
   ) async {
-    final body = await _getJson({
-      ...baseParams,
-      'group_by': groupByField,
-    });
+    final body = await _getJson({...baseParams, 'group_by': groupByField});
     final groups = body['group_by'] as List<dynamic>? ?? [];
 
     return Map.fromEntries(
@@ -94,18 +94,13 @@ class AnalyticsService {
                 group['key_display_name']?.toString() ??
                 group['key']?.toString() ??
                 '';
-            return MapEntry(
-              displayName,
-              (group['count'] as num? ?? 0).toInt(),
-            );
+            return MapEntry(displayName, (group['count'] as num? ?? 0).toInt());
           })
           .where((entry) => entry.key.trim().isNotEmpty),
     );
   }
 
-  Future<_WorksSummary> _fetchTopWork(
-    Map<String, String> baseParams,
-  ) async {
+  Future<_WorksSummary> _fetchTopWork(Map<String, String> baseParams) async {
     final body = await _getJson({
       ...baseParams,
       'sort': 'cited_by_count:desc',
@@ -170,6 +165,47 @@ class AnalyticsService {
     );
   }
 
+  Future<List<AuthorImpactSummary>> _fetchAuthorImpactSample(
+    Map<String, String> baseParams,
+  ) async {
+    final body = await _getJson({
+      ...baseParams,
+      'sort': 'cited_by_count:desc',
+      'per-page': '200',
+      'select': 'authorships,cited_by_count',
+    });
+    final accumulators = <String, ({int papers, int citations})>{};
+    for (final work in body['results'] as List<dynamic>? ?? const []) {
+      final json = work as Map<String, dynamic>;
+      final citations = (json['cited_by_count'] as num? ?? 0).toInt();
+      for (final authorship
+          in json['authorships'] as List<dynamic>? ?? const []) {
+        final author =
+            (authorship as Map<String, dynamic>)['author']
+                as Map<String, dynamic>?;
+        final name = author?['display_name']?.toString().trim() ?? '';
+        if (name.isEmpty) continue;
+        final current = accumulators[name] ?? (papers: 0, citations: 0);
+        accumulators[name] = (
+          papers: current.papers + 1,
+          citations: current.citations + citations,
+        );
+      }
+    }
+    final result =
+        accumulators.entries
+            .map(
+              (entry) => AuthorImpactSummary(
+                name: entry.key,
+                paperCount: entry.value.papers,
+                totalCitations: entry.value.citations,
+              ),
+            )
+            .toList()
+          ..sort((a, b) => b.totalCitations.compareTo(a.totalCitations));
+    return result.take(30).toList();
+  }
+
   Future<T?> _tryFetch<T>(Future<T> request) async {
     try {
       return await request;
@@ -205,8 +241,7 @@ class AnalyticsService {
       }
     }
     final sortedTrend = Map.fromEntries(
-      publicationTrend.entries.toList()
-        ..sort((a, b) => a.key.compareTo(b.key)),
+      publicationTrend.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
     );
     final worksSummary = results[3] as _WorksSummary?;
     final citationStats = results[4] as _CitationStats?;
@@ -239,6 +274,7 @@ class AnalyticsService {
       _tryFetch(_fetchGroupBy(baseParams, 'concepts.id')),
       _tryFetch(_fetchGroupBy(baseParams, 'authorships.institutions.id')),
       _tryFetch(_fetchGroupBy(baseParams, 'authorships.countries')),
+      _tryFetch(_fetchAuthorImpactSample(baseParams)),
     ]);
     final summary = results[0] as TopicAnalytics;
 
@@ -253,6 +289,7 @@ class AnalyticsService {
       analyzedWorks: summary.analyzedWorks,
       totalCitations: summary.totalCitations,
       mostInfluentialPaper: summary.mostInfluentialPaper,
+      authorImpact: results[4] as List<AuthorImpactSummary>? ?? const [],
     );
   }
 }

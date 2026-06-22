@@ -1,6 +1,20 @@
 import '../models/keyword/openalex_keyword.dart';
 import '../viewmodels/publication_list_view_model.dart';
 
+class TopicAnalyticsRouteArgs {
+  final String topicId;
+  final String topicName;
+  final int? yearFrom;
+  final int? yearTo;
+
+  const TopicAnalyticsRouteArgs({
+    required this.topicId,
+    required this.topicName,
+    this.yearFrom,
+    this.yearTo,
+  });
+}
+
 class PublicationDetailRouteArgs {
   final String workId;
   final String? initialTitle;

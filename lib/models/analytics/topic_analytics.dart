@@ -14,6 +14,18 @@ class InfluentialPaperSummary {
   });
 }
 
+class AuthorImpactSummary {
+  final String name;
+  final int paperCount;
+  final int totalCitations;
+
+  const AuthorImpactSummary({
+    required this.name,
+    required this.paperCount,
+    required this.totalCitations,
+  });
+}
+
 class TopicAnalytics {
   final Map<int, int> publicationTrend;
   final Map<String, int> topKeywords;
@@ -25,6 +37,7 @@ class TopicAnalytics {
   final int analyzedWorks;
   final int totalCitations;
   final InfluentialPaperSummary? mostInfluentialPaper;
+  final List<AuthorImpactSummary> authorImpact;
 
   const TopicAnalytics({
     required this.publicationTrend,
@@ -37,6 +50,7 @@ class TopicAnalytics {
     this.analyzedWorks = 0,
     this.totalCitations = 0,
     this.mostInfluentialPaper,
+    this.authorImpact = const [],
   });
 
   double? get averageCitations =>

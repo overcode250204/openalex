@@ -4,6 +4,7 @@ class TopicSummaryGrid extends StatelessWidget {
   final bool isLoading;
   final String totalPublications;
   final String averageCitations;
+  final String averageCitationsLabel;
   final String mostActiveYear;
   final String topAuthor;
   final String topJournal;
@@ -16,6 +17,7 @@ class TopicSummaryGrid extends StatelessWidget {
     required this.isLoading,
     required this.totalPublications,
     required this.averageCitations,
+    this.averageCitationsLabel = 'Average Citations',
     required this.mostActiveYear,
     required this.topAuthor,
     required this.topJournal,
@@ -29,7 +31,7 @@ class TopicSummaryGrid extends StatelessWidget {
     final metrics = [
       _Metric('Total Publications', totalPublications, Icons.public, Colors.teal),
       _Metric(
-        'Average Citations',
+        averageCitationsLabel,
         averageCitations,
         Icons.format_quote,
         Colors.blue,

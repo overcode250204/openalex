@@ -24,7 +24,6 @@ class AnalyticsViewModel extends ChangeNotifier {
     : _analyticsService = analyticsService ?? AnalyticsService();
 
   TopicAnalytics _result = TopicAnalytics.empty();
-  List<Publication> _publications = [];
   bool _isLoading = false;
   String? _error;
   String? _loadedSignature;
@@ -88,6 +87,8 @@ class AnalyticsViewModel extends ChangeNotifier {
 
   // Null citation counts returned by OpenAlex are consistently treated as 0.
   double? get averageCitations => _result.averageCitations;
+  String get averageCitationsLabel =>
+      'Average Citations (OpenAlex grouped sample)';
 
   // Year with the most publications across the full dataset.
   int? get mostActiveYear {
@@ -136,59 +137,28 @@ class AnalyticsViewModel extends ChangeNotifier {
   // Citation count of the most-cited paper across the full dataset.
   int get mostCitedCount => mostInfluentialPaper?.citedByCount ?? 0;
 
-  // --- Computed from loaded papers (no group_by equivalent) ---
-
-  // Chart 8: Author impact (scatter) — from 50 loaded papers
-  List<AuthorImpact> get authorImpact {
-    final Map<String, _AuthorAccumulator> accum = {};
-    for (final pub in _publications) {
-      for (final author in pub.authors) {
-        final entry = accum.putIfAbsent(
-          author,
-          () => _AuthorAccumulator(author),
-        );
-        entry.paperCount++;
-        entry.totalCitations += pub.citedByCount;
-      }
-    }
-    final list =
-        accum.values
-            .map(
-              (a) => AuthorImpact(
-                name: a.name,
-                paperCount: a.paperCount,
-                totalCitations: a.totalCitations,
-              ),
-            )
-            .toList()
-          ..sort((a, b) => b.totalCitations.compareTo(a.totalCitations));
-    return list.take(30).toList();
-  }
+  // API-backed bounded sample; never derived from HomeViewModel pagination.
+  List<AuthorImpact> get authorImpact => _result.authorImpact
+      .map(
+        (author) => AuthorImpact(
+          name: author.name,
+          paperCount: author.paperCount,
+          totalCitations: author.totalCitations,
+        ),
+      )
+      .toList();
 
   /// Called by HomeViewModel after each search/loadMore.
   /// Fetches group_by analytics for the full dataset and updates author impact.
   Future<void> fetchAnalytics(
     String keyword,
     SearchFilter filter,
-    List<Publication> publications, {
+    List<Publication> ignoredPaginatedPublications, {
     String? topicId,
     Map<int, int> fallbackTrend = const {},
     bool includeCharts = true,
     bool forceRefresh = false,
   }) async {
-    _publications = publications.where((publication) {
-      final year = publication.publicationYear;
-      if (year == null) {
-        return filter.yearFrom == null && filter.yearTo == null;
-      }
-      if (filter.yearFrom != null && year < filter.yearFrom!) {
-        return false;
-      }
-      if (filter.yearTo != null && year > filter.yearTo!) {
-        return false;
-      }
-      return true;
-    }).toList();
     final signature = [
       topicId ?? '',
       keyword.trim(),
@@ -246,6 +216,7 @@ class AnalyticsViewModel extends ChangeNotifier {
         analyzedWorks: result.analyzedWorks,
         totalCitations: result.totalCitations,
         mostInfluentialPaper: result.mostInfluentialPaper,
+        authorImpact: result.authorImpact,
       );
       _loadedSignature = signature;
     } catch (e) {
@@ -273,19 +244,10 @@ class AnalyticsViewModel extends ChangeNotifier {
   void clear() {
     _requestVersion++;
     _result = TopicAnalytics.empty();
-    _publications = [];
     _isLoading = false;
     _error = null;
     _loadedSignature = null;
     _inFlightSignature = null;
     notifyListeners();
   }
-}
-
-class _AuthorAccumulator {
-  final String name;
-  int paperCount = 0;
-  int totalCitations = 0;
-
-  _AuthorAccumulator(this.name);
 }

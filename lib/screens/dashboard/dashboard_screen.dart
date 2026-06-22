@@ -17,7 +17,9 @@ import '../../widgets/analytics/top_keywords_chart.dart';
 import '../../widgets/analytics/topic_summary_grid.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final TopicAnalyticsRouteArgs arguments;
+
+  const DashboardScreen({super.key, required this.arguments});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -29,38 +31,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int? _yearTo = DateTime.now().year;
 
   /// The base search filter with the dashboard's year range applied on top.
-  SearchFilter _effectiveFilter(HomeViewModel provider) {
-    final base = provider.filter;
+  SearchFilter _effectiveFilter() {
     return SearchFilter(
       yearFrom: _yearFrom,
       yearTo: _yearTo,
-      isOpenAccess: base.isOpenAccess,
-      language: base.language,
-      documentType: base.documentType,
-      sortOption: base.sortOption,
     );
   }
 
   /// Refetches full-dataset analytics whenever the topic or year range changes.
-  void _syncAnalytics(HomeViewModel provider) {
-    if (provider.publications.isEmpty) return;
-
-    final selectedTopic = context.read<SelectedTopicViewModel>();
-    final topicId =
-        provider.currentTopicId ?? selectedTopic.selectedSuggestion?.id;
-    final filter = _effectiveFilter(provider);
+  void _syncAnalytics() {
+    final filter = _effectiveFilter();
     final signature =
-        '$topicId|${provider.currentTopic}|${filter.yearFrom}|${filter.yearTo}';
+        '${widget.arguments.topicId}|${filter.yearFrom}|${filter.yearTo}';
     if (signature == _lastSignature) return;
     _lastSignature = signature;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<AnalyticsViewModel>().fetchAnalytics(
-        provider.currentTopic,
+        widget.arguments.topicName,
         filter,
-        provider.publications,
-        topicId: topicId,
+        const [],
+        topicId: widget.arguments.topicId,
       );
     });
   }
@@ -95,19 +87,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final provider = context.watch<HomeViewModel>();
     final analytics = context.watch<AnalyticsViewModel>();
 
-    _syncAnalytics(provider);
+    _syncAnalytics();
 
     final loading = analytics.isLoading;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Research Dashboard')),
-      body: provider.publications.isEmpty
-          ? const Center(child: Text('Search a topic first to view dashboard.'))
-          : ListView(
+      body: ListView(
               padding: const EdgeInsets.all(16),
               children: [
                 Text(
-                  'Dashboard: ${provider.currentTopic}',
+                  'Dashboard: ${widget.arguments.topicName}',
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -117,7 +107,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   _AnalyticsErrorBanner(
                     onRetry: () {
                       _lastSignature = null;
-                      _syncAnalytics(provider);
+                      _syncAnalytics();
                     },
                   ),
                   const SizedBox(height: 12),
@@ -129,6 +119,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       : 'N/A',
                   averageCitations:
                       analytics.averageCitations?.toStringAsFixed(1) ?? 'N/A',
+                  averageCitationsLabel: analytics.averageCitationsLabel,
                   mostActiveYear:
                       analytics.mostActiveYear?.toString() ?? 'N/A',
                   topAuthor: analytics.topAuthorName ?? 'N/A',
