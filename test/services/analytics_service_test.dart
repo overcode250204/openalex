@@ -38,31 +38,17 @@ void main() {
           'primary_location.source.id' => [
             {'key': 'S1', 'key_display_name': 'Journal One', 'count': 2},
           ],
+          'cited_by_count' => [
+            {'key': '20', 'key_display_name': '20', 'count': 1},
+            {'key': '10', 'key_display_name': '10', 'count': 1},
+            {'key': '0', 'key_display_name': '0', 'count': 1},
+          ],
           _ => <Map<String, Object>>[],
         };
-        return http.Response(jsonEncode({'group_by': groups}), 200);
-      }
-
-      final cursor = uri.queryParameters['cursor'];
-      if (cursor == '*') {
         return http.Response(
           jsonEncode({
-            'meta': {'count': 3, 'next_cursor': 'next'},
-            'results': [
-              {
-                'id': 'https://openalex.org/W1',
-                'doi': 'https://doi.org/10.1/top',
-                'display_name': 'Most Influential',
-                'publication_year': 2024,
-                'cited_by_count': 20,
-              },
-              {
-                'id': 'https://openalex.org/W2',
-                'display_name': 'Second',
-                'publication_year': null,
-                'cited_by_count': 10,
-              },
-            ],
+            'meta': {'next_cursor': null},
+            'group_by': groups,
           }),
           200,
         );
@@ -70,12 +56,14 @@ void main() {
 
       return http.Response(
         jsonEncode({
-          'meta': {'count': 3, 'next_cursor': null},
+          'meta': {'count': 3},
           'results': [
             {
-              'id': 'https://openalex.org/W3',
-              'display_name': 'Missing Citations',
-              'cited_by_count': null,
+              'id': 'https://openalex.org/W1',
+              'doi': 'https://doi.org/10.1/top',
+              'display_name': 'Most Influential',
+              'publication_year': 2024,
+              'cited_by_count': 20,
             },
           ],
         }),
@@ -85,7 +73,7 @@ void main() {
   });
 
   test('calculates all summary metrics from the selected topic dataset', () async {
-    final result = await service.fetchAll(
+    final result = await service.fetchSummary(
       'Artificial Intelligence',
       const SearchFilter(yearFrom: 2020, yearTo: 2024),
       topicId: 'https://openalex.org/T1',
@@ -120,8 +108,15 @@ void main() {
   test('returns safe empty metrics for an empty dataset', () async {
     when(() => client.get(any())).thenAnswer((invocation) async {
       final uri = invocation.positionalArguments.first as Uri;
-      if (uri.queryParameters.containsKey('group_by')) {
-        return http.Response(jsonEncode({'group_by': []}), 200);
+      final groupBy = uri.queryParameters['group_by'];
+      if (groupBy != null) {
+        return http.Response(
+          jsonEncode({
+            'meta': {'next_cursor': null},
+            'group_by': [],
+          }),
+          200,
+        );
       }
       return http.Response(
         jsonEncode({
@@ -132,7 +127,7 @@ void main() {
       );
     });
 
-    final result = await service.fetchAll('Empty', const SearchFilter());
+    final result = await service.fetchSummary('Empty', const SearchFilter());
 
     expect(result.totalWorks, 0);
     expect(result.averageCitations, isNull);
@@ -145,8 +140,19 @@ void main() {
   test('handles missing author, journal, year, and citation fields', () async {
     when(() => client.get(any())).thenAnswer((invocation) async {
       final uri = invocation.positionalArguments.first as Uri;
-      if (uri.queryParameters.containsKey('group_by')) {
-        return http.Response(jsonEncode({'group_by': []}), 200);
+      final groupBy = uri.queryParameters['group_by'];
+      if (groupBy != null) {
+        return http.Response(
+          jsonEncode({
+            'meta': {'next_cursor': null},
+            'group_by': groupBy == 'cited_by_count'
+                ? [
+                    {'key': '0', 'key_display_name': '0', 'count': 1},
+                  ]
+                : [],
+          }),
+          200,
+        );
       }
       return http.Response(
         jsonEncode({
@@ -164,7 +170,10 @@ void main() {
       );
     });
 
-    final result = await service.fetchAll('Incomplete', const SearchFilter());
+    final result = await service.fetchSummary(
+      'Incomplete',
+      const SearchFilter(),
+    );
 
     expect(result.totalWorks, 1);
     expect(result.averageCitations, 0);
@@ -173,6 +182,89 @@ void main() {
     expect(result.topJournals, isEmpty);
     expect(result.mostInfluentialPaper?.publicationYear, isNull);
     expect(result.mostInfluentialPaper?.citedByCount, 0);
+  });
+
+  test('keeps available summary metrics when one request fails', () async {
+    when(() => client.get(any())).thenAnswer((invocation) async {
+      final uri = invocation.positionalArguments.first as Uri;
+      final groupBy = uri.queryParameters['group_by'];
+      if (groupBy == 'authorships.author.id') {
+        return http.Response('Error', 500);
+      }
+      if (groupBy != null) {
+        return http.Response(
+          jsonEncode({
+            'meta': {'next_cursor': null},
+            'group_by': groupBy == 'publication_year'
+                ? [
+                    {'key': '2024', 'key_display_name': '2024', 'count': 2},
+                  ]
+                : [],
+          }),
+          200,
+        );
+      }
+      return http.Response(
+        jsonEncode({
+          'meta': {'count': 2},
+          'results': [
+            {
+              'id': 'W1',
+              'display_name': 'Top Work',
+              'cited_by_count': 5,
+            },
+          ],
+        }),
+        200,
+      );
+    });
+
+    final result = await service.fetchSummary(
+      'AI',
+      const SearchFilter(yearFrom: 2024, yearTo: 2024),
+    );
+
+    expect(result.totalWorks, 2);
+    expect(result.publicationTrend, {2024: 2});
+    expect(result.topAuthors, isEmpty);
+    expect(result.mostInfluentialPaper?.title, 'Top Work');
+  });
+
+  test('adds an OpenAlex API key when configured', () async {
+    final keyedClient = MockClient();
+    final keyedService = AnalyticsService(
+      client: keyedClient,
+      apiKey: 'test-key',
+    );
+    final uris = <Uri>[];
+    when(() => keyedClient.get(any())).thenAnswer((invocation) async {
+      final uri = invocation.positionalArguments.first as Uri;
+      uris.add(uri);
+      if (uri.queryParameters.containsKey('group_by')) {
+        return http.Response(
+          jsonEncode({
+            'meta': {'next_cursor': null},
+            'group_by': [],
+          }),
+          200,
+        );
+      }
+      return http.Response(
+        jsonEncode({
+          'meta': {'count': 0},
+          'results': [],
+        }),
+        200,
+      );
+    });
+
+    await keyedService.fetchSummary('AI', const SearchFilter());
+
+    expect(uris, isNotEmpty);
+    expect(
+      uris.every((uri) => uri.queryParameters['api_key'] == 'test-key'),
+      isTrue,
+    );
   });
 
   test('throws on a non-success OpenAlex response', () async {

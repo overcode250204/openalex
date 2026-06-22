@@ -89,6 +89,191 @@ void main() {
     expect(provider.hasData, false);
   });
 
+  test('loads summary-only analytics for Trend Analysis', () async {
+    when(
+      () => mockService.fetchSummary(
+        any(),
+        any(),
+        topicId: any<String?>(named: 'topicId'),
+      ),
+    ).thenAnswer(
+      (_) async => const TopicAnalytics(
+        publicationTrend: {2024: 7},
+        topKeywords: {},
+        institutionRanking: {},
+        countryOutput: {},
+        topAuthors: {'Ada': 4},
+        topJournals: {'Nature': 3},
+        totalWorks: 7,
+        analyzedWorks: 7,
+        totalCitations: 70,
+        mostInfluentialPaper: InfluentialPaperSummary(
+          id: 'W1',
+          title: 'Top Work',
+          citedByCount: 30,
+        ),
+      ),
+    );
+
+    final future = provider.fetchAnalytics(
+      'AI',
+      const SearchFilter(yearFrom: 2024, yearTo: 2024),
+      [],
+      topicId: 'T1',
+      includeCharts: false,
+    );
+
+    expect(provider.isLoading, isTrue);
+    await future;
+
+    expect(provider.totalWorks, 7);
+    expect(provider.averageCitations, 10);
+    expect(provider.mostActiveYear, 2024);
+    expect(provider.topAuthorName, 'Ada');
+    expect(provider.topJournalName, 'Nature');
+    expect(provider.mostCitedTitle, 'Top Work');
+    verify(
+      () => mockService.fetchSummary(
+        'AI',
+        any(),
+        topicId: 'T1',
+      ),
+    ).called(1);
+    verifyNever(
+      () => mockService.fetchAll(
+        any(),
+        any(),
+        topicId: any<String?>(named: 'topicId'),
+      ),
+    );
+  });
+
+  test('uses trend fallback and exposes error when summary fails', () async {
+    when(
+      () => mockService.fetchSummary(
+        any(),
+        any(),
+        topicId: any<String?>(named: 'topicId'),
+      ),
+    ).thenThrow(Exception('API limit'));
+
+    await provider.fetchAnalytics(
+      'AI',
+      const SearchFilter(yearFrom: 2023, yearTo: 2024),
+      [],
+      topicId: 'T1',
+      fallbackTrend: const {2023: 2, 2024: 5},
+      includeCharts: false,
+    );
+
+    expect(provider.error, contains('API limit'));
+    expect(provider.totalWorks, 7);
+    expect(provider.mostActiveYear, 2024);
+    expect(provider.topAuthorName, isNull);
+  });
+
+  test('empty topic result loads safely with unavailable metrics', () async {
+    when(
+      () => mockService.fetchSummary(
+        any(),
+        any(),
+        topicId: any<String?>(named: 'topicId'),
+      ),
+    ).thenAnswer((_) async => TopicAnalytics.empty());
+
+    await provider.fetchAnalytics(
+      'Empty topic',
+      const SearchFilter(),
+      [],
+      topicId: 'T-empty',
+      includeCharts: false,
+    );
+
+    expect(provider.hasLoaded, isTrue);
+    expect(provider.totalWorks, 0);
+    expect(provider.averageCitations, isNull);
+    expect(provider.mostActiveYear, isNull);
+    expect(provider.topAuthorName, isNull);
+    expect(provider.topJournalName, isNull);
+    expect(provider.mostInfluentialPaper, isNull);
+  });
+
+  test('force refresh retries after a summary API error', () async {
+    var attempts = 0;
+    when(
+      () => mockService.fetchSummary(
+        any(),
+        any(),
+        topicId: any<String?>(named: 'topicId'),
+      ),
+    ).thenAnswer((_) async {
+      attempts++;
+      if (attempts == 1) throw Exception('temporary error');
+      return const TopicAnalytics(
+        publicationTrend: {2024: 3},
+        topKeywords: {},
+        institutionRanking: {},
+        countryOutput: {},
+        totalWorks: 3,
+      );
+    });
+
+    await provider.fetchAnalytics(
+      'AI',
+      const SearchFilter(),
+      [],
+      topicId: 'T1',
+      includeCharts: false,
+    );
+    expect(provider.error, isNotNull);
+
+    await provider.fetchAnalytics(
+      'AI',
+      const SearchFilter(),
+      [],
+      topicId: 'T1',
+      includeCharts: false,
+      forceRefresh: true,
+    );
+
+    expect(provider.error, isNull);
+    expect(provider.totalWorks, 3);
+    expect(attempts, 2);
+  });
+
+  test('reuses the visible trend when the summary trend part is unavailable', (
+    ) async {
+    when(
+      () => mockService.fetchSummary(
+        any(),
+        any(),
+        topicId: any<String?>(named: 'topicId'),
+      ),
+    ).thenAnswer(
+      (_) async => const TopicAnalytics(
+        publicationTrend: {},
+        topKeywords: {},
+        institutionRanking: {},
+        countryOutput: {},
+        topAuthors: {'Ada': 2},
+      ),
+    );
+
+    await provider.fetchAnalytics(
+      'AI',
+      const SearchFilter(yearFrom: 2023, yearTo: 2024),
+      [],
+      topicId: 'T1',
+      fallbackTrend: const {2023: 2, 2024: 5},
+      includeCharts: false,
+    );
+
+    expect(provider.publicationTrend, {2023: 2, 2024: 5});
+    expect(provider.totalWorks, 7);
+    expect(provider.mostActiveYear, 2024);
+    expect(provider.topAuthorName, 'Ada');
+  });
+
   test('clear resets state', () async {
     when(
       () => mockService.fetchAll(

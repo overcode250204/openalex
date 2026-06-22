@@ -46,7 +46,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (provider.publications.isEmpty) return;
 
     final selectedTopic = context.read<SelectedTopicViewModel>();
-    final topicId = selectedTopic.selectedSuggestion?.id;
+    final topicId =
+        provider.currentTopicId ?? selectedTopic.selectedSuggestion?.id;
     final filter = _effectiveFilter(provider);
     final signature =
         '$topicId|${provider.currentTopic}|${filter.yearFrom}|${filter.yearTo}';

@@ -172,6 +172,8 @@ class AnalyticsViewModel extends ChangeNotifier {
     SearchFilter filter,
     List<Publication> publications, {
     String? topicId,
+    Map<int, int> fallbackTrend = const {},
+    bool includeCharts = true,
     bool forceRefresh = false,
   }) async {
     _publications = publications.where((publication) {
@@ -196,6 +198,7 @@ class AnalyticsViewModel extends ChangeNotifier {
       filter.language ?? '',
       filter.documentType.name,
       filter.sortOption.name,
+      includeCharts,
     ].join('|');
 
     if (!forceRefresh &&
@@ -212,18 +215,52 @@ class AnalyticsViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _analyticsService.fetchAll(
-        keyword,
-        filter,
-        topicId: topicId,
-      );
+      final result = includeCharts
+          ? await _analyticsService.fetchAll(
+              keyword,
+              filter,
+              topicId: topicId,
+            )
+          : await _analyticsService.fetchSummary(
+              keyword,
+              filter,
+              topicId: topicId,
+            );
       if (requestVersion != _requestVersion) return;
-      _result = result;
+      final effectiveTrend = result.publicationTrend.isEmpty
+          ? fallbackTrend
+          : result.publicationTrend;
+      _result = TopicAnalytics(
+        publicationTrend: effectiveTrend,
+        topKeywords: result.topKeywords,
+        institutionRanking: result.institutionRanking,
+        countryOutput: result.countryOutput,
+        topJournals: result.topJournals,
+        topAuthors: result.topAuthors,
+        totalWorks: result.totalWorks > 0
+            ? result.totalWorks
+            : effectiveTrend.values.fold<int>(
+                0,
+                (sum, count) => sum + count,
+              ),
+        analyzedWorks: result.analyzedWorks,
+        totalCitations: result.totalCitations,
+        mostInfluentialPaper: result.mostInfluentialPaper,
+      );
       _loadedSignature = signature;
     } catch (e) {
       if (requestVersion != _requestVersion) return;
       _error = e.toString();
-      _result = TopicAnalytics.empty();
+      _result = TopicAnalytics(
+        publicationTrend: fallbackTrend,
+        topKeywords: const {},
+        institutionRanking: const {},
+        countryOutput: const {},
+        totalWorks: fallbackTrend.values.fold<int>(
+          0,
+          (sum, count) => sum + count,
+        ),
+      );
     } finally {
       if (requestVersion == _requestVersion) {
         _inFlightSignature = null;

@@ -105,29 +105,38 @@ class FakeSuggestionService extends SuggestionService {
 }
 
 class FakeAnalyticsService extends AnalyticsService {
+  static const result = TopicAnalytics(
+    publicationTrend: {2023: 1, 2024: 1},
+    topKeywords: {'Artificial Intelligence': 2},
+    institutionRanking: {},
+    countryOutput: {},
+    topJournals: {'Journal of Widgets': 2},
+    topAuthors: {'Ada Lovelace': 2},
+    totalWorks: 2,
+    analyzedWorks: 2,
+    totalCitations: 24,
+    mostInfluentialPaper: InfluentialPaperSummary(
+      id: 'W1',
+      title: 'Top Paper',
+      citedByCount: 20,
+      publicationYear: 2024,
+    ),
+  );
+
+  @override
+  Future<TopicAnalytics> fetchSummary(
+    String keyword,
+    SearchFilter filter, {
+    String? topicId,
+  }) async => result;
+
   @override
   Future<TopicAnalytics> fetchAll(
     String keyword,
     SearchFilter filter, {
     String? topicId,
   }) async {
-    return const TopicAnalytics(
-      publicationTrend: {2023: 1, 2024: 1},
-      topKeywords: {'Artificial Intelligence': 2},
-      institutionRanking: {},
-      countryOutput: {},
-      topJournals: {'Journal of Widgets': 2},
-      topAuthors: {'Ada Lovelace': 2},
-      totalWorks: 2,
-      analyzedWorks: 2,
-      totalCitations: 24,
-      mostInfluentialPaper: InfluentialPaperSummary(
-        id: 'W1',
-        title: 'Top Paper',
-        citedByCount: 20,
-        publicationYear: 2024,
-      ),
-    );
+    return result;
   }
 }
 
@@ -319,6 +328,12 @@ void main() {
     expect(find.text('Top Author'), findsOneWidget);
     expect(find.text('Top Journal'), findsOneWidget);
     expect(find.text('Most Influential Paper'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('12.0'), findsOneWidget);
+    expect(find.text('2024'), findsWidgets);
+    expect(find.text('Ada Lovelace'), findsOneWidget);
+    expect(find.text('Journal of Widgets'), findsOneWidget);
+    expect(find.text('Top Paper'), findsOneWidget);
     expect(find.text('Publication Trend: AI'), findsOneWidget);
 
     expect(find.text('Top Influential Papers'), findsOneWidget);

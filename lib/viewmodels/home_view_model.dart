@@ -28,6 +28,7 @@ class HomeViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   String _currentTopic = '';
+  String? _currentTopicId;
   SearchFilter _filter = const SearchFilter();
   int _currentPage = 1;
   bool _hasMore = true;
@@ -45,6 +46,7 @@ class HomeViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   String get currentTopic => _currentTopic;
+  String? get currentTopicId => _currentTopicId;
 
   SearchFilter get filter => _filter;
   bool get hasMore => _hasMore;
@@ -80,14 +82,16 @@ class HomeViewModel extends ChangeNotifier {
       int total;
       List<Publication> result;
       if (topic != null) {
+        _currentTopicId = topic.id.replaceAll('https://openalex.org/', '');
         (total, result) = await _openAlexService.searchPublications(
           keyword: keyword,
-          topicIds: [topic.id.replaceAll('https://openalex.org/', '')],
+          topicIds: [_currentTopicId!],
         );
         _totalResults = total;
         _publications = result;
       } else {
         final topicIds = await _openAlexService.getTopicIdsFromKeyword(keyword);
+        _currentTopicId = topicIds.length == 1 ? topicIds.first : null;
         (total, result) = await _openAlexService.searchPublications(
           keyword: keyword,
           topicIds: topicIds,
@@ -96,6 +100,7 @@ class HomeViewModel extends ChangeNotifier {
         _publications = result;
       }
     } catch (error) {
+      _currentTopicId = null;
       _publications = [];
       _errorMessage = 'Cannot load publications. Please try again.';
     } finally {
@@ -269,14 +274,16 @@ class HomeViewModel extends ChangeNotifier {
       int total;
       List<Publication> result;
       if (topic != null) {
+        _currentTopicId = topic.id.replaceAll('https://openalex.org/', '');
         final params = _filter.toQueryParams(keyword, [
-          topic.id.replaceAll('https://openalex.org/', ''),
+          _currentTopicId!,
         ]);
         params['page'] = _currentPage.toString();
         (total, result) = await _openAlexService.searchWithFilter(params);
         _totalResults = total;
       } else {
         final topicIds = await _openAlexService.getTopicIdsFromKeyword(keyword);
+        _currentTopicId = topicIds.length == 1 ? topicIds.first : null;
         final params = _filter.toQueryParams(keyword, topicIds);
         params['page'] = _currentPage.toString();
         (total, result) = await _openAlexService.searchWithFilter(params);
@@ -291,6 +298,7 @@ class HomeViewModel extends ChangeNotifier {
       _hasMore = result.length >= 50;
       _currentPage++;
     } catch (_) {
+      _currentTopicId = null;
       _publications = [];
       _errorMessage = 'Cannot load publications. Please try again.';
     } finally {

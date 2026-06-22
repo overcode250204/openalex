@@ -52,7 +52,8 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
     TrendAnalysisViewModel trendViewModel,
   ) {
     final selectedTopic = context.read<SelectedTopicViewModel>();
-    final topicId = selectedTopic.selectedSuggestion?.id;
+    final topicId =
+        provider.currentTopicId ?? selectedTopic.selectedSuggestion?.id;
     final filter = SearchFilter(
       yearFrom: trendViewModel.selectedFromYear,
       yearTo: trendViewModel.selectedToYear,
@@ -74,8 +75,36 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
         filter,
         provider.publications,
         topicId: topicId,
+        fallbackTrend: trendViewModel.fetchedTrendData ?? const {},
+        includeCharts: false,
       );
     });
+  }
+
+  void _retryAnalytics(
+    HomeViewModel provider,
+    TrendAnalysisViewModel trendViewModel,
+  ) {
+    final selectedTopic = context.read<SelectedTopicViewModel>();
+    final topicId =
+        provider.currentTopicId ?? selectedTopic.selectedSuggestion?.id;
+    final filter = SearchFilter(
+      yearFrom: trendViewModel.selectedFromYear,
+      yearTo: trendViewModel.selectedToYear,
+      isOpenAccess: provider.filter.isOpenAccess,
+      language: provider.filter.language,
+      documentType: provider.filter.documentType,
+      sortOption: provider.filter.sortOption,
+    );
+    context.read<AnalyticsViewModel>().fetchAnalytics(
+      provider.currentTopic,
+      filter,
+      provider.publications,
+      topicId: topicId,
+      fallbackTrend: trendViewModel.fetchedTrendData ?? const {},
+      includeCharts: false,
+      forceRefresh: true,
+    );
   }
 
   @override
@@ -134,9 +163,19 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
                 ),
                 child: Column(
                   children: [
+                    if (analytics.error != null) ...[
+                      _AnalyticsErrorBanner(
+                        onRetry: () => _retryAnalytics(provider, viewModel),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     TopicSummaryGrid(
-                      isLoading: analytics.isLoading,
-                      totalPublications: analytics.hasLoaded
+                      isLoading:
+                          analytics.isLoading ||
+                          (!analytics.hasLoaded && analytics.error == null),
+                      totalPublications:
+                          analytics.hasLoaded ||
+                              analytics.publicationTrend.isNotEmpty
                           ? _compactNumber(analytics.totalWorks)
                           : 'N/A',
                       averageCitations:
@@ -418,4 +457,34 @@ String? _influentialPaperDetails(AnalyticsViewModel analytics) {
   if (paper == null) return null;
   final year = paper.publicationYear?.toString() ?? 'Unknown year';
   return '${_compactNumber(paper.citedByCount)} citations • $year';
+}
+
+class _AnalyticsErrorBanner extends StatelessWidget {
+  final VoidCallback onRetry;
+
+  const _AnalyticsErrorBanner({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Theme.of(context).colorScheme.errorContainer,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Unable to load all topic summary metrics. '
+                'Check the OpenAlex API key or try again.',
+              ),
+            ),
+            TextButton(onPressed: onRetry, child: const Text('Retry')),
+          ],
+        ),
+      ),
+    );
+  }
 }
