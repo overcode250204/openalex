@@ -196,7 +196,8 @@ void main() {
           _appShellWidget(topicSuggestions: suggestions),
         );
         await tester.tap(find.byType(TextField).first);
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump();
 
         expect(find.text('Suggestion'), findsOneWidget);
         expect(find.text('Analyze Topic'), findsOneWidget);
@@ -227,7 +228,7 @@ void main() {
       await tester.pump();
 
       await tester.tap(find.text('Keywords'));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // KeywordAnalyzerPage has 'Keyword Analyzer' label
       expect(find.text('Keyword Analyzer'), findsOneWidget);
@@ -238,7 +239,7 @@ void main() {
       await tester.pump();
 
       await tester.tap(find.text('Journal'));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // JournalSearchScreen renders a search field
       expect(find.text('Journal Search'), findsOneWidget);
