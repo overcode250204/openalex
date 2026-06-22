@@ -26,6 +26,8 @@ import 'package:openalex/widgets/summary_card.dart';
 import 'package:openalex/widgets/trend_chart.dart';
 import 'package:provider/provider.dart';
 
+import 'fakes/fake_auth_service.dart';
+
 class FakeOpenAlexService extends OpenAlexService {
   FakeOpenAlexService(this.results, this.total);
 
@@ -179,7 +181,12 @@ Widget appWithProvider(Widget child, HomeViewModel provider) {
 
 void main() {
   testWidgets('MyApp shows the search experience', (tester) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(
+      MyApp(authService: FakeAuthService(initialUser: fakeUser())),
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
 
     expect(find.text('Trend Analyzer'), findsOneWidget);
     expect(find.text('Research topic'), findsOneWidget);

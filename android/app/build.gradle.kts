@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
@@ -8,8 +10,33 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+
+if (!keystorePropertiesFile.exists()) {
+    throw org.gradle.api.GradleException(
+        "Missing android/key.properties. Please create this file before building."
+    )
+}
+
+keystorePropertiesFile.inputStream().use { inputStream ->
+    keystoreProperties.load(inputStream)
+}
+
+val sharedStoreFile: String = keystoreProperties.getProperty("storeFile")
+    ?: throw org.gradle.api.GradleException("Missing storeFile in android/key.properties")
+
+val sharedStorePassword: String = keystoreProperties.getProperty("storePassword")
+    ?: throw org.gradle.api.GradleException("Missing storePassword in android/key.properties")
+
+val sharedKeyAlias: String = keystoreProperties.getProperty("keyAlias")
+    ?: throw org.gradle.api.GradleException("Missing keyAlias in android/key.properties")
+
+val sharedKeyPassword: String = keystoreProperties.getProperty("keyPassword")
+    ?: throw org.gradle.api.GradleException("Missing keyPassword in android/key.properties")
+
 android {
-    namespace = "com.PRM393.openalex"
+    namespace = "com.example.openalex"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -19,12 +46,12 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "17"
     }
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.PRM393.openalex"
+        applicationId = "com.example.openalex"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -33,12 +60,24 @@ android {
         versionName = flutter.versionName
     }
     
+    signingConfigs {
+        create("shared") {
+            storeFile = rootProject.file(sharedStoreFile)
+            storePassword = sharedStorePassword
+            keyAlias = sharedKeyAlias
+            keyPassword = sharedKeyPassword
+        }
+    }
 
     buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("shared")
+        }
+
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("shared")
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

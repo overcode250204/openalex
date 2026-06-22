@@ -14,6 +14,7 @@ abstract final class AppKeys {
   static const keywordList = Key('keyword_list');
   static const exportPdfButton = Key('export_pdf_button');
   static const logoutButton = Key('logout_button');
+  static const googleSignInButton = Key('google_sign_in_button');
 
   static Key publicationItem(String id) => Key('publication_item_$id');
   static Key journalItem(String id) => Key('journal_item_$id');

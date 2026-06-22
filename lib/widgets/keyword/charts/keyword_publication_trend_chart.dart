@@ -279,8 +279,9 @@ class _TrendLineChart extends StatelessWidget {
                 interval: xInterval,
                 getTitlesWidget: (value, meta) {
                   final year = value.toInt();
-                  if (year < minYear || year > maxYear)
+                  if (year < minYear || year > maxYear) {
                     return const SizedBox.shrink();
+                  }
                   return SideTitleWidget(
                     axisSide: meta.axisSide,
                     space: 8,

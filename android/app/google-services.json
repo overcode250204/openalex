@@ -12,7 +12,12 @@
           "package_name": "com.PRM393.openalex"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "489601979984-4419hccstvn5aaeprf41u7slbvbjrjsd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCh7nq-zBftPY47xGKv6xqjSIB1hfKcGcs"
@@ -20,7 +25,99 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "489601979984-4419hccstvn5aaeprf41u7slbvbjrjsd.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "489601979984-ke3v643g3gflp57h52okp6i0vt21a2h3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.openalex"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:489601979984:android:b3c8eeb15fd8b80919a355",
+        "android_client_info": {
+          "package_name": "com.example.openalex"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "489601979984-svrel9vusdd812vmagujqbjef0pjd0fk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.openalex",
+            "certificate_hash": "bf508ec2d3330851ecd5f8e267c959fcceb08c70"
+          }
+        },
+        {
+          "client_id": "489601979984-4419hccstvn5aaeprf41u7slbvbjrjsd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCh7nq-zBftPY47xGKv6xqjSIB1hfKcGcs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "489601979984-4419hccstvn5aaeprf41u7slbvbjrjsd.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "489601979984-ke3v643g3gflp57h52okp6i0vt21a2h3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.openalex"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:489601979984:android:cf7eb95fa2e93a2119a355",
+        "android_client_info": {
+          "package_name": "com.prm393.openalex"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "489601979984-4419hccstvn5aaeprf41u7slbvbjrjsd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCh7nq-zBftPY47xGKv6xqjSIB1hfKcGcs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "489601979984-4419hccstvn5aaeprf41u7slbvbjrjsd.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "489601979984-ke3v643g3gflp57h52okp6i0vt21a2h3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.openalex"
+              }
+            }
+          ]
         }
       }
     }

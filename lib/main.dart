@@ -6,6 +6,8 @@ import 'package:openalex/routes/app_routes.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import 'services/firebase_auth_service.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -15,13 +17,15 @@ Future<void> main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, this.authService});
+
+  final AuthService? authService;
 
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: AppProviders.build(),
+      providers: AppProviders.build(authService: authService),
 
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
