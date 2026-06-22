@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:openalex/models/search_filter.dart';
-import 'package:openalex/providers/publication_provider.dart';
+import 'package:openalex/models/search/search_filter.dart';
+import 'package:openalex/viewmodels/home_view_model.dart';
 import 'package:provider/provider.dart';
 
 class FilterBottomSheet extends StatefulWidget {
@@ -18,7 +18,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
   @override
   void initState() {
     super.initState();
-    _tempFilter = context.read<PublicationProvider>().filter;
+    _tempFilter = context.read<HomeViewModel>().filter;
     if (_tempFilter.yearFrom != null) {
       _yearFromCrl.text = _tempFilter.yearFrom.toString();
     }
@@ -148,7 +148,7 @@ class _FilterBottomSheetState extends State<FilterBottomSheet> {
             width: double.infinity,
             child: FilledButton(
               onPressed: () {
-                context.read<PublicationProvider>().updateFilter(_tempFilter);
+                context.read<HomeViewModel>().updateFilter(_tempFilter);
                 Navigator.pop(context);
               },
               style: FilledButton.styleFrom(

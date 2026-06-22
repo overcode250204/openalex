@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/app_page.dart';
+import '../models/app/app_page.dart';
 
 class AppDrawer extends StatelessWidget {
   final AppPage selectedPage;

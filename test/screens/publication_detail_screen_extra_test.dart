@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openalex/models/publication.dart';
-import 'package:openalex/providers/publication_detail_provider.dart';
-import 'package:openalex/screens/publication_detail_screen.dart';
+import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/viewmodels/publication_detail_view_model.dart';
+import 'package:openalex/screens/publication/publication_detail_screen.dart';
 import 'package:provider/provider.dart';
 
-class FakePublicationDetailProvider extends PublicationDetailProvider {
-  FakePublicationDetailProvider({
+class FakePublicationDetailViewModel extends PublicationDetailViewModel {
+  FakePublicationDetailViewModel({
     required DetailState fakeState,
     Publication? fakePublication,
     String? fakeError,
@@ -91,8 +91,8 @@ Publication fakePublication({
   });
 }
 
-Widget buildScreen({required FakePublicationDetailProvider provider}) {
-  return ChangeNotifierProvider<PublicationDetailProvider>.value(
+Widget buildScreen({required FakePublicationDetailViewModel provider}) {
+  return ChangeNotifierProvider<PublicationDetailViewModel>.value(
     value: provider,
     child: const MaterialApp(
       home: PublicationDetailScreen(
@@ -106,7 +106,7 @@ Widget buildScreen({required FakePublicationDetailProvider provider}) {
 void main() {
   group('PublicationDetailScreen extra coverage', () {
     testWidgets('shows loading state with initial title', (tester) async {
-      final provider = FakePublicationDetailProvider(
+      final provider = FakePublicationDetailViewModel(
         fakeState: DetailState.loading,
       );
 
@@ -120,7 +120,7 @@ void main() {
     });
 
     testWidgets('shows error state', (tester) async {
-      final provider = FakePublicationDetailProvider(
+      final provider = FakePublicationDetailViewModel(
         fakeState: DetailState.error,
         fakeError: 'Cannot load publication detail.',
       );
@@ -134,7 +134,7 @@ void main() {
     testWidgets('shows publication info section with full data', (
       tester,
     ) async {
-      final provider = FakePublicationDetailProvider(
+      final provider = FakePublicationDetailViewModel(
         fakeState: DetailState.success,
         fakePublication: fakePublication(),
       );
@@ -158,7 +158,7 @@ void main() {
     testWidgets('shows fallback values when optional data is missing', (
       tester,
     ) async {
-      final provider = FakePublicationDetailProvider(
+      final provider = FakePublicationDetailViewModel(
         fakeState: DetailState.success,
         fakePublication: fakePublication(
           year: null,
@@ -195,7 +195,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      final provider = FakePublicationDetailProvider(
+      final provider = FakePublicationDetailViewModel(
         fakeState: DetailState.success,
         fakePublication: fakePublication(
           abstractText:
@@ -234,7 +234,7 @@ void main() {
     testWidgets('shows action buttons when DOI and OA URL exist', (
       tester,
     ) async {
-      final provider = FakePublicationDetailProvider(
+      final provider = FakePublicationDetailViewModel(
         fakeState: DetailState.success,
         fakePublication: fakePublication(),
       );
@@ -250,7 +250,7 @@ void main() {
     });
 
     testWidgets('copy DOI button shows snackbar', (tester) async {
-      final provider = FakePublicationDetailProvider(
+      final provider = FakePublicationDetailViewModel(
         fakeState: DetailState.success,
         fakePublication: fakePublication(),
       );
@@ -265,7 +265,7 @@ void main() {
     });
 
     testWidgets('shows discovery navigation cards', (tester) async {
-      final provider = FakePublicationDetailProvider(
+      final provider = FakePublicationDetailViewModel(
         fakeState: DetailState.success,
         fakePublication: fakePublication(),
       );
@@ -285,7 +285,7 @@ void main() {
     testWidgets('disabled discovery cards show block icon when no data', (
       tester,
     ) async {
-      final provider = FakePublicationDetailProvider(
+      final provider = FakePublicationDetailViewModel(
         fakeState: DetailState.success,
         fakePublication: fakePublication(
           citedByCount: 0,

@@ -11,6 +11,7 @@ class KeywordAutocompleteSearch extends StatefulWidget {
   final ValueChanged<String>? onAnalyzePressed;
   final String hintText;
   final bool showAnalyzeButton;
+  final SuggestionService suggestionService;
 
   const KeywordAutocompleteSearch({
     super.key,
@@ -19,6 +20,7 @@ class KeywordAutocompleteSearch extends StatefulWidget {
     this.onAnalyzePressed,
     this.hintText = 'Enter an academic keyword...',
     this.showAnalyzeButton = true,
+    required this.suggestionService,
   });
 
   @override
@@ -28,7 +30,6 @@ class KeywordAutocompleteSearch extends StatefulWidget {
 
 class _KeywordAutocompleteSearchState extends State<KeywordAutocompleteSearch> {
   final FocusNode _focusNode = FocusNode();
-  final SuggestionService _suggestionService = SuggestionService();
   final LayerLink _layerLink = LayerLink();
 
   OverlayEntry? _overlayEntry;
@@ -89,9 +90,8 @@ class _KeywordAutocompleteSearchState extends State<KeywordAutocompleteSearch> {
 
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 350), () async {
-      final results = await _suggestionService.fetchOpenAlexKeywordSuggestions(
-        query,
-      );
+      final results = await widget.suggestionService
+          .fetchOpenAlexKeywordSuggestions(query);
       if (!mounted) return;
 
       setState(() {

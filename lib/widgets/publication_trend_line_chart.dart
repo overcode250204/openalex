@@ -1,6 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import '../core/utils/formatters.dart';
+import '../utils/formatters.dart';
 
 class PublicationTrendLineChart extends StatelessWidget {
   final Map<int, int> data;

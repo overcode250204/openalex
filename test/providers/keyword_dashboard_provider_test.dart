@@ -63,30 +63,33 @@ class _DelayedKeywordDashboardService extends _FakeKeywordDashboardService {
 }
 
 void main() {
-  group('KeywordDashboardProvider Tests', () {
+  group('KeywordDashboardViewModel Tests', () {
     test('initial state', () {
-      final provider = KeywordDashboardProvider(KeywordDashboardService());
+      final provider = KeywordDashboardViewModel(KeywordDashboardService());
       expect(provider.state, KeywordDashboardState.initial);
       expect(provider.result, isNull);
     });
 
     test('successful data load and loading state', () async {
       final service = _FakeKeywordDashboardService();
-      final provider = KeywordDashboardProvider(service);
+      final provider = KeywordDashboardViewModel(service);
 
       // Verify loading state triggers during fetch
       final future = provider.refresh();
       expect(provider.state, KeywordDashboardState.loading);
       await future;
 
-      expect(provider.state, KeywordDashboardState.empty); // since hottestKeyword is null and lists empty
+      expect(
+        provider.state,
+        KeywordDashboardState.empty,
+      ); // since hottestKeyword is null and lists empty
       expect(provider.result, isNotNull);
       expect(service.callCount, 1);
     });
 
     test('empty data state', () async {
       final service = _FakeKeywordDashboardService();
-      final provider = KeywordDashboardProvider(service);
+      final provider = KeywordDashboardViewModel(service);
 
       await provider.refresh();
       expect(provider.state, KeywordDashboardState.empty);
@@ -103,7 +106,9 @@ void main() {
     });
 
     test('provider notifies listeners correctly', () async {
-      final provider = KeywordDashboardProvider(_FakeKeywordDashboardService());
+      final provider = KeywordDashboardViewModel(
+        _FakeKeywordDashboardService(),
+      );
       int notifyCount = 0;
       provider.addListener(() {
         notifyCount++;

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openalex/models/app_page.dart';
-import 'package:openalex/models/topic.dart';
+import 'package:openalex/models/app/app_page.dart';
+import 'package:openalex/models/topic/topic.dart';
 
 void main() {
   group('AppPage enum', () {

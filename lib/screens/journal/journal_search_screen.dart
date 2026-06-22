@@ -3,12 +3,12 @@ import 'package:provider/provider.dart';
 
 import '../../models/journal/journal_publication.dart';
 import '../../models/journal/journal_source.dart';
-import '../../providers/journal_search_provider.dart';
+import '../../routes/app_routes.dart';
+import '../../viewmodels/journal_view_model.dart';
 import '../../widgets/journal/highest_cited_paper_card.dart';
 import '../../widgets/journal/journal_publication_card.dart';
 import '../../widgets/journal/journal_source_card.dart';
 import '../../widgets/search/journal_suggestion_dropdown.dart';
-import 'journal_publication_detail_screen.dart';
 
 String _formatCount(int n) {
   if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
@@ -42,19 +42,17 @@ class _JournalSearchScreenState extends State<JournalSearchScreen> {
 
   Future<void> _search() async {
     FocusScope.of(context).unfocus();
-    final provider = context.read<JournalSearchProvider>();
+    final provider = context.read<JournalViewModel>();
     provider.hideJournalSuggestions();
     await provider.searchJournals(_queryController.text);
   }
 
   void _openPublication(JournalPublication publication) {
-    context.read<JournalSearchProvider>().selectPublication(publication);
-    Navigator.push(
+    context.read<JournalViewModel>().selectPublication(publication);
+    Navigator.pushNamed(
       context,
-      MaterialPageRoute(
-        builder: (_) =>
-            JournalPublicationDetailScreen(publication: publication),
-      ),
+      AppRoutes.journalDetail,
+      arguments: publication,
     );
   }
 
@@ -64,16 +62,16 @@ class _JournalSearchScreenState extends State<JournalSearchScreen> {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );
-    await context.read<JournalSearchProvider>().selectJournal(journal);
+    await context.read<JournalViewModel>().selectJournal(journal);
   }
 
   void _clearSelection() {
-    context.read<JournalSearchProvider>().clearSelection();
+    context.read<JournalViewModel>().clearSelection();
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<JournalSearchProvider>();
+    final provider = context.watch<JournalViewModel>();
     final hasSelection = provider.selectedJournal != null;
 
     return Scaffold(
@@ -117,7 +115,7 @@ class _JournalSearchScreenState extends State<JournalSearchScreen> {
 
 class _JournalSearchView extends StatelessWidget {
   final ScrollController scrollController;
-  final JournalSearchProvider provider;
+  final JournalViewModel provider;
   final TextEditingController queryController;
   final VoidCallback onSearch;
   final ValueChanged<JournalSource> onSelect;
@@ -217,7 +215,7 @@ class _JournalSearchView extends StatelessWidget {
 
 class _JournalDetailView extends StatelessWidget {
   final ScrollController scrollController;
-  final JournalSearchProvider provider;
+  final JournalViewModel provider;
   final VoidCallback onBack;
   final ValueChanged<JournalPublication> onOpenPublication;
 

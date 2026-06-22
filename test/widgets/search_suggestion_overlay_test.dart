@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openalex/models/publication.dart';
-import 'package:openalex/models/topic.dart';
-import 'package:openalex/providers/publication_provider.dart';
+import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/models/topic/topic.dart';
+import 'package:openalex/viewmodels/home_view_model.dart';
 import 'package:openalex/services/history_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
@@ -59,7 +59,7 @@ class _FakeSuggestionService extends SuggestionService {
 }
 
 Widget _buildWidget({
-  required PublicationProvider provider,
+  required HomeViewModel provider,
   required TextEditingController controller,
   ValueChanged<TopicSuggestion?>? onSearch,
 }) {
@@ -86,7 +86,7 @@ void main() {
   group('SearchSuggestionOverlay', () {
     testWidgets('shows nothing when showSuggestions is false', (tester) async {
       final controller = TextEditingController();
-      final provider = PublicationProvider(
+      final provider = HomeViewModel(
         _FakeOpenAlexService(),
         historyService: _FakeHistoryService([]),
         suggestionService: _FakeSuggestionService(),
@@ -105,7 +105,7 @@ void main() {
       'shows search history when query is empty and field is focused',
       (tester) async {
         final controller = TextEditingController();
-        final provider = PublicationProvider(
+        final provider = HomeViewModel(
           _FakeOpenAlexService(),
           historyService: _FakeHistoryService(['AI', 'Blockchain']),
           suggestionService: _FakeSuggestionService(),
@@ -129,7 +129,7 @@ void main() {
 
     testWidgets('shows Clear all button for history', (tester) async {
       final controller = TextEditingController();
-      final provider = PublicationProvider(
+      final provider = HomeViewModel(
         _FakeOpenAlexService(),
         historyService: _FakeHistoryService(['ML']),
         suggestionService: _FakeSuggestionService(),
@@ -156,7 +156,7 @@ void main() {
             'works_count': 5000,
           }),
         ];
-        final provider = PublicationProvider(
+        final provider = HomeViewModel(
           _FakeOpenAlexService(),
           historyService: _FakeHistoryService([]),
           suggestionService: _FakeSuggestionService(suggestions: suggestions),
@@ -179,7 +179,7 @@ void main() {
       'does not show overlay when both history and suggestions are empty',
       (tester) async {
         final controller = TextEditingController();
-        final provider = PublicationProvider(
+        final provider = HomeViewModel(
           _FakeOpenAlexService(),
           historyService: _FakeHistoryService([]),
           suggestionService: _FakeSuggestionService(),
@@ -199,7 +199,7 @@ void main() {
 
     testWidgets('hideSuggestions hides the overlay', (tester) async {
       final controller = TextEditingController();
-      final provider = PublicationProvider(
+      final provider = HomeViewModel(
         _FakeOpenAlexService(),
         historyService: _FakeHistoryService(['AI']),
         suggestionService: _FakeSuggestionService(),

@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/utils/formatters.dart';
+import '../../utils/formatters.dart';
 
 import '../../models/keyword/keyword_dashboard_result.dart';
 import '../../models/keyword/openalex_keyword.dart';
-import '../../providers/keyword_dashboard_provider.dart';
-import '../../services/openalex_keyword_service.dart';
+import '../../viewmodels/keyword_dashboard_view_model.dart';
+import '../../routes/app_routes.dart';
+import '../../routes/route_arguments.dart';
+import '../../services/suggestion_service.dart';
+import '../../viewmodels/keyword_analyzer_view_model.dart';
 import '../../widgets/keyword/charts/keyword_trend_comparison_chart.dart';
 import '../../widgets/keyword/hot_keyword_hero_card.dart';
 import '../../widgets/keyword/keyword_autocomplete_search.dart';
-import '../../widgets/keyword/keyword_empty_state.dart';
-import '../../widgets/keyword/keyword_error_state.dart'
-    as err; // Aliasing to avoid duplicate
-import '../../widgets/keyword/keyword_loading_state.dart'
-    as ld; // Aliasing to avoid duplicate
+import '../../widgets/state/app_error_widget.dart';
+import '../../widgets/state/empty_state_widget.dart';
+import '../../widgets/state/loading_widget.dart';
 import '../../widgets/keyword/keyword_stat_card.dart';
 import '../../widgets/keyword/most_frequent_keywords_chart.dart';
 import '../../widgets/keyword/trending_keywords_chart.dart';
 import '../../widgets/ai/ai_research_assistant_button.dart';
-import 'keyword_detail_screen.dart';
 
 class KeywordDashboardScreen extends StatefulWidget {
   const KeywordDashboardScreen({super.key});
@@ -30,11 +30,8 @@ class KeywordDashboardScreen extends StatefulWidget {
 
 class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
-  bool _isResolving = false;
   int _mostFrequentTopN = 5;
   int _trendingTopN = 5;
-
-
 
   @override
   void dispose() {
@@ -51,10 +48,10 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
       return;
     }
 
-    setState(() => _isResolving = true);
     try {
-      final service = OpenAlexKeywordService();
-      final resolved = await service.resolveKeyword(keyword);
+      final resolved = await context
+          .read<KeywordAnalyzerViewModel>()
+          .resolveKeyword(keyword);
       if (resolved == null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -70,19 +67,16 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
           content: Text('Unable to resolve keyword. Please try again.'),
         ),
       );
-    } finally {
-      if (mounted) setState(() => _isResolving = false);
     }
   }
 
   void _openDetailWithKeyword(OpenAlexKeyword keyword, {String? originalText}) {
-    Navigator.push(
+    Navigator.pushNamed(
       context,
-      MaterialPageRoute(
-        builder: (_) => KeywordDetailScreen(
-          selectedKeyword: keyword,
-          originalSearchText: originalText,
-        ),
+      AppRoutes.keywordDetail,
+      arguments: KeywordDetailRouteArgs(
+        keyword: keyword,
+        originalSearchText: originalText,
       ),
     );
   }
@@ -94,7 +88,7 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<KeywordDashboardProvider>();
+    final provider = context.watch<KeywordDashboardViewModel>();
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
@@ -129,30 +123,38 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
     );
   }
 
-  Widget _body(KeywordDashboardProvider provider) {
+  Widget _body(KeywordDashboardViewModel provider) {
     if (provider.state == KeywordDashboardState.initial ||
         (provider.state == KeywordDashboardState.loading &&
             provider.result == null)) {
-      return const ld.KeywordLoadingState();
+      return const LoadingWidget(message: 'Loading keyword activity...');
     }
     if (provider.state == KeywordDashboardState.error &&
         provider.result == null) {
-      return err.KeywordErrorState(
+      return AppErrorWidget(
         message: provider.errorMessage ?? 'Unable to load keyword activity.',
-        onRetry: provider.load,
+        onRetry: provider.retry,
       );
     }
     if (provider.result == null || provider.result!.isEmpty) {
-      return KeywordEmptyState(onRefresh: provider.refresh);
+      return EmptyStateWidget(
+        message: 'No recent keyword activity found.',
+        icon: Icons.insights_outlined,
+        action: OutlinedButton(
+          onPressed: provider.refresh,
+          child: const Text('Refresh'),
+        ),
+      );
     }
     return _dashboard(provider.result!, provider);
   }
 
   Widget _dashboard(
     KeywordDashboardResult result,
-    KeywordDashboardProvider provider,
+    KeywordDashboardViewModel provider,
   ) {
     final stats = result.statistics;
+    final keywordAnalyzer = context.watch<KeywordAnalyzerViewModel>();
     return RefreshIndicator(
       onRefresh: provider.refresh,
       child: ListView(
@@ -176,10 +178,11 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
                 children: [
                   KeywordAutocompleteSearch(
                     controller: _searchController,
+                    suggestionService: context.read<SuggestionService>(),
                     onKeywordSelected: (kw) => _openDetailWithKeyword(kw),
                     onAnalyzePressed: _analyze,
                   ),
-                  if (_isResolving)
+                  if (keywordAnalyzer.isResolvingKeyword)
                     const Positioned(
                       right: 16,
                       top: 14,

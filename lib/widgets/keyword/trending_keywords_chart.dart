@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/utils/formatters.dart';
+import '../../utils/formatters.dart';
 import '../../models/keyword/keyword_overview.dart';
 import 'charts/keyword_chart_card.dart';
 import 'charts/keyword_sparkline.dart';

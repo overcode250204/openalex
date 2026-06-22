@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/search_filter.dart';
+import '../models/search/search_filter.dart';
 
 class AnalyticsResult {
   final Map<int, int> publicationTrend;

@@ -1,7 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/analytics_provider.dart';
+import '../../viewmodels/analytics_view_model.dart';
 
 class InstitutionRankingChart extends StatelessWidget {
   const InstitutionRankingChart({super.key});
@@ -12,7 +12,7 @@ class InstitutionRankingChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final analytics = context.watch<AnalyticsProvider>();
+    final analytics = context.watch<AnalyticsViewModel>();
     final data = analytics.institutionRanking;
 
     if (analytics.isLoading) {

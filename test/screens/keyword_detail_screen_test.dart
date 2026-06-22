@@ -5,7 +5,7 @@ import 'package:openalex/models/keyword/openalex_keyword.dart';
 import 'package:provider/provider.dart';
 import 'package:openalex/viewmodels/keyword_analyzer_view_model.dart';
 import 'package:openalex/services/openalex_keyword_service.dart';
-import 'package:openalex/screens/keyword_analyzer_page.dart';
+import 'package:openalex/screens/keyword/keyword_analyzer_page_screen.dart';
 
 void main() {
   Widget buildTestWidget() {
@@ -25,7 +25,9 @@ void main() {
   }
 
   group('KeywordDetailScreen Tests', () {
-    testWidgets('screen renders with required provider dependencies', (tester) async {
+    testWidgets('screen renders with required provider dependencies', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildTestWidget());
       expect(find.byType(KeywordDetailScreen), findsOneWidget);
     });
@@ -44,4 +46,3 @@ void main() {
     });
   });
 }
-

@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openalex/models/publication.dart';
-import 'package:openalex/providers/journal_search_provider.dart';
-import 'package:openalex/providers/publication_detail_provider.dart';
-import 'package:openalex/providers/publication_list_provider.dart';
-import 'package:openalex/providers/publication_provider.dart';
-import 'package:openalex/screens/publication_list_screen.dart';
+import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/viewmodels/journal_view_model.dart';
+import 'package:openalex/viewmodels/publication_detail_view_model.dart';
+import 'package:openalex/viewmodels/publication_list_view_model.dart';
+import 'package:openalex/viewmodels/home_view_model.dart';
+import 'package:openalex/screens/publication/publication_list_screen.dart';
 import 'package:openalex/services/openalex_journal_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:provider/provider.dart';
@@ -22,27 +22,27 @@ class _FakeOpenAlexService extends OpenAlexService {
       citedByResult;
 }
 
-PublicationListProvider _emptyListProvider() => PublicationListProvider(
+PublicationListViewModel _emptyListProvider() => PublicationListViewModel(
   service: _FakeOpenAlexService(Future.value(const [])),
 );
 
 Widget _buildScreen({
   required ListType type,
-  required PublicationListProvider listProvider,
+  required PublicationListViewModel listProvider,
 }) {
   return MultiProvider(
     providers: [
-      ChangeNotifierProvider<PublicationListProvider>.value(
+      ChangeNotifierProvider<PublicationListViewModel>.value(
         value: listProvider,
       ),
-      ChangeNotifierProvider<PublicationProvider>(
-        create: (_) => PublicationProvider(OpenAlexService()),
+      ChangeNotifierProvider<HomeViewModel>(
+        create: (_) => HomeViewModel(OpenAlexService()),
       ),
-      ChangeNotifierProvider<PublicationDetailProvider>(
-        create: (_) => PublicationDetailProvider(),
+      ChangeNotifierProvider<PublicationDetailViewModel>(
+        create: (_) => PublicationDetailViewModel(),
       ),
-      ChangeNotifierProvider<JournalSearchProvider>(
-        create: (_) => JournalSearchProvider(OpenAlexJournalService()),
+      ChangeNotifierProvider<JournalViewModel>(
+        create: (_) => JournalViewModel(OpenAlexJournalService()),
       ),
     ],
     child: MaterialApp(
@@ -67,7 +67,7 @@ void main() {
     ) async {
       // Create a provider that stays loading
       final pendingResult = Completer<List<Publication>>();
-      final listProvider = PublicationListProvider(
+      final listProvider = PublicationListViewModel(
         service: _FakeOpenAlexService(pendingResult.future),
       );
 
