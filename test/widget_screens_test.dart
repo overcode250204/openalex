@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/main.dart';
+import 'package:openalex/models/analytics/topic_analytics.dart';
 import 'package:openalex/models/publication/publication.dart';
 import 'package:openalex/models/search/search_filter.dart';
 import 'package:openalex/models/topic/topic.dart';
@@ -8,6 +9,7 @@ import 'package:openalex/viewmodels/analytics_view_model.dart';
 import 'package:openalex/viewmodels/dashboard_view_model.dart';
 import 'package:openalex/viewmodels/publication_detail_view_model.dart';
 import 'package:openalex/viewmodels/home_view_model.dart';
+import 'package:openalex/viewmodels/selected_topic_view_model.dart';
 import 'package:openalex/screens/dashboard/dashboard_screen.dart';
 import 'package:openalex/screens/publication/publication_detail_screen.dart'
     as screen_detail;
@@ -104,8 +106,12 @@ class FakeSuggestionService extends SuggestionService {
 
 class FakeAnalyticsService extends AnalyticsService {
   @override
-  Future<AnalyticsResult> fetchAll(String keyword, SearchFilter filter) async {
-    return const AnalyticsResult(
+  Future<TopicAnalytics> fetchAll(
+    String keyword,
+    SearchFilter filter, {
+    String? topicId,
+  }) async {
+    return const TopicAnalytics(
       publicationTrend: {2023: 1, 2024: 1},
       topKeywords: {'Artificial Intelligence': 2},
       institutionRanking: {},
@@ -113,8 +119,14 @@ class FakeAnalyticsService extends AnalyticsService {
       topJournals: {'Journal of Widgets': 2},
       topAuthors: {'Ada Lovelace': 2},
       totalWorks: 2,
-      mostCitedTitle: 'Top Paper',
-      mostCitedCount: 20,
+      analyzedWorks: 2,
+      totalCitations: 24,
+      mostInfluentialPaper: InfluentialPaperSummary(
+        id: 'W1',
+        title: 'Top Paper',
+        citedByCount: 20,
+        publicationYear: 2024,
+      ),
     );
   }
 }
@@ -160,6 +172,7 @@ Future<HomeViewModel> seededProvider(List<Publication> publications) async {
 Widget appWithProvider(Widget child, HomeViewModel provider) {
   return MultiProvider(
     providers: [
+      ChangeNotifierProvider(create: (_) => SelectedTopicViewModel()),
       ChangeNotifierProvider<HomeViewModel>.value(value: provider),
       ChangeNotifierProvider(
         create: (_) =>
@@ -281,7 +294,10 @@ void main() {
 
     expect(find.text('Dashboard: AI'), findsOneWidget);
     expect(find.text('Total Publications'), findsOneWidget);
-    expect(find.text('Highest Citations'), findsOneWidget);
+    expect(find.text('Average Citations'), findsOneWidget);
+    expect(find.text('Most Active Year'), findsOneWidget);
+    expect(find.text('Top Author'), findsOneWidget);
+    expect(find.text('Top Journal'), findsOneWidget);
     expect(find.text('Most Influential Paper'), findsOneWidget);
     expect(find.text('Top Paper'), findsOneWidget);
   });

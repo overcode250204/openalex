@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../models/analytics/topic_analytics.dart';
 import '../models/publication/publication.dart';
 import '../models/search/search_filter.dart';
 import '../services/analytics_service.dart';
@@ -21,17 +23,22 @@ class AnalyticsViewModel extends ChangeNotifier {
   AnalyticsViewModel({AnalyticsService? analyticsService})
     : _analyticsService = analyticsService ?? AnalyticsService();
 
-  AnalyticsResult _result = AnalyticsResult.empty();
+  TopicAnalytics _result = TopicAnalytics.empty();
   List<Publication> _publications = [];
   bool _isLoading = false;
   String? _error;
+  String? _loadedSignature;
+  String? _inFlightSignature;
+  int _requestVersion = 0;
 
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get hasLoaded => _loadedSignature != null;
   bool get hasData =>
+      _result.totalWorks > 0 ||
       _result.publicationTrend.isNotEmpty ||
       _result.topKeywords.isNotEmpty ||
-      _publications.isNotEmpty;
+      _result.mostInfluentialPaper != null;
 
   // --- API-backed charts (all papers in search) ---
 
@@ -79,11 +86,19 @@ class AnalyticsViewModel extends ChangeNotifier {
   // Total number of works matching the search across the whole dataset.
   int get totalWorks => _result.totalWorks;
 
+  // Null citation counts returned by OpenAlex are consistently treated as 0.
+  double? get averageCitations => _result.averageCitations;
+
   // Year with the most publications across the full dataset.
   int? get mostActiveYear {
     if (_result.publicationTrend.isEmpty) return null;
     return _result.publicationTrend.entries
-        .reduce((a, b) => a.value >= b.value ? a : b)
+        .reduce(
+          (a, b) =>
+              a.value > b.value || (a.value == b.value && a.key > b.key)
+              ? a
+              : b,
+        )
         .key;
   }
 
@@ -113,10 +128,13 @@ class AnalyticsViewModel extends ChangeNotifier {
   }
 
   // Title of the most-cited paper across the full dataset.
-  String? get mostCitedTitle => _result.mostCitedTitle;
+  InfluentialPaperSummary? get mostInfluentialPaper =>
+      _result.mostInfluentialPaper;
+
+  String? get mostCitedTitle => mostInfluentialPaper?.title;
 
   // Citation count of the most-cited paper across the full dataset.
-  int get mostCitedCount => _result.mostCitedCount;
+  int get mostCitedCount => mostInfluentialPaper?.citedByCount ?? 0;
 
   // --- Computed from loaded papers (no group_by equivalent) ---
 
@@ -152,29 +170,77 @@ class AnalyticsViewModel extends ChangeNotifier {
   Future<void> fetchAnalytics(
     String keyword,
     SearchFilter filter,
-    List<Publication> publications,
-  ) async {
-    _publications = publications;
+    List<Publication> publications, {
+    String? topicId,
+    bool forceRefresh = false,
+  }) async {
+    _publications = publications.where((publication) {
+      final year = publication.publicationYear;
+      if (year == null) {
+        return filter.yearFrom == null && filter.yearTo == null;
+      }
+      if (filter.yearFrom != null && year < filter.yearFrom!) {
+        return false;
+      }
+      if (filter.yearTo != null && year > filter.yearTo!) {
+        return false;
+      }
+      return true;
+    }).toList();
+    final signature = [
+      topicId ?? '',
+      keyword.trim(),
+      filter.yearFrom ?? '',
+      filter.yearTo ?? '',
+      filter.isOpenAccess ?? '',
+      filter.language ?? '',
+      filter.documentType.name,
+      filter.sortOption.name,
+    ].join('|');
+
+    if (!forceRefresh &&
+        (signature == _loadedSignature || signature == _inFlightSignature)) {
+      return;
+    }
+
+    _inFlightSignature = signature;
+    _loadedSignature = null;
+    final requestVersion = ++_requestVersion;
     _isLoading = true;
     _error = null;
+    _result = TopicAnalytics.empty();
     notifyListeners();
 
     try {
-      _result = await _analyticsService.fetchAll(keyword, filter);
+      final result = await _analyticsService.fetchAll(
+        keyword,
+        filter,
+        topicId: topicId,
+      );
+      if (requestVersion != _requestVersion) return;
+      _result = result;
+      _loadedSignature = signature;
     } catch (e) {
+      if (requestVersion != _requestVersion) return;
       _error = e.toString();
-      _result = AnalyticsResult.empty();
+      _result = TopicAnalytics.empty();
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (requestVersion == _requestVersion) {
+        _inFlightSignature = null;
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
   void clear() {
-    _result = AnalyticsResult.empty();
+    _requestVersion++;
+    _result = TopicAnalytics.empty();
     _publications = [];
     _isLoading = false;
     _error = null;
+    _loadedSignature = null;
+    _inFlightSignature = null;
     notifyListeners();
   }
 }

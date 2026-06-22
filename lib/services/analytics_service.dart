@@ -1,153 +1,194 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
+
+import '../models/analytics/topic_analytics.dart';
 import '../models/search/search_filter.dart';
 
-class AnalyticsResult {
-  final Map<int, int> publicationTrend;
-  final Map<String, int> topKeywords;
-  final Map<String, int> institutionRanking;
-  final Map<String, int> countryOutput;
-  final Map<String, int> topJournals;
-  final Map<String, int> topAuthors;
-  final int totalWorks;
-  final String? mostCitedTitle;
-  final int mostCitedCount;
-
-  const AnalyticsResult({
-    required this.publicationTrend,
-    required this.topKeywords,
-    required this.institutionRanking,
-    required this.countryOutput,
-    this.topJournals = const {},
-    this.topAuthors = const {},
-    this.totalWorks = 0,
-    this.mostCitedTitle,
-    this.mostCitedCount = 0,
-  });
-
-  static AnalyticsResult empty() => const AnalyticsResult(
-    publicationTrend: {},
-    topKeywords: {},
-    institutionRanking: {},
-    countryOutput: {},
-  );
-}
-
-class _TopPaper {
+class _WorksSummary {
   final int total;
-  final String? title;
-  final int citedByCount;
+  final int analyzedWorks;
+  final int totalCitations;
+  final InfluentialPaperSummary? mostInfluentialPaper;
 
-  const _TopPaper({required this.total, this.title, this.citedByCount = 0});
+  const _WorksSummary({
+    required this.total,
+    required this.analyzedWorks,
+    required this.totalCitations,
+    required this.mostInfluentialPaper,
+  });
 }
 
 class AnalyticsService {
+  static const _mailto = 'trandinhbao222@gmail.com';
+
   final http.Client _client;
 
   AnalyticsService({http.Client? client}) : _client = client ?? http.Client();
+
+  Future<Map<String, dynamic>> _getJson(Map<String, String> params) async {
+    final uri = Uri.https('api.openalex.org', '/works', params);
+    final response = await _client.get(uri);
+    if (response.statusCode != 200) {
+      throw Exception(
+        'OpenAlex analytics request failed with status '
+        '${response.statusCode}',
+      );
+    }
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  Map<String, String> _buildBaseParams(
+    String keyword,
+    SearchFilter filter,
+    String? topicId,
+  ) {
+    final normalizedTopicId = topicId
+        ?.replaceAll('https://openalex.org/', '')
+        .trim();
+    final params = filter.toQueryParams(
+      normalizedTopicId == null || normalizedTopicId.isEmpty ? keyword : '',
+      normalizedTopicId == null || normalizedTopicId.isEmpty
+          ? const []
+          : [normalizedTopicId],
+    );
+
+    params
+      ..remove('per-page')
+      ..remove('sort')
+      ..['mailto'] = _mailto;
+
+    if (params['search']?.trim().isEmpty ?? false) {
+      params.remove('search');
+    }
+    return params;
+  }
 
   Future<Map<String, int>> _fetchGroupBy(
     Map<String, String> baseParams,
     String groupByField,
   ) async {
-    final params = <String, String>{
-      if (baseParams.containsKey('search')) 'search': baseParams['search']!,
-      if (baseParams.containsKey('filter')) 'filter': baseParams['filter']!,
-      if (baseParams.containsKey('mailto')) 'mailto': baseParams['mailto']!,
+    final body = await _getJson({
+      ...baseParams,
       'group_by': groupByField,
-    };
-
-    final uri = Uri.https('api.openalex.org', '/works', params);
-    final response = await _client.get(uri);
-
-    if (response.statusCode != 200) return {};
-
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    });
     final groups = body['group_by'] as List<dynamic>? ?? [];
 
     return Map.fromEntries(
       groups
-          .map((g) {
-            // key_display_name is always the human-readable label for all group_by fields
+          .map((item) {
+            final group = item as Map<String, dynamic>;
             final displayName =
-                g['key_display_name']?.toString() ?? g['key']?.toString() ?? '';
-            return MapEntry(displayName, (g['count'] as num? ?? 0).toInt());
+                group['key_display_name']?.toString() ??
+                group['key']?.toString() ??
+                '';
+            return MapEntry(
+              displayName,
+              (group['count'] as num? ?? 0).toInt(),
+            );
           })
-          .where((e) => e.key.isNotEmpty),
+          .where((entry) => entry.key.trim().isNotEmpty),
     );
   }
 
-  Future<_TopPaper> _fetchTopPaper(Map<String, String> baseParams) async {
-    final params = <String, String>{
-      ...baseParams,
-      'sort': 'cited_by_count:desc',
-      'per-page': '1',
-      'select': 'display_name,cited_by_count',
-    };
+  Future<_WorksSummary> _fetchWorksSummary(
+    Map<String, String> baseParams,
+  ) async {
+    var cursor = '*';
+    var total = 0;
+    var analyzedWorks = 0;
+    var totalCitations = 0;
+    InfluentialPaperSummary? mostInfluentialPaper;
+    final seenCursors = <String>{};
 
-    final uri = Uri.https('api.openalex.org', '/works', params);
-    final response = await _client.get(uri);
+    while (cursor.isNotEmpty && seenCursors.add(cursor)) {
+      final body = await _getJson({
+        ...baseParams,
+        'sort': 'cited_by_count:desc',
+        'per-page': '200',
+        'cursor': cursor,
+        'select': 'id,doi,display_name,publication_year,cited_by_count',
+      });
+      final meta = body['meta'] as Map<String, dynamic>? ?? const {};
+      final results = body['results'] as List<dynamic>? ?? [];
 
-    if (response.statusCode != 200) return const _TopPaper(total: 0);
+      if (total == 0) {
+        total = (meta['count'] as num? ?? 0).toInt();
+      }
 
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final meta = body['meta'] as Map<String, dynamic>?;
-    final total = (meta?['count'] as num? ?? 0).toInt();
-    final results = body['results'] as List<dynamic>? ?? [];
+      for (final item in results) {
+        final work = item as Map<String, dynamic>;
+        final citedByCount = (work['cited_by_count'] as num? ?? 0).toInt();
+        totalCitations += citedByCount;
+        analyzedWorks++;
 
-    if (results.isEmpty) return _TopPaper(total: total);
+        if (mostInfluentialPaper == null) {
+          mostInfluentialPaper = InfluentialPaperSummary(
+            id: work['id']?.toString() ?? '',
+            title: work['display_name']?.toString() ?? 'No title',
+            citedByCount: citedByCount,
+            publicationYear: (work['publication_year'] as num?)?.toInt(),
+            doi: work['doi']?.toString(),
+          );
+        }
+      }
 
-    final first = results.first as Map<String, dynamic>;
-    return _TopPaper(
+      final nextCursor = meta['next_cursor']?.toString();
+      if (results.isEmpty || nextCursor == null || nextCursor.isEmpty) {
+        break;
+      }
+      cursor = nextCursor;
+    }
+
+    return _WorksSummary(
       total: total,
-      title: first['display_name']?.toString(),
-      citedByCount: (first['cited_by_count'] as num? ?? 0).toInt(),
+      analyzedWorks: analyzedWorks,
+      totalCitations: totalCitations,
+      mostInfluentialPaper: mostInfluentialPaper,
     );
   }
 
-  Future<AnalyticsResult> fetchAll(String keyword, SearchFilter filter) async {
-    final baseParams = filter.toQueryParams(keyword, []);
-
-    // Kick off the group-by aggregations and the top-paper lookup concurrently.
-    final allFutures = await Future.wait([
-      Future.wait([
-        _fetchGroupBy(baseParams, 'publication_year'),
-        _fetchGroupBy(baseParams, 'concepts.id'),
-        _fetchGroupBy(baseParams, 'authorships.institutions.id'),
-        _fetchGroupBy(baseParams, 'authorships.countries'),
-        _fetchGroupBy(baseParams, 'primary_location.source.id'),
-        _fetchGroupBy(baseParams, 'authorships.author.id'),
-      ]),
-      _fetchTopPaper(baseParams),
+  Future<TopicAnalytics> fetchAll(
+    String keyword,
+    SearchFilter filter, {
+    String? topicId,
+  }) async {
+    final baseParams = _buildBaseParams(keyword, filter, topicId);
+    final results = await Future.wait<Object>([
+      _fetchGroupBy(baseParams, 'publication_year'),
+      _fetchGroupBy(baseParams, 'concepts.id'),
+      _fetchGroupBy(baseParams, 'authorships.institutions.id'),
+      _fetchGroupBy(baseParams, 'authorships.countries'),
+      _fetchGroupBy(baseParams, 'primary_location.source.id'),
+      _fetchGroupBy(baseParams, 'authorships.author.id'),
+      _fetchWorksSummary(baseParams),
     ]);
 
-    final results = allFutures[0] as List<Map<String, int>>;
-    final topPaper = allFutures[1] as _TopPaper;
-
-    // Convert year string keys → Map<int, int>, filter to last 35 years, sort ascending
-    final currentYear = DateTime.now().year;
-    final cutoffYear = currentYear - 35;
+    final yearGroups = results[0] as Map<String, int>;
     final publicationTrend = <int, int>{};
-    for (final entry in results[0].entries) {
+    for (final entry in yearGroups.entries) {
       final year = int.tryParse(entry.key);
-      if (year != null && year >= cutoffYear) {
+      if (year != null) {
         publicationTrend[year] = entry.value;
       }
     }
     final sortedTrend = Map.fromEntries(
-      publicationTrend.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
+      publicationTrend.entries.toList()
+        ..sort((a, b) => a.key.compareTo(b.key)),
     );
+    final worksSummary = results[6] as _WorksSummary;
 
-    return AnalyticsResult(
+    return TopicAnalytics(
       publicationTrend: sortedTrend,
-      topKeywords: results[1],
-      institutionRanking: results[2],
-      countryOutput: results[3],
-      topJournals: results[4],
-      topAuthors: results[5],
-      totalWorks: topPaper.total,
-      mostCitedTitle: topPaper.title,
-      mostCitedCount: topPaper.citedByCount,
+      topKeywords: results[1] as Map<String, int>,
+      institutionRanking: results[2] as Map<String, int>,
+      countryOutput: results[3] as Map<String, int>,
+      topJournals: results[4] as Map<String, int>,
+      topAuthors: results[5] as Map<String, int>,
+      totalWorks: worksSummary.total,
+      analyzedWorks: worksSummary.analyzedWorks,
+      totalCitations: worksSummary.totalCitations,
+      mostInfluentialPaper: worksSummary.mostInfluentialPaper,
     );
   }
 }
