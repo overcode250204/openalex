@@ -7,6 +7,7 @@ import 'package:openalex/models/journal/journal_source.dart';
 import 'package:openalex/models/keyword/keyword_analysis_result.dart';
 import 'package:openalex/models/keyword/keyword_trend_point.dart';
 import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/models/topic/topic.dart';
 import 'package:openalex/viewmodels/journal_view_model.dart';
 import 'package:openalex/viewmodels/publication_detail_view_model.dart';
 import 'package:openalex/viewmodels/home_view_model.dart';
@@ -78,6 +79,14 @@ class _FakeKeywordService extends OpenAlexKeywordService {
 }
 
 class _FakeSuggestionService extends SuggestionService {
+  _FakeSuggestionService({this.topicSuggestions = const []});
+
+  final List<TopicSuggestion> topicSuggestions;
+
+  @override
+  Future<List<TopicSuggestion>> fetchTopicSuggestions(String query) async =>
+      topicSuggestions;
+
   @override
   Future<List<String>> fetchRelatedKeywords(String keyword) async => [];
 }
@@ -108,7 +117,9 @@ class _FakeKeywordDashboardService extends KeywordDashboardService {
 // Helper: wrap AppShell with all required providers
 // ---------------------------------------------------------------------------
 
-Widget _appShellWidget() {
+Widget _appShellWidget({
+  List<TopicSuggestion> topicSuggestions = const [],
+}) {
   final openAlexService = _FakeOpenAlexService();
   return MultiProvider(
     providers: [
@@ -116,7 +127,9 @@ Widget _appShellWidget() {
       ChangeNotifierProvider(
         create: (_) => HomeViewModel(
           openAlexService,
-          suggestionService: _FakeSuggestionService(),
+          suggestionService: _FakeSuggestionService(
+            topicSuggestions: topicSuggestions,
+          ),
         ),
       ),
       ChangeNotifierProvider(
@@ -161,6 +174,49 @@ void main() {
 
       expect(find.text('Trend Analyzer'), findsOneWidget);
     });
+
+    testWidgets(
+      'keeps suggestions scrollable without overflowing on a small screen',
+      (tester) async {
+        tester.view.physicalSize = const Size(360, 600);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final suggestions = List.generate(
+          12,
+          (index) => TopicSuggestion(
+            id: 'T$index',
+            displayName: 'Artificial Intelligence $index',
+            workCount: 1000 + index,
+          ),
+        );
+
+        await tester.pumpWidget(
+          _appShellWidget(topicSuggestions: suggestions),
+        );
+        await tester.tap(find.byType(TextField).first);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Suggestion'), findsOneWidget);
+        expect(find.text('Analyze Topic'), findsOneWidget);
+        expect(
+          find.text('Enter a research topic and tap Analyze Topic.'),
+          findsOneWidget,
+        );
+        expect(find.text('Home'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byKey(
+              const Key('search_suggestion_overlay_content'),
+            ),
+            matching: find.byType(Scrollable),
+          ),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 
   group('AppShell – page switching via bottom nav', () {

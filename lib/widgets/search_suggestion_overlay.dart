@@ -5,11 +5,13 @@ import 'package:provider/provider.dart';
 
 class SearchSuggestionOverlay extends StatelessWidget {
   final TextEditingController controller;
+  final double maxHeight;
   final ValueChanged<TopicSuggestion?>? onSearch;
 
   const SearchSuggestionOverlay({
     super.key,
     required this.controller,
+    this.maxHeight = 220,
     required this.onSearch,
   });
 
@@ -30,12 +32,12 @@ class SearchSuggestionOverlay extends StatelessWidget {
             return const SizedBox.shrink();
           }
 
-          return Container(
+          return ConstrainedBox(
             key: const Key('search_suggestion_overlay_content'),
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               children: [
                 // History
                 if (query.isEmpty && hasHistory) ...[

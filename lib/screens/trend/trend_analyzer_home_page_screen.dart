@@ -76,6 +76,7 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
     final provider = context.watch<HomeViewModel>();
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
         title: const Text('Trend Analyzer', overflow: TextOverflow.ellipsis),
@@ -146,30 +147,46 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
         ],
       ),
 
-      body: Column(
-        children: [
-          _SearchHeader(
-            topicController: _topicController,
-            onSearch: provider.isLoading ? null : _search,
-            onQueryChanged: provider.isLoading ? null : _onQueryChanged,
-          ),
+      body: SafeArea(
+        top: false,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final suggestionMaxHeight = (constraints.maxHeight - 240).clamp(
+              0.0,
+              220.0,
+            ).toDouble();
 
-          Consumer<HomeViewModel>(
-            builder: (context, provider, _) => provider.totalResults > 0
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    child: Text(
-                      '${provider.totalResults} results',
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  )
-                : const SizedBox(),
-          ),
-          Expanded(child: _SearchResultView(provider: provider)),
-        ],
+            return Column(
+              children: [
+                _SearchHeader(
+                  topicController: _topicController,
+                  suggestionMaxHeight: suggestionMaxHeight,
+                  onSearch: provider.isLoading ? null : _search,
+                  onQueryChanged: provider.isLoading
+                      ? null
+                      : _onQueryChanged,
+                ),
+
+                Consumer<HomeViewModel>(
+                  builder: (context, provider, _) =>
+                      provider.totalResults > 0
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          child: Text(
+                            '${provider.totalResults} results',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                        )
+                      : const SizedBox(),
+                ),
+                Expanded(child: _SearchResultView(provider: provider)),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -177,11 +194,13 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
 
 class _SearchHeader extends StatelessWidget {
   final TextEditingController topicController;
+  final double suggestionMaxHeight;
   final ValueChanged<TopicSuggestion?>? onSearch;
   final ValueChanged<String>? onQueryChanged;
 
   const _SearchHeader({
     required this.topicController,
+    required this.suggestionMaxHeight,
     required this.onSearch,
     required this.onQueryChanged,
   });
@@ -216,6 +235,7 @@ class _SearchHeader extends StatelessWidget {
               },
               child: SearchSuggestionOverlay(
                 controller: topicController,
+                maxHeight: suggestionMaxHeight,
                 onSearch: (topic) => onSearch?.call(topic),
               ),
             ),
@@ -257,9 +277,16 @@ class _SearchResultView extends StatelessWidget {
     }
 
     if (provider.publications.isEmpty) {
-      return const EmptyStateWidget(
-        message: 'Enter a research topic and tap Analyze Topic.',
-        icon: Icons.manage_search,
+      return LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: const EmptyStateWidget(
+              message: 'Enter a research topic and tap Analyze Topic.',
+              icon: Icons.manage_search,
+            ),
+          ),
+        ),
       );
     }
 
