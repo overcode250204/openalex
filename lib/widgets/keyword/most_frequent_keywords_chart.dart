@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/utils/formatters.dart';
+import '../../utils/formatters.dart';
 import '../../models/keyword/keyword_overview.dart';
 import 'charts/animated_keyword_progress_bar.dart';
 import 'charts/keyword_chart_card.dart';

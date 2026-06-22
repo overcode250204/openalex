@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openalex/models/publication.dart';
-import 'package:openalex/providers/publication_provider.dart';
+import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/viewmodels/home_view_model.dart';
 import 'package:openalex/services/history_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
@@ -46,7 +46,7 @@ class _FakeSuggestionService extends SuggestionService {
 
 Widget _buildWithProvider({
   required Widget child,
-  required PublicationProvider provider,
+  required HomeViewModel provider,
 }) {
   return ChangeNotifierProvider.value(
     value: provider,
@@ -61,7 +61,7 @@ Widget _buildWithProvider({
 void main() {
   group('RelatedKeywordsBar', () {
     testWidgets('shows nothing when relatedKeywords is empty', (tester) async {
-      final provider = PublicationProvider(
+      final provider = HomeViewModel(
         _FakeOpenAlexService(),
         historyService: _FakeHistoryService(),
         suggestionService: _FakeSuggestionService(keywords: []),
@@ -81,7 +81,7 @@ void main() {
       final suggestionService = _FakeSuggestionService(
         keywords: ['Machine Learning', 'Deep Learning'],
       );
-      final provider = PublicationProvider(
+      final provider = HomeViewModel(
         _FakeOpenAlexService(),
         historyService: _FakeHistoryService(),
         suggestionService: suggestionService,
@@ -109,7 +109,7 @@ void main() {
       final suggestionService = _FakeSuggestionService(
         keywords: ['Neural Networks'],
       );
-      final provider = PublicationProvider(
+      final provider = HomeViewModel(
         _FakeOpenAlexService(),
         historyService: _FakeHistoryService(),
         suggestionService: suggestionService,

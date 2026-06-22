@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../models/publication.dart';
+import '../models/publication/publication.dart';
 
 class OpenAlexService {
   static const String mailto = 'trandinhbao222@gmail.com';
@@ -67,7 +67,7 @@ class OpenAlexService {
       ...params,
       'mailto': mailto,
     });
-    final response = await http.get(uri);
+    final response = await _client.get(uri);
 
     if (response.statusCode != 200) {
       throw Exception(
@@ -131,7 +131,7 @@ class OpenAlexService {
       final uri = Uri.https('api.openalex.org', '/works/$id', {
         'mailto': mailto,
       });
-      final res = await http.get(uri);
+      final res = await _client.get(uri);
       if (res.statusCode != 200) {
         throw Exception(
           'OpenAlex request failed with status code ${res.statusCode}',
@@ -158,7 +158,7 @@ class OpenAlexService {
         'per-page': '20',
         'mailto': mailto,
       });
-      final res = await http.get(uri);
+      final res = await _client.get(uri);
       if (res.statusCode != 200) return [];
       final data = jsonDecode(res.body);
       return (data['results'] as List)
@@ -181,7 +181,7 @@ class OpenAlexService {
         'page': '$page',
         'mailto': mailto,
       });
-      final res = await http.get(uri);
+      final res = await _client.get(uri);
       if (res.statusCode != 200) return [];
       final data = jsonDecode(res.body);
       return (data['results'] as List)

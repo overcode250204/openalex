@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'package:openalex/models/publication.dart';
+import 'package:openalex/models/publication/publication.dart';
 import 'package:openalex/mappers/zotero_mapper.dart';
 
 class ZoteroService {

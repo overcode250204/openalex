@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:openalex/models/publication.dart';
-import 'package:openalex/models/search_filter.dart';
-import 'package:openalex/providers/analytics_provider.dart';
+import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/models/search/search_filter.dart';
+import 'package:openalex/viewmodels/analytics_view_model.dart';
 import 'package:openalex/services/analytics_service.dart';
 
 class MockAnalyticsService extends Mock implements AnalyticsService {}
@@ -13,11 +13,11 @@ void main() {
   });
 
   late MockAnalyticsService mockService;
-  late AnalyticsProvider provider;
+  late AnalyticsViewModel provider;
 
   setUp(() {
     mockService = MockAnalyticsService();
-    provider = AnalyticsProvider(analyticsService: mockService);
+    provider = AnalyticsViewModel(analyticsService: mockService);
   });
 
   test('initial state', () {

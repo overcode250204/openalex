@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../models/publication.dart';
+import '../models/publication/publication.dart';
 
 class PublicationDetailScreen extends StatelessWidget {
   final Publication publication;

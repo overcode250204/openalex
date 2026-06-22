@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/utils/formatters.dart';
+import '../../utils/formatters.dart';
 import '../../models/keyword/keyword_analysis_paper.dart';
 
 class KeywordPaperListCard extends StatelessWidget {

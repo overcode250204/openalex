@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openalex/providers/keyword_dashboard_provider.dart';
+import 'package:openalex/viewmodels/keyword_dashboard_view_model.dart';
 import 'package:openalex/screens/keyword/keyword_dashboard_screen.dart';
 import 'package:openalex/services/keyword_dashboard_service.dart';
+import 'package:openalex/widgets/state/loading_widget.dart';
 import 'package:openalex/models/keyword/keyword_dashboard_result.dart';
 import 'package:openalex/models/keyword/keyword_frequency_stat.dart';
 import 'package:provider/provider.dart';
 
 class _FakeKeywordDashboardService extends KeywordDashboardService {
   bool fail = false;
-  
+
   @override
   Future<KeywordDashboardResult> fetchKeywordDashboard({
     DateTime? asOf,
@@ -39,7 +40,7 @@ class _FakeKeywordDashboardService extends KeywordDashboardService {
 }
 
 void main() {
-  Widget buildTestWidget(KeywordDashboardProvider provider) {
+  Widget buildTestWidget(KeywordDashboardViewModel provider) {
     return MaterialApp(
       home: ChangeNotifierProvider.value(
         value: provider,
@@ -50,51 +51,68 @@ void main() {
 
   group('KeywordDashboardScreen Tests', () {
     testWidgets('initial empty UI', (tester) async {
-      final provider = KeywordDashboardProvider(_FakeKeywordDashboardService());
+      final provider = KeywordDashboardViewModel(
+        _FakeKeywordDashboardService(),
+      );
       await tester.pumpWidget(buildTestWidget(provider));
       await tester.pump();
-      
+
       expect(find.text('No recent keyword activity found.'), findsWidgets);
     });
 
     testWidgets('loading UI', (tester) async {
-      final provider = KeywordDashboardProvider(_FakeKeywordDashboardService());
+      final provider = KeywordDashboardViewModel(
+        _FakeKeywordDashboardService(),
+      );
       await tester.pumpWidget(buildTestWidget(provider));
-      
-      expect(find.byType(ListView), findsWidgets);
-      
+
+      expect(find.byType(LoadingWidget), findsOneWidget);
+
       await tester.pumpAndSettle();
     });
 
     testWidgets('error UI with retry button', (tester) async {
       final service = _FakeKeywordDashboardService()..fail = true;
-      final provider = KeywordDashboardProvider(service);
+      final provider = KeywordDashboardViewModel(service);
       await tester.pumpWidget(buildTestWidget(provider));
-      
+
       await tester.pumpAndSettle();
-      
-      expect(find.text('Unable to load keyword activity. Please try again.'), findsOneWidget);
+
+      expect(
+        find.text('Unable to load keyword activity. Please try again.'),
+        findsOneWidget,
+      );
       expect(find.text('Try Again'), findsOneWidget);
     });
 
     testWidgets('success UI with dashboard cards', (tester) async {
-      final provider = KeywordDashboardProvider(_FakeKeywordDashboardService());
+      final provider = KeywordDashboardViewModel(
+        _FakeKeywordDashboardService(),
+      );
       await tester.pumpWidget(buildTestWidget(provider));
-      
+
       await tester.pumpAndSettle();
-      
-      expect(find.text('Unable to load keyword activity. Please try again.'), findsNothing);
+
+      expect(
+        find.text('Unable to load keyword activity. Please try again.'),
+        findsNothing,
+      );
     });
 
-    testWidgets('dashboard screen does not show error and empty state together', (tester) async {
-      final service = _FakeKeywordDashboardService()..fail = true;
-      final provider = KeywordDashboardProvider(service);
-      await tester.pumpWidget(buildTestWidget(provider));
-      await tester.pumpAndSettle();
-      
-      expect(find.text('Unable to load keyword activity. Please try again.'), findsOneWidget);
-      expect(find.text('No recent keyword activity found.'), findsNothing);
-    });
+    testWidgets(
+      'dashboard screen does not show error and empty state together',
+      (tester) async {
+        final service = _FakeKeywordDashboardService()..fail = true;
+        final provider = KeywordDashboardViewModel(service);
+        await tester.pumpWidget(buildTestWidget(provider));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('Unable to load keyword activity. Please try again.'),
+          findsOneWidget,
+        );
+        expect(find.text('No recent keyword activity found.'), findsNothing);
+      },
+    );
   });
 }
-

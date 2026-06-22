@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:openalex/models/topic.dart';
-import 'package:openalex/providers/publication_provider.dart';
+import 'package:openalex/models/topic/topic.dart';
+import 'package:openalex/viewmodels/home_view_model.dart';
 import 'package:provider/provider.dart';
 
 class SearchSuggestionOverlay extends StatelessWidget {
@@ -16,7 +16,7 @@ class SearchSuggestionOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Focus(
-      child: Consumer<PublicationProvider>(
+      child: Consumer<HomeViewModel>(
         builder: (context, provider, _) {
           if (!provider.showSuggestions) {
             return const SizedBox.shrink();

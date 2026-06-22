@@ -1,4 +1,4 @@
-import 'package:openalex/models/publication.dart';
+import 'package:openalex/models/publication/publication.dart';
 
 class ZoteroMapper {
   static Map<String, dynamic> fromPublication(Publication p) {

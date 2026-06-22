@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:openalex/models/topic.dart';
-import '../models/journal_suggestion.dart';
+import 'package:openalex/models/topic/topic.dart';
+import '../models/journal/journal_suggestion.dart';
 import '../models/keyword/openalex_keyword.dart';
 
 class SuggestionService {

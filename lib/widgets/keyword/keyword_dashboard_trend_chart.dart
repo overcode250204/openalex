@@ -1,7 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
-import '../../core/utils/formatters.dart';
+import '../../utils/formatters.dart';
 import '../../models/keyword/keyword_trend_point.dart';
 
 enum KeywordTrendRange { fiveYears, tenYears, all }

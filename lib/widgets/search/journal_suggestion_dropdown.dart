@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../models/journal_suggestion.dart';
+import '../../models/journal/journal_suggestion.dart';
 
 class JournalSuggestionDropdown extends StatelessWidget {
   final List<JournalSuggestion> suggestions;

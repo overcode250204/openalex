@@ -1,14 +1,14 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/analytics_provider.dart';
+import '../../viewmodels/analytics_view_model.dart';
 
 class AuthorImpactChart extends StatelessWidget {
   const AuthorImpactChart({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final authors = context.watch<AnalyticsProvider>().authorImpact;
+    final authors = context.watch<AnalyticsViewModel>().authorImpact;
 
     if (authors.isEmpty) {
       return const SizedBox(

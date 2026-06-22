@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openalex/models/publication.dart';
-import 'package:openalex/providers/publication_provider.dart';
+import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/viewmodels/home_view_model.dart';
 import 'package:openalex/services/history_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
@@ -40,8 +40,8 @@ class FakeSuggestionService extends SuggestionService {
   }
 }
 
-PublicationProvider testProvider(OpenAlexService service) {
-  return PublicationProvider(
+HomeViewModel testProvider(OpenAlexService service) {
+  return HomeViewModel(
     service,
     historyService: FakeSearchHistoryService(),
     suggestionService: FakeSuggestionService(),
