@@ -1,3 +1,4 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
@@ -27,7 +28,11 @@ abstract final class AppProviders {
       Provider(create: (_) => OpenAlexService()),
       Provider(create: (_) => OpenAlexKeywordService()),
       Provider(create: (_) => OpenAlexJournalService()),
-      Provider(create: (_) => AnalyticsService()),
+      Provider(
+        create: (_) => AnalyticsService(
+          apiKey: _openAlexApiKey(),
+        ),
+      ),
       Provider(create: (_) => KeywordDashboardService()),
       Provider(create: (_) => SuggestionService()),
       Provider(create: (_) => const TrendReportExportService()),
@@ -76,5 +81,13 @@ abstract final class AppProviders {
         ),
       ),
     ];
+  }
+
+  static String? _openAlexApiKey() {
+    try {
+      return dotenv.env['OPENALEX_API_KEY'];
+    } catch (_) {
+      return null;
+    }
   }
 }

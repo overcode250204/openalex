@@ -28,9 +28,11 @@ abstract final class AppRouter {
       case AppRoutes.profile:
         return _page(const ProfileScreen(), settings);
       case AppRoutes.trendAnalysis:
-        return _page(const TrendAnalysisScreen(), settings);
+        final args = settings.arguments! as TopicAnalyticsRouteArgs;
+        return _page(TrendAnalysisScreen(arguments: args), settings);
       case AppRoutes.dashboard:
-        return _page(const DashboardScreen(), settings);
+        final args = settings.arguments! as TopicAnalyticsRouteArgs;
+        return _page(DashboardScreen(arguments: args), settings);
       case AppRoutes.publicationDetail:
         final args = settings.arguments! as PublicationDetailRouteArgs;
         return _page(
