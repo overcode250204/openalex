@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "489601979984",
+    "project_id": "openalex-34f8f",
+    "storage_bucket": "openalex-34f8f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:489601979984:android:1ba307851b7559ba19a355",
+        "android_client_info": {
+          "package_name": "com.PRM393.openalex"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCh7nq-zBftPY47xGKv6xqjSIB1hfKcGcs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

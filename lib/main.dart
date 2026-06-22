@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:openalex/app/app_providers.dart';
+import 'package:openalex/app/firebase_bootstrap.dart';
 import 'package:openalex/routes/app_router.dart';
 import 'package:openalex/routes/app_routes.dart';
 import 'package:provider/provider.dart';
@@ -9,7 +10,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await dotenv.load(fileName: ".env");
-
+  await FirebaseBootstrap.initialize();
   runApp(const MyApp());
 }
 
