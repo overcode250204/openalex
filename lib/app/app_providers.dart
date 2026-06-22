@@ -12,7 +12,7 @@ import '../services/openalex_keyword_service.dart';
 import '../services/openalex_service.dart';
 import '../services/suggestion_service.dart';
 import '../services/trend_report_export_service.dart';
-import '../services/zotero_serivce.dart';
+import '../services/zotero_service.dart';
 import '../viewmodels/dashboard_view_model.dart';
 import '../viewmodels/keyword_analyzer_view_model.dart';
 import '../viewmodels/selected_topic_view_model.dart';

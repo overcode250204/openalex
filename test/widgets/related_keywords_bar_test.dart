@@ -5,7 +5,7 @@ import 'package:openalex/viewmodels/home_view_model.dart';
 import 'package:openalex/services/history_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
-import 'package:openalex/widgets/related_keyworks_bar.dart';
+import 'package:openalex/widgets/related_keywords_bar.dart';
 import 'package:provider/provider.dart';
 
 // ---------------------------------------------------------------------------

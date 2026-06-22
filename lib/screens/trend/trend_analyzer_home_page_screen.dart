@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:openalex/models/search/search_filter.dart';
 import 'package:openalex/models/topic/topic.dart';
 import 'package:openalex/widgets/filter_bottom_sheet.dart';
-import 'package:openalex/widgets/related_keyworks_bar.dart';
+import 'package:openalex/widgets/related_keywords_bar.dart';
 import 'package:openalex/widgets/search_suggestion_overlay.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';

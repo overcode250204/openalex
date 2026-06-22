@@ -15,7 +15,7 @@ import '../viewmodels/publication_list_view_model.dart';
 import '../viewmodels/journal_publication_detail_view_model.dart';
 import '../services/openalex_journal_service.dart';
 import '../services/openalex_service.dart';
-import '../services/zotero_serivce.dart';
+import '../services/zotero_service.dart';
 import 'app_routes.dart';
 import 'route_arguments.dart';
 

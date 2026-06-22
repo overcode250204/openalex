@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:openalex/models/publication/publication.dart';
 import 'package:openalex/services/openalex_service.dart';
-import 'package:openalex/services/zotero_serivce.dart';
+import 'package:openalex/services/zotero_service.dart';
 
 void main() {
   group('OpenAlexService', () {

@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:openalex/services/openalex_service.dart';
 
 import '../models/publication/publication.dart';
-import '../services/zotero_serivce.dart';
+import '../services/zotero_service.dart';
 
 enum DetailState { idle, loading, success, error }
 
