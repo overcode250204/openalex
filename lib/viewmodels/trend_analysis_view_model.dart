@@ -10,6 +10,7 @@ class TrendAnalysisViewModel extends ChangeNotifier {
     : _service = service ?? OpenAlexService();
 
   String _topic = '';
+  String _topicId = '';
   bool _isInitialized = false;
 
   int? selectedTopPapers = 5;
@@ -35,32 +36,29 @@ class TrendAnalysisViewModel extends ChangeNotifier {
 
   Future<void> initialize({
     required String topic,
-    required Map<int, int> initialTrend,
-    required List<Publication> initialPapers,
-    required Map<String, int> initialJournals,
-    required Map<String, int> initialAuthors,
+    required String topicId,
   }) async {
-    if (topic.trim().isEmpty || (_isInitialized && _topic == topic)) {
+    if (topic.trim().isEmpty ||
+        topicId.trim().isEmpty ||
+        (_isInitialized && _topicId == topicId)) {
       return;
     }
 
     _topic = topic;
+    _topicId = topicId;
     _isInitialized = true;
-    fetchedTrendData = initialTrend;
-    fetchedPapers = initialPapers
-        .take(selectedTopPapers ?? initialPapers.length)
-        .toList();
-    fetchedJournalsData = Map.fromEntries(
-      initialJournals.entries.take(
-        selectedTopJournals ?? initialJournals.length,
-      ),
-    );
-    fetchedAuthorsData = Map.fromEntries(
-      initialAuthors.entries.take(selectedTopAuthors ?? initialAuthors.length),
-    );
+    fetchedTrendData = null;
+    fetchedPapers = null;
+    fetchedJournalsData = null;
+    fetchedAuthorsData = null;
     notifyListeners();
 
-    await loadPublicationTrend();
+    await Future.wait([
+      loadPublicationTrend(),
+      loadInfluentialPapers(limit: selectedTopPapers),
+      loadTopResearchJournals(limit: selectedTopJournals),
+      loadTopContributingAuthors(limit: selectedTopAuthors),
+    ]);
   }
 
   Future<void> updateYearRange({int? fromYear, int? toYear}) async {
@@ -77,7 +75,12 @@ class TrendAnalysisViewModel extends ChangeNotifier {
       }
     }
     notifyListeners();
-    await loadPublicationTrend();
+    await Future.wait([
+      loadPublicationTrend(),
+      loadInfluentialPapers(limit: selectedTopPapers),
+      loadTopResearchJournals(limit: selectedTopJournals),
+      loadTopContributingAuthors(limit: selectedTopAuthors),
+    ]);
   }
 
   Future<void> updateTopPapers(int? limit) async {
@@ -107,6 +110,7 @@ class TrendAnalysisViewModel extends ChangeNotifier {
     try {
       fetchedTrendData = await _service.fetchPublicationTrend(
         keyword: _topic,
+        topicId: _topicId,
         fromYear: selectedFromYear,
         toYear: selectedToYear,
       );
@@ -128,6 +132,9 @@ class TrendAnalysisViewModel extends ChangeNotifier {
       fetchedPapers = await _service.fetchInfluentialPapers(
         keyword: _topic,
         limit: limit,
+        topicId: _topicId,
+        fromYear: selectedFromYear,
+        toYear: selectedToYear,
       );
     } catch (_) {
       hasErrorPapers = true;
@@ -147,6 +154,9 @@ class TrendAnalysisViewModel extends ChangeNotifier {
       fetchedJournalsData = await _service.fetchTopResearchJournals(
         keyword: _topic,
         limit: limit,
+        topicId: _topicId,
+        fromYear: selectedFromYear,
+        toYear: selectedToYear,
       );
     } catch (_) {
       hasErrorJournals = true;
@@ -166,6 +176,9 @@ class TrendAnalysisViewModel extends ChangeNotifier {
       fetchedAuthorsData = await _service.fetchTopContributingAuthors(
         keyword: _topic,
         limit: limit,
+        topicId: _topicId,
+        fromYear: selectedFromYear,
+        toYear: selectedToYear,
       );
     } catch (_) {
       hasErrorAuthors = true;

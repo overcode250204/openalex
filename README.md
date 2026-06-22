@@ -2,6 +2,18 @@
 
 A new Flutter project.
 
+## OpenAlex API setup
+
+Create a free OpenAlex API key at
+https://openalex.org/settings/api and add it to the existing `.env` file:
+
+```text
+OPENALEX_API_KEY=your_key_here
+```
+
+The app can make limited requests without a key, but topic summary analytics
+may hit the anonymous daily budget and show a retryable error.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

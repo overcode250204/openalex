@@ -19,7 +19,7 @@ class OpenAlexService {
   }) async {
     final trimmedKeyword = keyword.trim();
 
-    if (trimmedKeyword.isEmpty) {
+    if (trimmedKeyword.isEmpty && (topicIds == null || topicIds.isEmpty)) {
       return (0, <Publication>[]);
     }
 
@@ -199,9 +199,14 @@ class OpenAlexService {
   Future<List<Publication>> fetchInfluentialPapers({
     required String keyword,
     int? limit,
+    String? topicId,
+    int? fromYear,
+    int? toYear,
   }) async {
     final queryParams = {
-      'search': keyword,
+      if (topicId == null || topicId.trim().isEmpty) 'search': keyword,
+      if (topicId != null && topicId.trim().isNotEmpty)
+        'filter': _topicAnalyticsFilter(topicId, fromYear, toYear),
       'sort': 'cited_by_count:desc',
       'per-page': limit == null ? '200' : limit.toString(),
       'mailto': mailto,
@@ -225,11 +230,16 @@ class OpenAlexService {
   Future<Map<String, int>> fetchTopResearchJournals({
     required String keyword,
     int? limit,
+    String? topicId,
+    int? fromYear,
+    int? toYear,
   }) async {
     final queryParams = {
-      'search': keyword,
-      'sort': 'cited_by_count:desc',
-      'per-page': '200',
+      if (topicId == null || topicId.trim().isEmpty) 'search': keyword,
+      if (topicId != null && topicId.trim().isNotEmpty)
+        'filter': _topicAnalyticsFilter(topicId, fromYear, toYear),
+      'group_by': 'primary_location.source.id',
+      'per-page': (limit ?? 20).clamp(1, 20).toString(),
       'mailto': mailto,
     };
 
@@ -241,34 +251,22 @@ class OpenAlexService {
     }
 
     final Map<String, dynamic> body = jsonDecode(response.body);
-    final List<dynamic> results = body['results'] as List<dynamic>? ?? [];
-
-    final Map<String, int> journals = {};
-    for (final work in results) {
-      final journalName =
-          work['primary_location']?['source']?['display_name'] ??
-          'Unknown Journal';
-      journals[journalName] = (journals[journalName] ?? 0) + 1;
-    }
-
-    final sortedEntries = journals.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-
-    final selectedEntries = limit == null
-        ? sortedEntries
-        : sortedEntries.take(limit).toList();
-
-    return Map.fromEntries(selectedEntries);
+    return _parseGroupBy(body);
   }
 
   Future<Map<String, int>> fetchTopContributingAuthors({
     required String keyword,
     int? limit,
+    String? topicId,
+    int? fromYear,
+    int? toYear,
   }) async {
     final queryParams = {
-      'search': keyword,
-      'sort': 'cited_by_count:desc',
-      'per-page': '200',
+      if (topicId == null || topicId.trim().isEmpty) 'search': keyword,
+      if (topicId != null && topicId.trim().isNotEmpty)
+        'filter': _topicAnalyticsFilter(topicId, fromYear, toYear),
+      'group_by': 'authorships.author.id',
+      'per-page': (limit ?? 20).clamp(1, 20).toString(),
       'mailto': mailto,
     };
 
@@ -280,33 +278,14 @@ class OpenAlexService {
     }
 
     final Map<String, dynamic> body = jsonDecode(response.body);
-    final List<dynamic> results = body['results'] as List<dynamic>? ?? [];
-
-    final Map<String, int> authors = {};
-    for (final work in results) {
-      final authorships = work['authorships'] as List<dynamic>? ?? [];
-      for (final authorship in authorships) {
-        final name = authorship['author']?['display_name'];
-        if (name != null) {
-          authors[name] = (authors[name] ?? 0) + 1;
-        }
-      }
-    }
-
-    final sortedEntries = authors.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-
-    final selectedEntries = limit == null
-        ? sortedEntries
-        : sortedEntries.take(limit).toList();
-
-    return Map.fromEntries(selectedEntries);
+    return _parseGroupBy(body);
   }
 
   Future<Map<int, int>> fetchPublicationTrend({
     required String keyword,
     int fromYear = 2014,
     int? toYear,
+    String? topicId,
   }) async {
     final trimmedKeyword = keyword.trim();
 
@@ -317,8 +296,10 @@ class OpenAlexService {
     final endYear = toYear ?? DateTime.now().year;
 
     final queryParams = {
-      'search': trimmedKeyword,
-      'filter': 'publication_year:$fromYear-$endYear',
+      if (topicId == null || topicId.trim().isEmpty) 'search': trimmedKeyword,
+      'filter': topicId == null || topicId.trim().isEmpty
+          ? 'from_publication_date:$fromYear-01-01,to_publication_date:$endYear-12-31'
+          : _topicAnalyticsFilter(topicId, fromYear, endYear),
       'group_by': 'publication_year',
       'mailto': mailto,
     };
@@ -355,5 +336,28 @@ class OpenAlexService {
     }
 
     return completedTrend;
+  }
+
+  String _topicAnalyticsFilter(String topicId, int? fromYear, int? toYear) {
+    final filters = <String>[
+      'topics.id:${_normalizeId(topicId)}',
+      if (fromYear != null) 'from_publication_date:$fromYear-01-01',
+      if (toYear != null) 'to_publication_date:$toYear-12-31',
+    ];
+    return filters.join(',');
+  }
+
+  Map<String, int> _parseGroupBy(Map<String, dynamic> body) {
+    final groups = body['group_by'] as List<dynamic>? ?? const [];
+    return Map.fromEntries(
+      groups.whereType<Map<String, dynamic>>().map(
+        (group) => MapEntry(
+          group['key_display_name']?.toString() ??
+              group['key']?.toString() ??
+              'Unknown',
+          (group['count'] as num? ?? 0).toInt(),
+        ),
+      ),
+    );
   }
 }
