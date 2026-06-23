@@ -14,6 +14,9 @@ abstract class AuthService {
 }
 
 class FirebaseAuthService implements AuthService {
+  static const _webClientId =
+      '489601979984-4419hccstvn5aaeprf41u7slbvbjrjsd.apps.googleusercontent.com';
+
   FirebaseAuthService({FirebaseAuth? firebaseAuth, GoogleSignIn? googleSignIn})
     : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
       _googleSignIn = googleSignIn ?? GoogleSignIn.instance;
@@ -52,9 +55,14 @@ class FirebaseAuthService implements AuthService {
     final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
 
     final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+    final idToken = googleAuth.idToken;
+
+    if (idToken == null || idToken.isEmpty) {
+      throw const GoogleSignInIdTokenException();
+    }
 
     final OAuthCredential credential = GoogleAuthProvider.credential(
-      idToken: googleAuth.idToken,
+      idToken: idToken,
     );
 
     final UserCredential userCredential = await _firebaseAuth
@@ -82,7 +90,11 @@ class FirebaseAuthService implements AuthService {
       return;
     }
 
-    await _googleSignIn.initialize();
+    await _googleSignIn.initialize(serverClientId: _webClientId);
     _isGoogleSignInInitialized = true;
   }
+}
+
+class GoogleSignInIdTokenException implements Exception {
+  const GoogleSignInIdTokenException();
 }

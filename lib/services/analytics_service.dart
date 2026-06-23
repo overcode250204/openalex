@@ -36,10 +36,12 @@ class AnalyticsService {
       _apiKey = apiKey?.trim().isEmpty == true ? null : apiKey?.trim();
 
   Future<Map<String, dynamic>> _getJson(Map<String, String> params) async {
-    final uri = Uri.https('api.openalex.org', '/works', {
-      ...params,
-      if (_apiKey != null) 'api_key': _apiKey!,
-    });
+    final apiKey = _apiKey;
+    final queryParams = {...params};
+    if (apiKey != null) {
+      queryParams['api_key'] = apiKey;
+    }
+    final uri = Uri.https('api.openalex.org', '/works', queryParams);
     final response = await _client.get(uri);
     if (response.statusCode != 200) {
       throw Exception(
@@ -58,12 +60,17 @@ class AnalyticsService {
     final normalizedTopicId = topicId
         ?.replaceAll('https://openalex.org/', '')
         .trim();
+    final topicFilter = normalizedTopicId?.isNotEmpty == true
+        ? 'primary_topic.id:$normalizedTopicId'
+        : null;
     final filters = <String>[
-      if (normalizedTopicId != null && normalizedTopicId.isNotEmpty)
-        'topics.id:$normalizedTopicId',
-      if (filter.yearFrom != null)
-        'from_publication_date:${filter.yearFrom}-01-01',
-      if (filter.yearTo != null) 'to_publication_date:${filter.yearTo}-12-31',
+      ?topicFilter,
+      if (filter.yearFrom != null && filter.yearTo != null)
+        'publication_year:${filter.yearFrom}-${filter.yearTo}'
+      else if (filter.yearFrom != null)
+        'publication_year:>${filter.yearFrom}'
+      else if (filter.yearTo != null)
+        'publication_year:<${filter.yearTo}',
       if (filter.isOpenAccess != null) 'is_oa:${filter.isOpenAccess}',
       if (filter.language?.trim().isNotEmpty == true)
         'language:${filter.language}',
@@ -71,8 +78,7 @@ class AnalyticsService {
         'type:${filter.documentType.name}',
     ];
     final params = <String, String>{
-      if (normalizedTopicId == null || normalizedTopicId.isEmpty)
-        'search': keyword.trim(),
+      if (normalizedTopicId?.isNotEmpty != true) 'search': keyword.trim(),
       if (filters.isNotEmpty) 'filter': filters.join(','),
       'mailto': _mailto,
     };

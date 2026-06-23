@@ -29,6 +29,7 @@ class HomeViewModel extends ChangeNotifier {
   String? _errorMessage;
   String _currentTopic = '';
   String? _currentTopicId;
+  List<String> _currentTopicIds = [];
 
   // Lưu topic OpenAlex đã resolve để loadMore/filter không làm mất topicId.
   TopicSuggestion? _selectedTopic;
@@ -51,6 +52,7 @@ class HomeViewModel extends ChangeNotifier {
 
   String get currentTopic => _currentTopic;
   String? get currentTopicId => _currentTopicId;
+  List<String> get currentTopicIds => List.unmodifiable(_currentTopicIds);
 
   SearchFilter get filter => _filter;
   bool get hasMore => _hasMore;
@@ -84,9 +86,22 @@ class HomeViewModel extends ChangeNotifier {
       }
     }
 
-    // Không trùng tuyệt đối thì dùng suggestion đầu tiên,
-    // vì đây là topic OpenAlex hợp lệ có ID thật.
-    return suggestions.first;
+    return null;
+  }
+
+  Future<List<String>> _resolveTopicIds(
+    String keyword,
+    TopicSuggestion? resolvedTopic,
+  ) async {
+    if (resolvedTopic != null) {
+      return [resolvedTopic.id.replaceAll('https://openalex.org/', '')];
+    }
+
+    try {
+      return await _openAlexService.getTopicIdsFromKeyword(keyword);
+    } catch (_) {
+      return [];
+    }
   }
 
   Future<void> searchPublications({
@@ -126,19 +141,19 @@ class HomeViewModel extends ChangeNotifier {
         'https://openalex.org/',
         '',
       );
+      _currentTopicIds = await _resolveTopicIds(_currentTopic, resolvedTopic);
+      _currentTopicId ??= _currentTopicIds.length == 1
+          ? _currentTopicIds.single
+          : null;
 
       _selectedTopicViewModel?.setTopic(
         _currentTopic,
         suggestion: resolvedTopic,
       );
 
-      final topicIds = _currentTopicId == null
-          ? <String>[]
-          : <String>[_currentTopicId!];
-
       final (total, result) = await _openAlexService.searchPublications(
         keyword: _currentTopic,
-        topicIds: topicIds,
+        topicIds: _currentTopicIds,
       );
 
       _totalResults = total;
@@ -149,6 +164,7 @@ class HomeViewModel extends ChangeNotifier {
       _currentPage = 2;
     } catch (_) {
       _currentTopicId = null;
+      _currentTopicIds = [];
       _selectedTopic = null;
       _publications = [];
       _totalResults = 0;
@@ -341,17 +357,17 @@ class HomeViewModel extends ChangeNotifier {
         'https://openalex.org/',
         '',
       );
+      _currentTopicIds = await _resolveTopicIds(_currentTopic, effectiveTopic);
+      _currentTopicId ??= _currentTopicIds.length == 1
+          ? _currentTopicIds.single
+          : null;
 
       _selectedTopicViewModel?.setTopic(
         _currentTopic,
         suggestion: effectiveTopic,
       );
 
-      final topicIds = _currentTopicId == null
-          ? <String>[]
-          : <String>[_currentTopicId!];
-
-      final params = _filter.toQueryParams(_currentTopic, topicIds);
+      final params = _filter.toQueryParams(_currentTopic, _currentTopicIds);
       params['page'] = _currentPage.toString();
 
       final (total, result) = await _openAlexService.searchWithFilter(params);
@@ -373,12 +389,11 @@ class HomeViewModel extends ChangeNotifier {
       _hasMore = result.length >= 50;
       _currentPage++;
     } catch (_) {
-      if (resetPage) {
-        _currentTopicId = null;
-        _selectedTopic = null;
-        _publications = [];
-        _totalResults = 0;
-      }
+      _currentTopicId = null;
+      _currentTopicIds = [];
+      _selectedTopic = null;
+      _publications = [];
+      _totalResults = 0;
 
       _errorMessage = 'Cannot load publications. Please try again.';
     } finally {

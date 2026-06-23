@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/main.dart';
+import 'package:openalex/models/analytics/topic_analytics.dart';
 import 'package:openalex/models/publication/publication.dart';
 import 'package:openalex/models/search/search_filter.dart';
 import 'package:openalex/models/topic/topic.dart';
+import 'package:openalex/routes/route_arguments.dart';
 import 'package:openalex/viewmodels/analytics_view_model.dart';
 import 'package:openalex/viewmodels/dashboard_view_model.dart';
 import 'package:openalex/viewmodels/publication_detail_view_model.dart';
@@ -61,25 +63,48 @@ class FakeTrendService extends OpenAlexService {
     required String keyword,
     int fromYear = 2014,
     int? toYear,
+    String? topicId,
   }) async => {2023: 1, 2024: 1};
 
   @override
   Future<List<Publication>> fetchInfluentialPapers({
     required String keyword,
     int? limit,
-  }) async => [];
+    String? topicId,
+    int? fromYear,
+    int? toYear,
+  }) async => [
+    Publication(
+      id: 'W1',
+      title: 'Influential',
+      publicationYear: 2024,
+      citedByCount: 30,
+      journalName: 'Journal of Widgets',
+      doi: null,
+      abstractText: null,
+      authors: const ['Ada Lovelace'],
+      referencedWorkIds: const [],
+      relatedWorkIds: const [],
+    ),
+  ];
 
   @override
   Future<Map<String, int>> fetchTopResearchJournals({
     required String keyword,
     int? limit,
-  }) async => {};
+    String? topicId,
+    int? fromYear,
+    int? toYear,
+  }) async => {'Journal of Widgets': 2};
 
   @override
   Future<Map<String, int>> fetchTopContributingAuthors({
     required String keyword,
     int? limit,
-  }) async => {};
+    String? topicId,
+    int? fromYear,
+    int? toYear,
+  }) async => {'Ada Lovelace': 2};
 }
 
 class FakeSearchHistoryService extends SearchHistoryService {
@@ -106,8 +131,12 @@ class FakeSuggestionService extends SuggestionService {
 
 class FakeAnalyticsService extends AnalyticsService {
   @override
-  Future<AnalyticsResult> fetchAll(String keyword, SearchFilter filter) async {
-    return const AnalyticsResult(
+  Future<TopicAnalytics> fetchAll(
+    String keyword,
+    SearchFilter filter, {
+    String? topicId,
+  }) async {
+    return const TopicAnalytics(
       publicationTrend: {2023: 1, 2024: 1},
       topKeywords: {'Artificial Intelligence': 2},
       institutionRanking: {},
@@ -115,8 +144,46 @@ class FakeAnalyticsService extends AnalyticsService {
       topJournals: {'Journal of Widgets': 2},
       topAuthors: {'Ada Lovelace': 2},
       totalWorks: 2,
-      mostCitedTitle: 'Top Paper',
-      mostCitedCount: 20,
+      analyzedWorks: 2,
+      totalCitations: 24,
+      mostInfluentialPaper: InfluentialPaperSummary(
+        id: 'W1',
+        title: 'Top Paper',
+        citedByCount: 20,
+        publicationYear: 2024,
+      ),
+      authorImpact: [
+        AuthorImpactSummary(
+          name: 'Ada Lovelace',
+          paperCount: 2,
+          totalCitations: 24,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<TopicAnalytics> fetchSummary(
+    String keyword,
+    SearchFilter filter, {
+    String? topicId,
+  }) async {
+    return const TopicAnalytics(
+      publicationTrend: {2023: 1, 2024: 1},
+      topKeywords: {},
+      institutionRanking: {},
+      countryOutput: {},
+      topJournals: {'Journal of Widgets': 2},
+      topAuthors: {'Ada Lovelace': 2},
+      totalWorks: 2,
+      analyzedWorks: 2,
+      totalCitations: 24,
+      mostInfluentialPaper: InfluentialPaperSummary(
+        id: 'W1',
+        title: 'Top Paper',
+        citedByCount: 20,
+        publicationYear: 2024,
+      ),
     );
   }
 }
@@ -180,6 +247,8 @@ Widget appWithProvider(Widget child, HomeViewModel provider) {
 }
 
 void main() {
+  const topicArgs = TopicAnalyticsRouteArgs(topicId: 'T1', topicName: 'AI');
+
   testWidgets('MyApp shows the search experience', (tester) async {
     await tester.pumpWidget(
       MyApp(authService: FakeAuthService(initialUser: fakeUser())),
@@ -271,24 +340,29 @@ void main() {
   ) async {
     final emptyProvider = HomeViewModel(FakeOpenAlexService([], 1));
     await tester.pumpWidget(
-      appWithProvider(const DashboardScreen(), emptyProvider),
+      appWithProvider(
+        const DashboardScreen(arguments: topicArgs),
+        emptyProvider,
+      ),
     );
     await tester.pumpAndSettle();
-    expect(
-      find.text('Search a topic first to view dashboard.'),
-      findsOneWidget,
-    );
+    expect(find.text('Dashboard: AI'), findsOneWidget);
 
     final provider = await seededProvider([
       publication(title: 'Top Paper', citations: 20, year: 2024),
       publication(title: 'Other Paper', citations: 4, year: 2023),
     ]);
-    await tester.pumpWidget(appWithProvider(const DashboardScreen(), provider));
+    await tester.pumpWidget(
+      appWithProvider(const DashboardScreen(arguments: topicArgs), provider),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Dashboard: AI'), findsOneWidget);
     expect(find.text('Total Publications'), findsOneWidget);
-    expect(find.text('Highest Citations'), findsOneWidget);
+    expect(
+      find.text('Average Citations (OpenAlex grouped sample)'),
+      findsOneWidget,
+    );
     expect(find.text('Most Influential Paper'), findsOneWidget);
     expect(find.text('Top Paper'), findsOneWidget);
   });
@@ -300,30 +374,18 @@ void main() {
     ]);
 
     await tester.pumpWidget(
-      appWithProvider(const TrendAnalysisScreen(), provider),
+      appWithProvider(
+        const TrendAnalysisScreen(arguments: topicArgs),
+        provider,
+      ),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('Publication Trend: AI'), findsOneWidget);
 
     expect(find.text('Top Influential Papers'), findsOneWidget);
-
-    await tester.scrollUntilVisible(
-      find.text('Top Research Journals'),
-      300,
-      scrollable: find.byType(Scrollable),
-    );
-
     expect(find.text('Top Research Journals'), findsOneWidget);
-
-    await tester.scrollUntilVisible(
-      find.text('Top Contributing Authors'),
-      300,
-      scrollable: find.byType(Scrollable),
-    );
-
     expect(find.text('Top Contributing Authors'), findsOneWidget);
-
     expect(find.text('Influential'), findsOneWidget);
   });
 
