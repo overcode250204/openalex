@@ -2,19 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/search/search_filter.dart';
+import '../../routes/app_routes.dart';
+import '../../routes/route_arguments.dart';
 import '../../viewmodels/analytics_view_model.dart';
 import '../../viewmodels/dashboard_view_model.dart';
 import '../../viewmodels/home_view_model.dart';
+import '../../viewmodels/selected_topic_view_model.dart';
 import '../../utils/app_keys.dart';
 import '../../widgets/analytics/author_impact_chart.dart';
 import '../../widgets/analytics/citation_trend_chart.dart';
 import '../../widgets/analytics/country_output_chart.dart';
 import '../../widgets/analytics/institution_ranking_chart.dart';
 import '../../widgets/analytics/top_keywords_chart.dart';
-import '../../widgets/summary_card.dart';
+import '../../widgets/analytics/topic_summary_grid.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final TopicAnalyticsRouteArgs arguments;
+
+  const DashboardScreen({super.key, required this.arguments});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -26,34 +31,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int? _yearTo = DateTime.now().year;
 
   /// The base search filter with the dashboard's year range applied on top.
-  SearchFilter _effectiveFilter(HomeViewModel provider) {
-    final base = provider.filter;
+  SearchFilter _effectiveFilter() {
     return SearchFilter(
       yearFrom: _yearFrom,
       yearTo: _yearTo,
-      isOpenAccess: base.isOpenAccess,
-      language: base.language,
-      documentType: base.documentType,
-      sortOption: base.sortOption,
     );
   }
 
   /// Refetches full-dataset analytics whenever the topic or year range changes.
-  void _syncAnalytics(HomeViewModel provider) {
-    if (provider.publications.isEmpty) return;
-
-    final filter = _effectiveFilter(provider);
+  void _syncAnalytics() {
+    final filter = _effectiveFilter();
     final signature =
-        '${provider.currentTopic}|${filter.yearFrom}|${filter.yearTo}';
+        '${widget.arguments.topicId}|${filter.yearFrom}|${filter.yearTo}';
     if (signature == _lastSignature) return;
     _lastSignature = signature;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<AnalyticsViewModel>().fetchAnalytics(
-        provider.currentTopic,
+        widget.arguments.topicName,
         filter,
-        provider.publications,
+        const [],
+        topicId: widget.arguments.topicId,
       );
     });
   }
@@ -88,100 +87,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final provider = context.watch<HomeViewModel>();
     final analytics = context.watch<AnalyticsViewModel>();
 
-    _syncAnalytics(provider);
+    _syncAnalytics();
 
     final loading = analytics.isLoading;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Research Dashboard')),
-      body: provider.publications.isEmpty
-          ? const Center(child: Text('Search a topic first to view dashboard.'))
-          : ListView(
+      body: ListView(
               padding: const EdgeInsets.all(16),
               children: [
                 Text(
-                  'Dashboard: ${provider.currentTopic}',
+                  'Dashboard: ${widget.arguments.topicName}',
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
-                IntrinsicHeight(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _MetricTile(
-                          label: 'Total Publications',
-                          value: loading
-                              ? '…'
-                              : _compactNumber(
-                                  analytics.totalWorks > 0
-                                      ? analytics.totalWorks
-                                      : provider.totalResults,
-                                ),
-                          icon: Icons.public,
-                          color: Colors.teal,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _MetricTile(
-                          label: 'Most Active Year',
-                          value: loading
-                              ? '…'
-                              : (analytics.mostActiveYear?.toString() ?? 'N/A'),
-                          icon: Icons.calendar_month,
-                          color: Colors.purple,
-                        ),
-                      ),
-                    ],
+                if (analytics.error != null) ...[
+                  _AnalyticsErrorBanner(
+                    onRetry: () {
+                      _lastSignature = null;
+                      _syncAnalytics();
+                    },
                   ),
-                ),
-                const SizedBox(height: 12),
-                IntrinsicHeight(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _MetricTile(
-                          label: 'Highest Citations',
-                          value: loading
-                              ? '…'
-                              : (analytics.mostCitedCount > 0
-                                    ? _compactNumber(analytics.mostCitedCount)
-                                    : 'N/A'),
-                          icon: Icons.local_fire_department_outlined,
-                          color: Colors.orange,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _MetricTile(
-                          label: 'Top Keyword',
-                          value: loading
-                              ? '…'
-                              : (analytics.topKeywordName ?? 'N/A'),
-                          icon: Icons.tag,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SummaryCard(
-                  title: 'Top Journal',
-                  value: loading ? '…' : (analytics.topJournalName ?? 'N/A'),
-                  icon: Icons.menu_book,
-                ),
-                SummaryCard(
-                  title: 'Top Author',
-                  value: loading ? '…' : (analytics.topAuthorName ?? 'N/A'),
-                  icon: Icons.person,
-                ),
-                SummaryCard(
-                  title: 'Most Influential Paper',
-                  value: loading ? '…' : (analytics.mostCitedTitle ?? 'N/A'),
-                  icon: Icons.workspace_premium,
+                  const SizedBox(height: 12),
+                ],
+                TopicSummaryGrid(
+                  isLoading: loading,
+                  totalPublications: analytics.hasLoaded
+                      ? _compactNumber(analytics.totalWorks)
+                      : 'N/A',
+                  averageCitations:
+                      analytics.averageCitations?.toStringAsFixed(1) ?? 'N/A',
+                  averageCitationsLabel: analytics.averageCitationsLabel,
+                  mostActiveYear:
+                      analytics.mostActiveYear?.toString() ?? 'N/A',
+                  topAuthor: analytics.topAuthorName ?? 'N/A',
+                  topJournal: analytics.topJournalName ?? 'N/A',
+                  mostInfluentialPaper: analytics.mostCitedTitle ?? 'N/A',
+                  influentialPaperDetails: _influentialPaperDetails(analytics),
+                  onInfluentialPaperTap:
+                      analytics.mostInfluentialPaper?.id.isNotEmpty == true
+                      ? () {
+                          final paper = analytics.mostInfluentialPaper!;
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.publicationDetail,
+                            arguments: PublicationDetailRouteArgs(
+                              workId: paper.id,
+                              initialTitle: paper.title,
+                            ),
+                          );
+                        }
+                      : null,
                 ),
                 const SizedBox(height: 24),
                 Text(
@@ -279,54 +237,33 @@ String _compactNumber(int n) {
   return n.toString();
 }
 
-class _MetricTile extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final MaterialColor color;
+String? _influentialPaperDetails(AnalyticsViewModel analytics) {
+  final paper = analytics.mostInfluentialPaper;
+  if (paper == null) return null;
+  final year = paper.publicationYear?.toString() ?? 'Unknown year';
+  return '${_compactNumber(paper.citedByCount)} citations • $year';
+}
 
-  const _MetricTile({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
+class _AnalyticsErrorBanner extends StatelessWidget {
+  final VoidCallback onRetry;
+
+  const _AnalyticsErrorBanner({required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.shade50,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, size: 20, color: color.shade700),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-          ),
-        ],
+    return Material(
+      color: Theme.of(context).colorScheme.errorContainer,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline),
+            const SizedBox(width: 8),
+            const Expanded(child: Text('Unable to load topic analytics.')),
+            TextButton(onPressed: onRetry, child: const Text('Retry')),
+          ],
+        ),
       ),
     );
   }
