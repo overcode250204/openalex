@@ -24,7 +24,9 @@ class TopKeywordsChart extends StatelessWidget {
       );
     }
 
-    if (data.isEmpty) return const SizedBox.shrink();
+    if (data.isEmpty) {
+      return const SizedBox.shrink();
+    }
 
     final entries = data.entries.toList();
     final maxVal = entries.first.value.toDouble();
@@ -85,8 +87,9 @@ class TopKeywordsChart extends StatelessWidget {
                             reservedSize: 36,
                             getTitlesWidget: (v, meta) {
                               final idx = v.toInt();
-                              if (idx < 0 || idx >= entries.length)
+                              if (idx < 0 || idx >= entries.length) {
                                 return const SizedBox();
+                              }
                               final label = entries[idx].key;
                               return Padding(
                                 padding: const EdgeInsets.only(top: 6),

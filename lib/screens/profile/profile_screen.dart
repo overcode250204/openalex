@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../utils/app_keys.dart';
+import '../../viewmodels/auth_view_model.dart';
 import '../../viewmodels/selected_topic_view_model.dart';
 
-/// Profile shell kept intentionally lightweight until authentication is added.
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthViewModel>();
+    final user = auth.currentUser;
     final selectedTopic = context.watch<SelectedTopicViewModel>();
 
     return Scaffold(
@@ -19,11 +21,16 @@ class ProfileScreen extends StatelessWidget {
         children: [
           Card(
             child: ListTile(
-              leading: const Icon(Icons.person_outline),
-              title: const Text('Research profile'),
-              subtitle: const Text(
-                'Authentication is not configured for this lab project.',
+              leading: CircleAvatar(
+                backgroundImage: user?.photoUrl == null
+                    ? null
+                    : NetworkImage(user!.photoUrl!),
+                child: user?.photoUrl == null
+                    ? const Icon(Icons.person_outline)
+                    : null,
               ),
+              title: Text(user?.displayName ?? 'Research profile'),
+              subtitle: Text(user?.email ?? 'Signed in with Google'),
             ),
           ),
           const SizedBox(height: 12),
@@ -46,9 +53,9 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(height: 24),
           OutlinedButton.icon(
             key: AppKeys.logoutButton,
-            onPressed: null,
+            onPressed: auth.isLoading ? null : auth.signOut,
             icon: const Icon(Icons.logout),
-            label: const Text('Logout requires authentication'),
+            label: Text(auth.isLoading ? 'Signing out...' : 'Sign out'),
           ),
         ],
       ),

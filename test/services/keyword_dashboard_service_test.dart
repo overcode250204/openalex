@@ -17,14 +17,6 @@ void main() {
           final groupBy = query['group_by'];
           final filter = query['filter'] ?? '';
 
-          print(
-            '[MOCK dashboard] '
-            'path=$path | '
-            'group_by=$groupBy | '
-            'filter=$filter | '
-            'url=${request.url}',
-          );
-
           if (path != '/works') {
             throw StateError('Unhandled request: ${request.url}');
           }
@@ -82,12 +74,6 @@ void main() {
       );
 
       final result = await service.fetchKeywordDashboard();
-
-      print(
-        '[TEST result] '
-        'mostFrequent=${result.mostFrequentKeywords.length}, '
-        'trending=${result.trendingKeywords.length}',
-      );
 
       expect(result.mostFrequentKeywords, isNotEmpty);
       expect(result.trendingKeywords, isNotEmpty);

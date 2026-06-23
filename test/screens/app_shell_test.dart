@@ -8,6 +8,7 @@ import 'package:openalex/models/keyword/keyword_analysis_result.dart';
 import 'package:openalex/models/keyword/keyword_trend_point.dart';
 import 'package:openalex/models/publication/publication.dart';
 import 'package:openalex/models/topic/topic.dart';
+import 'package:openalex/viewmodels/auth_view_model.dart';
 import 'package:openalex/viewmodels/journal_view_model.dart';
 import 'package:openalex/viewmodels/publication_detail_view_model.dart';
 import 'package:openalex/viewmodels/home_view_model.dart';
@@ -23,6 +24,8 @@ import 'package:openalex/services/keyword_dashboard_service.dart';
 import 'package:openalex/models/keyword/keyword_dashboard_result.dart';
 import 'package:openalex/models/keyword/keyword_frequency_stat.dart';
 import 'package:provider/provider.dart';
+
+import '../fakes/fake_auth_service.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes – minimal service stubs so screens don't make real HTTP calls
@@ -117,12 +120,15 @@ class _FakeKeywordDashboardService extends KeywordDashboardService {
 // Helper: wrap AppShell with all required providers
 // ---------------------------------------------------------------------------
 
-Widget _appShellWidget({
-  List<TopicSuggestion> topicSuggestions = const [],
-}) {
+Widget _appShellWidget({List<TopicSuggestion> topicSuggestions = const []}) {
   final openAlexService = _FakeOpenAlexService();
   return MultiProvider(
     providers: [
+      ChangeNotifierProvider(
+        create: (_) => AuthViewModel(
+          authService: FakeAuthService(initialUser: fakeUser()),
+        ),
+      ),
       ChangeNotifierProvider(create: (_) => SelectedTopicViewModel()),
       ChangeNotifierProvider(
         create: (_) => HomeViewModel(
@@ -169,7 +175,11 @@ void main() {
     testWidgets('MyApp entry point also renders Trend Analyzer', (
       tester,
     ) async {
-      await tester.pumpWidget(const MyApp());
+      await tester.pumpWidget(
+        MyApp(authService: FakeAuthService(initialUser: fakeUser())),
+      );
+      await tester.pump();
+      await tester.pump();
       await tester.pump();
 
       expect(find.text('Trend Analyzer'), findsOneWidget);
@@ -192,11 +202,10 @@ void main() {
           ),
         );
 
-        await tester.pumpWidget(
-          _appShellWidget(topicSuggestions: suggestions),
-        );
+        await tester.pumpWidget(_appShellWidget(topicSuggestions: suggestions));
         await tester.tap(find.byType(TextField).first);
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump();
 
         expect(find.text('Suggestion'), findsOneWidget);
         expect(find.text('Analyze Topic'), findsOneWidget);
@@ -207,9 +216,7 @@ void main() {
         expect(find.text('Home'), findsOneWidget);
         expect(
           find.descendant(
-            of: find.byKey(
-              const Key('search_suggestion_overlay_content'),
-            ),
+            of: find.byKey(const Key('search_suggestion_overlay_content')),
             matching: find.byType(Scrollable),
           ),
           findsOneWidget,
@@ -227,7 +234,7 @@ void main() {
       await tester.pump();
 
       await tester.tap(find.text('Keywords'));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // KeywordAnalyzerPage has 'Keyword Analyzer' label
       expect(find.text('Keyword Analyzer'), findsOneWidget);
@@ -238,7 +245,7 @@ void main() {
       await tester.pump();
 
       await tester.tap(find.text('Journal'));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // JournalSearchScreen renders a search field
       expect(find.text('Journal Search'), findsOneWidget);

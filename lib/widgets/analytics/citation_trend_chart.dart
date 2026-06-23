@@ -92,8 +92,9 @@ class CitationTrendChart extends StatelessWidget {
                         ),
                         getTitlesWidget: (v, meta) {
                           final idx = v.toInt();
-                          if (idx < 0 || idx >= years.length)
+                          if (idx < 0 || idx >= years.length) {
                             return const SizedBox();
+                          }
                           return Text(
                             years[idx].toString(),
                             style: const TextStyle(fontSize: 10),
