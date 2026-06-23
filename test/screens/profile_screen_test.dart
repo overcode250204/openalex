@@ -60,7 +60,9 @@ void main() {
     expect(find.text('reader@example.com'), findsOneWidget);
   });
 
-  testWidgets('renders selected topic and sign out action', (tester) async {
+  testWidgets('renders selected topic and opens sign out confirmation', (
+    tester,
+  ) async {
     final selectedTopic = SelectedTopicViewModel()
       ..setTopic('Artificial Intelligence');
     final authService = FakeAuthService(initialUser: fakeUser());
@@ -70,9 +72,52 @@ void main() {
     );
 
     expect(find.text('Artificial Intelligence'), findsOneWidget);
+    expect(find.byKey(AppKeys.logoutButton), findsOneWidget);
 
     await tester.tap(find.byKey(AppKeys.logoutButton));
-    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sign out?'), findsOneWidget);
+    expect(
+      find.text(
+        'You will need to sign in again to access your research dashboard.',
+      ),
+      findsOneWidget,
+    );
+    expect(authService.signOutCount, 0);
+  });
+
+  testWidgets('does not sign out when confirmation is cancelled', (
+    tester,
+  ) async {
+    final authService = FakeAuthService(initialUser: fakeUser());
+
+    await tester.pumpWidget(_buildProfile(authService: authService));
+
+    await tester.tap(find.byKey(AppKeys.logoutButton));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(authService.signOutCount, 0);
+    expect(find.text('Sign out?'), findsNothing);
+  });
+
+  testWidgets('signs out when confirmation is accepted', (tester) async {
+    final authService = FakeAuthService(initialUser: fakeUser());
+
+    await tester.pumpWidget(_buildProfile(authService: authService));
+
+    await tester.tap(find.byKey(AppKeys.logoutButton));
+    await tester.pumpAndSettle();
+
+    final confirmButton = find.widgetWithText(FilledButton, 'Sign out');
+
+    expect(confirmButton, findsOneWidget);
+
+    await tester.tap(confirmButton);
+    await tester.pumpAndSettle();
 
     expect(authService.signOutCount, 1);
   });

@@ -270,8 +270,44 @@ class _AccountActionsCard extends StatelessWidget {
 
   final AuthViewModel auth;
 
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final shouldSignOut = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Sign out?'),
+          content: const Text(
+            'You will need to sign in again to access your research dashboard.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Sign out'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldSignOut != true) {
+      return;
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+
+    await auth.signOut();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Card(
       elevation: 0,
       color: Colors.white,
@@ -297,21 +333,75 @@ class _AccountActionsCard extends StatelessWidget {
               'You will be asked to sign in again after signing out.',
               style: TextStyle(color: ProfileScreen._muted, fontSize: 13),
             ),
+            if (auth.errorMessage != null) ...[
+              const SizedBox(height: 16),
+              _SignOutErrorBox(message: auth.errorMessage!),
+            ],
             const SizedBox(height: 16),
             OutlinedButton.icon(
               key: AppKeys.logoutButton,
-              onPressed: auth.isLoading ? null : auth.signOut,
+              onPressed: auth.isLoading ? null : () => _confirmSignOut(context),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: colorScheme.error,
+                side: BorderSide(
+                  color: colorScheme.error.withValues(alpha: 0.5),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
               icon: auth.isLoading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: colorScheme.error,
+                      ),
                     )
                   : const Icon(Icons.logout),
               label: Text(auth.isLoading ? 'Signing out...' : 'Sign out'),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SignOutErrorBox extends StatelessWidget {
+  const _SignOutErrorBox({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.error_outline,
+            color: colorScheme.onErrorContainer,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: colorScheme.onErrorContainer,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
