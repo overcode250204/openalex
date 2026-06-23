@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../models/analytics/topic_analytics.dart';
 import '../models/publication/publication.dart';
 import '../models/search/search_filter.dart';
 import '../services/analytics_service.dart';
@@ -21,17 +23,21 @@ class AnalyticsViewModel extends ChangeNotifier {
   AnalyticsViewModel({AnalyticsService? analyticsService})
     : _analyticsService = analyticsService ?? AnalyticsService();
 
-  AnalyticsResult _result = AnalyticsResult.empty();
-  List<Publication> _publications = [];
+  TopicAnalytics _result = TopicAnalytics.empty();
   bool _isLoading = false;
   String? _error;
+  String? _loadedSignature;
+  String? _inFlightSignature;
+  int _requestVersion = 0;
 
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get hasLoaded => _loadedSignature != null;
   bool get hasData =>
+      _result.totalWorks > 0 ||
       _result.publicationTrend.isNotEmpty ||
       _result.topKeywords.isNotEmpty ||
-      _publications.isNotEmpty;
+      _result.mostInfluentialPaper != null;
 
   // --- API-backed charts (all papers in search) ---
 
@@ -79,11 +85,21 @@ class AnalyticsViewModel extends ChangeNotifier {
   // Total number of works matching the search across the whole dataset.
   int get totalWorks => _result.totalWorks;
 
+  // Null citation counts returned by OpenAlex are consistently treated as 0.
+  double? get averageCitations => _result.averageCitations;
+  String get averageCitationsLabel =>
+      'Average Citations (OpenAlex grouped sample)';
+
   // Year with the most publications across the full dataset.
   int? get mostActiveYear {
     if (_result.publicationTrend.isEmpty) return null;
     return _result.publicationTrend.entries
-        .reduce((a, b) => a.value >= b.value ? a : b)
+        .reduce(
+          (a, b) =>
+              a.value > b.value || (a.value == b.value && a.key > b.key)
+              ? a
+              : b,
+        )
         .key;
   }
 
@@ -113,76 +129,125 @@ class AnalyticsViewModel extends ChangeNotifier {
   }
 
   // Title of the most-cited paper across the full dataset.
-  String? get mostCitedTitle => _result.mostCitedTitle;
+  InfluentialPaperSummary? get mostInfluentialPaper =>
+      _result.mostInfluentialPaper;
+
+  String? get mostCitedTitle => mostInfluentialPaper?.title;
 
   // Citation count of the most-cited paper across the full dataset.
-  int get mostCitedCount => _result.mostCitedCount;
+  int get mostCitedCount => mostInfluentialPaper?.citedByCount ?? 0;
 
-  // --- Computed from loaded papers (no group_by equivalent) ---
-
-  // Chart 8: Author impact (scatter) — from 50 loaded papers
-  List<AuthorImpact> get authorImpact {
-    final Map<String, _AuthorAccumulator> accum = {};
-    for (final pub in _publications) {
-      for (final author in pub.authors) {
-        final entry = accum.putIfAbsent(
-          author,
-          () => _AuthorAccumulator(author),
-        );
-        entry.paperCount++;
-        entry.totalCitations += pub.citedByCount;
-      }
-    }
-    final list =
-        accum.values
-            .map(
-              (a) => AuthorImpact(
-                name: a.name,
-                paperCount: a.paperCount,
-                totalCitations: a.totalCitations,
-              ),
-            )
-            .toList()
-          ..sort((a, b) => b.totalCitations.compareTo(a.totalCitations));
-    return list.take(30).toList();
-  }
+  // API-backed bounded sample; never derived from HomeViewModel pagination.
+  List<AuthorImpact> get authorImpact => _result.authorImpact
+      .map(
+        (author) => AuthorImpact(
+          name: author.name,
+          paperCount: author.paperCount,
+          totalCitations: author.totalCitations,
+        ),
+      )
+      .toList();
 
   /// Called by HomeViewModel after each search/loadMore.
   /// Fetches group_by analytics for the full dataset and updates author impact.
   Future<void> fetchAnalytics(
     String keyword,
     SearchFilter filter,
-    List<Publication> publications,
-  ) async {
-    _publications = publications;
+    List<Publication> ignoredPaginatedPublications, {
+    String? topicId,
+    Map<int, int> fallbackTrend = const {},
+    bool includeCharts = true,
+    bool forceRefresh = false,
+  }) async {
+    final signature = [
+      topicId ?? '',
+      keyword.trim(),
+      filter.yearFrom ?? '',
+      filter.yearTo ?? '',
+      filter.isOpenAccess ?? '',
+      filter.language ?? '',
+      filter.documentType.name,
+      filter.sortOption.name,
+      includeCharts,
+    ].join('|');
+
+    if (!forceRefresh &&
+        (signature == _loadedSignature || signature == _inFlightSignature)) {
+      return;
+    }
+
+    _inFlightSignature = signature;
+    _loadedSignature = null;
+    final requestVersion = ++_requestVersion;
     _isLoading = true;
     _error = null;
+    _result = TopicAnalytics.empty();
     notifyListeners();
 
     try {
-      _result = await _analyticsService.fetchAll(keyword, filter);
+      final result = includeCharts
+          ? await _analyticsService.fetchAll(
+              keyword,
+              filter,
+              topicId: topicId,
+            )
+          : await _analyticsService.fetchSummary(
+              keyword,
+              filter,
+              topicId: topicId,
+            );
+      if (requestVersion != _requestVersion) return;
+      final effectiveTrend = result.publicationTrend.isEmpty
+          ? fallbackTrend
+          : result.publicationTrend;
+      _result = TopicAnalytics(
+        publicationTrend: effectiveTrend,
+        topKeywords: result.topKeywords,
+        institutionRanking: result.institutionRanking,
+        countryOutput: result.countryOutput,
+        topJournals: result.topJournals,
+        topAuthors: result.topAuthors,
+        totalWorks: result.totalWorks > 0
+            ? result.totalWorks
+            : effectiveTrend.values.fold<int>(
+                0,
+                (sum, count) => sum + count,
+              ),
+        analyzedWorks: result.analyzedWorks,
+        totalCitations: result.totalCitations,
+        mostInfluentialPaper: result.mostInfluentialPaper,
+        authorImpact: result.authorImpact,
+      );
+      _loadedSignature = signature;
     } catch (e) {
+      if (requestVersion != _requestVersion) return;
       _error = e.toString();
-      _result = AnalyticsResult.empty();
+      _result = TopicAnalytics(
+        publicationTrend: fallbackTrend,
+        topKeywords: const {},
+        institutionRanking: const {},
+        countryOutput: const {},
+        totalWorks: fallbackTrend.values.fold<int>(
+          0,
+          (sum, count) => sum + count,
+        ),
+      );
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (requestVersion == _requestVersion) {
+        _inFlightSignature = null;
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
   void clear() {
-    _result = AnalyticsResult.empty();
-    _publications = [];
+    _requestVersion++;
+    _result = TopicAnalytics.empty();
     _isLoading = false;
     _error = null;
+    _loadedSignature = null;
+    _inFlightSignature = null;
     notifyListeners();
   }
-}
-
-class _AuthorAccumulator {
-  final String name;
-  int paperCount = 0;
-  int totalCitations = 0;
-
-  _AuthorAccumulator(this.name);
 }

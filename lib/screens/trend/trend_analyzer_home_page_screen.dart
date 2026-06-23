@@ -122,10 +122,17 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
           ),
           IconButton(
             tooltip: 'Trend Analysis',
-            onPressed: provider.publications.isEmpty
+            onPressed: provider.currentTopicId == null
                 ? null
                 : () {
-                    Navigator.pushNamed(context, AppRoutes.trendAnalysis);
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.trendAnalysis,
+                      arguments: TopicAnalyticsRouteArgs(
+                        topicId: provider.currentTopicId!,
+                        topicName: provider.currentTopic,
+                      ),
+                    );
                   },
             icon: const Icon(Icons.show_chart),
           ),
@@ -137,10 +144,17 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
           ),
           IconButton(
             tooltip: 'Dashboard',
-            onPressed: provider.publications.isEmpty
+            onPressed: provider.currentTopicId == null
                 ? null
                 : () {
-                    Navigator.pushNamed(context, AppRoutes.dashboard);
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.dashboard,
+                      arguments: TopicAnalyticsRouteArgs(
+                        topicId: provider.currentTopicId!,
+                        topicName: provider.currentTopic,
+                      ),
+                    );
                   },
             icon: const Icon(Icons.dashboard),
           ),
