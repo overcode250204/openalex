@@ -26,6 +26,7 @@ class TrendAnalysisScreen extends StatefulWidget {
 class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
   bool _isInitializationScheduled = false;
   String? _lastAnalyticsSignature;
+  TrendAnalysisViewModel? _trendViewModel;
 
   @override
   void didChangeDependencies() {
@@ -34,6 +35,10 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
     _isInitializationScheduled = true;
 
     final viewModel = context.read<TrendAnalysisViewModel>();
+    _trendViewModel?.removeListener(_onTrendChanged);
+    _trendViewModel = viewModel;
+    viewModel.addListener(_onTrendChanged);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       viewModel.initialize(
@@ -43,10 +48,29 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
     });
   }
 
-  void _syncAnalytics(TrendAnalysisViewModel trendViewModel) {
+  @override
+  void dispose() {
+    _trendViewModel?.removeListener(_onTrendChanged);
+    super.dispose();
+  }
+
+  /// Được gọi khi TrendAnalysisViewModel thay đổi (vd: year range). Sync
+  /// analytics một lần sau mỗi frame để tránh gọi API trong build().
+  void _onTrendChanged() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _syncAnalytics();
+    });
+  }
+
+  /// Fetch analytics khi topic hoặc year range thay đổi.
+  /// Chỉ được gọi từ listener / postFrameCallback — KHÔNG gọi trong build().
+  void _syncAnalytics() {
+    final vm = _trendViewModel;
+    if (vm == null) return;
     final filter = SearchFilter(
-      yearFrom: trendViewModel.selectedFromYear,
-      yearTo: trendViewModel.selectedToYear,
+      yearFrom: vm.selectedFromYear,
+      yearTo: vm.selectedToYear,
     );
     final signature =
         '${widget.arguments.topicId}|${widget.arguments.topicName}|'
@@ -54,16 +78,14 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
     if (signature == _lastAnalyticsSignature) return;
     _lastAnalyticsSignature = signature;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      context.read<AnalyticsViewModel>().fetchAnalytics(
-        widget.arguments.topicName,
-        filter,
-        const [],
-        topicId: widget.arguments.topicId,
-        includeCharts: false,
-      );
-    });
+    if (!mounted) return;
+    context.read<AnalyticsViewModel>().fetchAnalytics(
+      widget.arguments.topicName,
+      filter,
+      const [],
+      topicId: widget.arguments.topicId,
+      includeCharts: false,
+    );
   }
 
   void _retryAnalytics(TrendAnalysisViewModel trendViewModel) {
@@ -86,7 +108,6 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
     final viewModel = context.watch<TrendAnalysisViewModel>();
     final analytics = context.watch<AnalyticsViewModel>();
 
-    _syncAnalytics(viewModel);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FC),

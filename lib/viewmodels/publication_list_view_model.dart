@@ -28,6 +28,8 @@ class PublicationListViewModel extends ChangeNotifier {
     List<String>? ids, // dùng cho related & references
     bool reset = true,
   }) async {
+    // Tránh gọi API song song khi đang load more
+    if (!reset && (_isLoading || !_hasMore)) return;
     if (reset) {
       _items = [];
       _page = 1;

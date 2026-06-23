@@ -7,7 +7,6 @@ import '../../routes/route_arguments.dart';
 import '../../viewmodels/analytics_view_model.dart';
 import '../../viewmodels/dashboard_view_model.dart';
 import '../../viewmodels/home_view_model.dart';
-import '../../viewmodels/selected_topic_view_model.dart';
 import '../../utils/app_keys.dart';
 import '../../widgets/analytics/author_impact_chart.dart';
 import '../../widgets/analytics/citation_trend_chart.dart';
@@ -29,6 +28,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? _lastSignature;
   int? _yearFrom = 2010;
   int? _yearTo = DateTime.now().year;
+  bool _isFirstSyncScheduled = false;
 
   /// The base search filter with the dashboard's year range applied on top.
   SearchFilter _effectiveFilter() {
@@ -38,7 +38,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Chỉ schedule lần đầu — sau đó các callback onChange sẽ gọi trực tiếp.
+    if (_isFirstSyncScheduled) return;
+    _isFirstSyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _syncAnalytics();
+    });
+  }
+
   /// Refetches full-dataset analytics whenever the topic or year range changes.
+  /// KHÔNG gọi trong build() — chỉ gọi từ lifecycle hooks và onChange callbacks.
   void _syncAnalytics() {
     final filter = _effectiveFilter();
     final signature =
@@ -46,15 +59,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (signature == _lastSignature) return;
     _lastSignature = signature;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      context.read<AnalyticsViewModel>().fetchAnalytics(
-        widget.arguments.topicName,
-        filter,
-        const [],
-        topicId: widget.arguments.topicId,
-      );
-    });
+    if (!mounted) return;
+    context.read<AnalyticsViewModel>().fetchAnalytics(
+      widget.arguments.topicName,
+      filter,
+      const [],
+      topicId: widget.arguments.topicId,
+    );
   }
 
   void _onYearFromChanged(int? value) {
@@ -64,6 +75,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _yearTo = _yearFrom;
       }
     });
+    _syncAnalytics();
   }
 
   void _onYearToChanged(int? value) {
@@ -73,6 +85,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _yearFrom = _yearTo;
       }
     });
+    _syncAnalytics();
   }
 
   void _clearYears() {
@@ -80,14 +93,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _yearFrom = null;
       _yearTo = null;
     });
+    _syncAnalytics();
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<HomeViewModel>();
     final analytics = context.watch<AnalyticsViewModel>();
-
-    _syncAnalytics();
 
     final loading = analytics.isLoading;
 
