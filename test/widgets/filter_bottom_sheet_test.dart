@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openalex/models/publication.dart';
-import 'package:openalex/models/search_filter.dart';
-import 'package:openalex/models/topic.dart';
-import 'package:openalex/providers/publication_provider.dart';
+import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/models/search/search_filter.dart';
+import 'package:openalex/models/topic/topic.dart';
+import 'package:openalex/viewmodels/home_view_model.dart';
 import 'package:openalex/services/history_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
@@ -45,15 +45,15 @@ class _FakeSuggestionService extends SuggestionService {
   Future<List<TopicSuggestion>> fetchTopicSuggestions(String query) async => [];
 }
 
-PublicationProvider _makeProvider() {
-  return PublicationProvider(
+HomeViewModel _makeProvider() {
+  return HomeViewModel(
     _FakeOpenAlexService(),
     historyService: _FakeHistoryService(),
     suggestionService: _FakeSuggestionService(),
   );
 }
 
-Widget _buildSheet(PublicationProvider provider) {
+Widget _buildSheet(HomeViewModel provider) {
   return ChangeNotifierProvider.value(
     value: provider,
     child: MaterialApp(

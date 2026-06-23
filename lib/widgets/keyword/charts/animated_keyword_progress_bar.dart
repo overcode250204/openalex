@@ -3,10 +3,7 @@ import 'package:flutter/material.dart';
 class AnimatedKeywordProgressBar extends StatefulWidget {
   final double percentage; // 0.0 to 1.0 relative to max count
 
-  const AnimatedKeywordProgressBar({
-    super.key,
-    required this.percentage,
-  });
+  const AnimatedKeywordProgressBar({super.key, required this.percentage});
 
   @override
   State<AnimatedKeywordProgressBar> createState() =>
@@ -25,9 +22,10 @@ class _AnimatedKeywordProgressBarState extends State<AnimatedKeywordProgressBar>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    _animation = Tween<double>(begin: 0.0, end: widget.percentage).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _animation = Tween<double>(
+      begin: 0.0,
+      end: widget.percentage,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _controller.forward();
   }
 
@@ -35,12 +33,13 @@ class _AnimatedKeywordProgressBarState extends State<AnimatedKeywordProgressBar>
   void didUpdateWidget(covariant AnimatedKeywordProgressBar oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.percentage != widget.percentage) {
-      _animation = Tween<double>(
-        begin: _animation.value,
-        end: widget.percentage,
-      ).animate(
-        CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-      );
+      _animation =
+          Tween<double>(
+            begin: _animation.value,
+            end: widget.percentage,
+          ).animate(
+            CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+          );
       _controller
         ..reset()
         ..forward();
@@ -74,7 +73,9 @@ class _AnimatedKeywordProgressBarState extends State<AnimatedKeywordProgressBar>
                 gradient: LinearGradient(
                   colors: [
                     Theme.of(context).colorScheme.primary,
-                    Theme.of(context).colorScheme.primary.withValues(alpha: 0.6),
+                    Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.6),
                   ],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,

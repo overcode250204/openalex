@@ -1,63 +1,38 @@
 import 'package:flutter/material.dart';
-import 'package:openalex/providers/analytics_provider.dart';
-import 'package:openalex/providers/journal_search_provider.dart';
-import 'package:openalex/providers/keyword_dashboard_provider.dart';
-import 'package:openalex/providers/publication_list_provider.dart';
-import 'package:openalex/providers/publication_provider.dart';
-import 'package:openalex/providers/publication_detail_provider.dart';
-import 'package:openalex/screens/app_shell.dart';
-import 'package:openalex/services/openalex_journal_service.dart';
-import 'package:openalex/services/keyword_dashboard_service.dart';
-import 'package:openalex/services/openalex_keyword_service.dart';
-import 'package:openalex/services/openalex_service.dart';
-import 'package:openalex/viewmodels/keyword_analyzer_view_model.dart';
+import 'package:openalex/app/app_providers.dart';
+import 'package:openalex/app/firebase_bootstrap.dart';
+import 'package:openalex/routes/app_router.dart';
+import 'package:openalex/routes/app_routes.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+import 'services/firebase_auth_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await dotenv.load(fileName: ".env");
-
+  await FirebaseBootstrap.initialize();
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, this.authService});
+
+  final AuthService? authService;
 
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(
-          create: (_) => PublicationProvider(OpenAlexService()),
-        ),
-
-        ChangeNotifierProvider(create: (_) => PublicationListProvider()),
-
-        ChangeNotifierProvider(create: (_) => AnalyticsProvider()),
-
-        ChangeNotifierProvider(
-          create: (_) => KeywordDashboardProvider(KeywordDashboardService()),
-        ),
-
-        ChangeNotifierProvider(create: (_) => PublicationDetailProvider()),
-
-        ChangeNotifierProvider(
-          create: (_) => KeywordAnalyzerViewModel(OpenAlexKeywordService()),
-        ),
-
-        ChangeNotifierProvider(
-          create: (_) => JournalSearchProvider(OpenAlexJournalService()),
-        ),
-      ],
+      providers: AppProviders.build(authService: authService),
 
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Journal Trend Analyzer',
         theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
-        home: const AppShell(),
+        initialRoute: AppRoutes.home,
+        onGenerateRoute: AppRouter.onGenerateRoute,
       ),
     );
   }

@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
-import 'package:openalex/providers/analytics_provider.dart';
+import 'package:openalex/viewmodels/analytics_view_model.dart';
 import 'package:openalex/widgets/analytics/top_keywords_chart.dart';
 
-class MockAnalyticsProvider extends Mock implements AnalyticsProvider {}
+class MockAnalyticsViewModel extends Mock implements AnalyticsViewModel {}
 
 void main() {
-  late MockAnalyticsProvider mockProvider;
+  late MockAnalyticsViewModel mockProvider;
 
   setUp(() {
-    mockProvider = MockAnalyticsProvider();
+    mockProvider = MockAnalyticsViewModel();
   });
 
   Widget buildChart() {
@@ -20,7 +20,7 @@ void main() {
         body: SizedBox(
           width: 2000,
           height: 1000,
-          child: ChangeNotifierProvider<AnalyticsProvider>.value(
+          child: ChangeNotifierProvider<AnalyticsViewModel>.value(
             value: mockProvider,
             child: const TopKeywordsChart(),
           ),
@@ -49,10 +49,7 @@ void main() {
 
   testWidgets('non-empty data renders safely', (tester) async {
     when(() => mockProvider.isLoading).thenReturn(false);
-    when(() => mockProvider.topKeywords).thenReturn({
-      'AI': 100,
-      'ML': 80,
-    });
+    when(() => mockProvider.topKeywords).thenReturn({'AI': 100, 'ML': 80});
 
     await tester.pumpWidget(buildChart());
     expect(find.byType(TopKeywordsChart), findsOneWidget);
@@ -61,10 +58,7 @@ void main() {
 
   testWidgets('zero values do not crash', (tester) async {
     when(() => mockProvider.isLoading).thenReturn(false);
-    when(() => mockProvider.topKeywords).thenReturn({
-      'AI': 0,
-      'ML': 0,
-    });
+    when(() => mockProvider.topKeywords).thenReturn({'AI': 0, 'ML': 0});
 
     await tester.pumpWidget(buildChart());
     expect(find.byType(TopKeywordsChart), findsOneWidget);
@@ -73,9 +67,9 @@ void main() {
 
   testWidgets('multiple items render safely', (tester) async {
     when(() => mockProvider.isLoading).thenReturn(false);
-    when(() => mockProvider.topKeywords).thenReturn({
-      for (int i = 0; i < 20; i++) 'Keyword $i': i * 10,
-    });
+    when(
+      () => mockProvider.topKeywords,
+    ).thenReturn({for (int i = 0; i < 20; i++) 'Keyword $i': i * 10});
 
     await tester.pumpWidget(buildChart());
     expect(find.byType(TopKeywordsChart), findsOneWidget);

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openalex/models/search_filter.dart';
+import 'package:openalex/models/search/search_filter.dart';
 
 void main() {
   group('SearchFilter', () {

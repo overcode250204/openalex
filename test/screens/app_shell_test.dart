@@ -1,26 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/main.dart';
-import 'package:openalex/models/app_page.dart';
+import 'package:openalex/models/app/app_page.dart';
 import 'package:openalex/models/journal/journal_publication.dart';
 import 'package:openalex/models/journal/journal_source.dart';
 import 'package:openalex/models/keyword/keyword_analysis_result.dart';
 import 'package:openalex/models/keyword/keyword_trend_point.dart';
-import 'package:openalex/models/publication.dart';
-import 'package:openalex/providers/journal_search_provider.dart';
-import 'package:openalex/providers/publication_detail_provider.dart';
-import 'package:openalex/providers/publication_provider.dart';
-import 'package:openalex/screens/app_shell.dart';
+import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/models/topic/topic.dart';
+import 'package:openalex/viewmodels/auth_view_model.dart';
+import 'package:openalex/viewmodels/journal_view_model.dart';
+import 'package:openalex/viewmodels/publication_detail_view_model.dart';
+import 'package:openalex/viewmodels/home_view_model.dart';
+import 'package:openalex/screens/app/app_shell_screen.dart';
 import 'package:openalex/services/openalex_journal_service.dart';
 import 'package:openalex/services/openalex_keyword_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
+import 'package:openalex/viewmodels/selected_topic_view_model.dart';
 import 'package:openalex/viewmodels/keyword_analyzer_view_model.dart';
-import 'package:openalex/providers/keyword_dashboard_provider.dart';
+import 'package:openalex/viewmodels/keyword_dashboard_view_model.dart';
 import 'package:openalex/services/keyword_dashboard_service.dart';
 import 'package:openalex/models/keyword/keyword_dashboard_result.dart';
 import 'package:openalex/models/keyword/keyword_frequency_stat.dart';
 import 'package:provider/provider.dart';
+
+import '../fakes/fake_auth_service.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes – minimal service stubs so screens don't make real HTTP calls
@@ -77,6 +82,14 @@ class _FakeKeywordService extends OpenAlexKeywordService {
 }
 
 class _FakeSuggestionService extends SuggestionService {
+  _FakeSuggestionService({this.topicSuggestions = const []});
+
+  final List<TopicSuggestion> topicSuggestions;
+
+  @override
+  Future<List<TopicSuggestion>> fetchTopicSuggestions(String query) async =>
+      topicSuggestions;
+
   @override
   Future<List<String>> fetchRelatedKeywords(String keyword) async => [];
 }
@@ -107,27 +120,36 @@ class _FakeKeywordDashboardService extends KeywordDashboardService {
 // Helper: wrap AppShell with all required providers
 // ---------------------------------------------------------------------------
 
-Widget _appShellWidget() {
+Widget _appShellWidget({List<TopicSuggestion> topicSuggestions = const []}) {
   final openAlexService = _FakeOpenAlexService();
   return MultiProvider(
     providers: [
       ChangeNotifierProvider(
-        create: (_) => PublicationProvider(
+        create: (_) => AuthViewModel(
+          authService: FakeAuthService(initialUser: fakeUser()),
+        ),
+      ),
+      ChangeNotifierProvider(create: (_) => SelectedTopicViewModel()),
+      ChangeNotifierProvider(
+        create: (_) => HomeViewModel(
           openAlexService,
-          suggestionService: _FakeSuggestionService(),
+          suggestionService: _FakeSuggestionService(
+            topicSuggestions: topicSuggestions,
+          ),
         ),
       ),
       ChangeNotifierProvider(
-        create: (_) => JournalSearchProvider(_FakeJournalService()),
+        create: (_) => JournalViewModel(_FakeJournalService()),
       ),
       ChangeNotifierProvider(
-        create: (_) => PublicationDetailProvider(service: openAlexService),
+        create: (_) => PublicationDetailViewModel(service: openAlexService),
       ),
       ChangeNotifierProvider(
         create: (_) => KeywordAnalyzerViewModel(_FakeKeywordService()),
       ),
       ChangeNotifierProvider(
-        create: (_) => KeywordDashboardProvider(_FakeKeywordDashboardService()),
+        create: (_) =>
+            KeywordDashboardViewModel(_FakeKeywordDashboardService()),
       ),
     ],
     child: const MaterialApp(home: AppShell()),
@@ -153,11 +175,55 @@ void main() {
     testWidgets('MyApp entry point also renders Trend Analyzer', (
       tester,
     ) async {
-      await tester.pumpWidget(const MyApp());
+      await tester.pumpWidget(
+        MyApp(authService: FakeAuthService(initialUser: fakeUser())),
+      );
+      await tester.pump();
+      await tester.pump();
       await tester.pump();
 
       expect(find.text('Trend Analyzer'), findsOneWidget);
     });
+
+    testWidgets(
+      'keeps suggestions scrollable without overflowing on a small screen',
+      (tester) async {
+        tester.view.physicalSize = const Size(360, 600);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final suggestions = List.generate(
+          12,
+          (index) => TopicSuggestion(
+            id: 'T$index',
+            displayName: 'Artificial Intelligence $index',
+            workCount: 1000 + index,
+          ),
+        );
+
+        await tester.pumpWidget(_appShellWidget(topicSuggestions: suggestions));
+        await tester.tap(find.byType(TextField).first);
+        await tester.pump();
+        await tester.pump();
+
+        expect(find.text('Suggestion'), findsOneWidget);
+        expect(find.text('Analyze Topic'), findsOneWidget);
+        expect(
+          find.text('Enter a research topic and tap Analyze Topic.'),
+          findsOneWidget,
+        );
+        expect(find.text('Home'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byKey(const Key('search_suggestion_overlay_content')),
+            matching: find.byType(Scrollable),
+          ),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
   });
 
   group('AppShell – page switching via bottom nav', () {
@@ -168,7 +234,7 @@ void main() {
       await tester.pump();
 
       await tester.tap(find.text('Keywords'));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // KeywordAnalyzerPage has 'Keyword Analyzer' label
       expect(find.text('Keyword Analyzer'), findsOneWidget);
@@ -179,7 +245,7 @@ void main() {
       await tester.pump();
 
       await tester.tap(find.text('Journal'));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // JournalSearchScreen renders a search field
       expect(find.text('Journal Search'), findsOneWidget);

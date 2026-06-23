@@ -1,14 +1,14 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/analytics_provider.dart';
+import '../../viewmodels/analytics_view_model.dart';
 
 class AuthorImpactChart extends StatelessWidget {
   const AuthorImpactChart({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final authors = context.watch<AnalyticsProvider>().authorImpact;
+    final authors = context.watch<AnalyticsViewModel>().authorImpact;
 
     if (authors.isEmpty) {
       return const SizedBox(
@@ -28,8 +28,14 @@ class AuthorImpactChart extends StatelessWidget {
       );
     }).toList();
 
-    final maxX = authors.map((a) => a.paperCount).reduce((a, b) => a > b ? a : b).toDouble();
-    final maxY = authors.map((a) => a.totalCitations).reduce((a, b) => a > b ? a : b).toDouble();
+    final maxX = authors
+        .map((a) => a.paperCount)
+        .reduce((a, b) => a > b ? a : b)
+        .toDouble();
+    final maxY = authors
+        .map((a) => a.totalCitations)
+        .reduce((a, b) => a > b ? a : b)
+        .toDouble();
 
     return Card(
       child: Padding(
@@ -37,11 +43,15 @@ class AuthorImpactChart extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Author Impact (Papers vs Citations)',
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Author Impact (Papers vs Citations)',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 4),
-            Text('Each dot = one author',
-                style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              'Each dot = one author',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 16),
             SizedBox(
               height: 240,
@@ -54,18 +64,26 @@ class AuthorImpactChart extends StatelessWidget {
                   scatterSpots: spots,
                   titlesData: FlTitlesData(
                     leftTitles: AxisTitles(
-                      axisNameWidget: const Text('Total Citations', style: TextStyle(fontSize: 10)),
+                      axisNameWidget: const Text(
+                        'Total Citations',
+                        style: TextStyle(fontSize: 10),
+                      ),
                       sideTitles: SideTitles(
                         showTitles: true,
                         reservedSize: 48,
                         getTitlesWidget: (v, _) => Text(
-                          v >= 1000 ? '${(v / 1000).toStringAsFixed(0)}k' : v.toInt().toString(),
+                          v >= 1000
+                              ? '${(v / 1000).toStringAsFixed(0)}k'
+                              : v.toInt().toString(),
                           style: const TextStyle(fontSize: 10),
                         ),
                       ),
                     ),
                     bottomTitles: AxisTitles(
-                      axisNameWidget: const Text('Paper Count', style: TextStyle(fontSize: 10)),
+                      axisNameWidget: const Text(
+                        'Paper Count',
+                        style: TextStyle(fontSize: 10),
+                      ),
                       sideTitles: SideTitles(
                         showTitles: true,
                         getTitlesWidget: (v, _) => Text(
@@ -74,22 +92,31 @@ class AuthorImpactChart extends StatelessWidget {
                         ),
                       ),
                     ),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                   ),
                   borderData: FlBorderData(show: false),
                   gridData: const FlGridData(show: true),
                   scatterTouchData: ScatterTouchData(
                     touchTooltipData: ScatterTouchTooltipData(
                       getTooltipItems: (spot) {
-                        final match = authors.where((a) =>
-                            a.paperCount.toDouble() == spot.x &&
-                            a.totalCitations.toDouble() == spot.y);
+                        final match = authors.where(
+                          (a) =>
+                              a.paperCount.toDouble() == spot.x &&
+                              a.totalCitations.toDouble() == spot.y,
+                        );
                         final name = match.isNotEmpty ? match.first.name : '';
                         return ScatterTooltipItem(
                           '${name.length > 20 ? '${name.substring(0, 18)}…' : name}\n'
                           '${spot.x.toInt()} papers · ${spot.y.toInt()} citations',
-                          textStyle: const TextStyle(color: Colors.white, fontSize: 10),
+                          textStyle: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                          ),
                         );
                       },
                     ),

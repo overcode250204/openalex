@@ -1,7 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
-import '../../../core/utils/formatters.dart';
+import '../../../utils/formatters.dart';
 import '../../../models/keyword/keyword_trend_point.dart';
 import '../../../viewmodels/keyword_analyzer_view_model.dart';
 import 'keyword_chart_card.dart';
@@ -34,9 +34,7 @@ class KeywordPublicationTrendChart extends StatelessWidget {
       return KeywordChartCard(
         title: 'Publication Trend',
         subtitle: 'Research activity over time',
-        child: KeywordChartErrorState(
-          onRetry: viewModel.reloadKeywordTrend,
-        ),
+        child: KeywordChartErrorState(onRetry: viewModel.reloadKeywordTrend),
       );
     }
 
@@ -83,7 +81,7 @@ class _InsightRow extends StatelessWidget {
     if (trend.isEmpty) return const SizedBox.shrink();
 
     final peakPoint = trend.reduce((a, b) => a.count > b.count ? a : b);
-    
+
     // Calculate simple trend status based on last two years if available
     String status = 'Stable';
     Color statusColor = Colors.grey;
@@ -121,8 +119,8 @@ class _InsightRow extends StatelessWidget {
           icon: status == 'Growing'
               ? Icons.trending_up
               : status == 'Declining'
-                  ? Icons.trending_down
-                  : Icons.trending_flat,
+              ? Icons.trending_down
+              : Icons.trending_flat,
           color: statusColor,
         ),
       ],
@@ -190,16 +188,21 @@ class _TrendLineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxCount = points.map((p) => p.count).reduce((a, b) => a > b ? a : b).toDouble();
+    final maxCount = points
+        .map((p) => p.count)
+        .reduce((a, b) => a > b ? a : b)
+        .toDouble();
     final minYear = points.first.year.toDouble();
     final maxYear = points.last.year.toDouble();
     final adjustedMinYear = minYear == maxYear ? minYear - 1 : minYear;
     final adjustedMaxYear = minYear == maxYear ? maxYear + 1 : maxYear;
-    
+
     final yInterval = maxCount > 4 ? (maxCount / 4).ceilToDouble() : 1.0;
     final xInterval = (adjustedMaxYear - adjustedMinYear) > 10 ? 2.0 : 1.0;
 
-    final spots = points.map((p) => FlSpot(p.year.toDouble(), p.count.toDouble())).toList();
+    final spots = points
+        .map((p) => FlSpot(p.year.toDouble(), p.count.toDouble()))
+        .toList();
     final peakSpot = spots.reduce((a, b) => a.y > b.y ? a : b);
 
     final color = Theme.of(context).colorScheme.primary;
@@ -213,7 +216,10 @@ class _TrendLineChart extends StatelessWidget {
           minX: adjustedMinYear,
           maxX: adjustedMaxYear,
           minY: 0,
-          maxY: maxCount + (maxCount * 0.25) + 1, // extra space for peak annotation
+          maxY:
+              maxCount +
+              (maxCount * 0.25) +
+              1, // extra space for peak annotation
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
@@ -226,8 +232,12 @@ class _TrendLineChart extends StatelessWidget {
           ),
           borderData: FlBorderData(show: false),
           titlesData: FlTitlesData(
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
@@ -235,13 +245,19 @@ class _TrendLineChart extends StatelessWidget {
                 interval: yInterval,
                 getTitlesWidget: (value, meta) {
                   if (value % 1 != 0 || value == 0) {
-                     if (value == 0) {
-                        return SideTitleWidget(
-                          axisSide: meta.axisSide,
-                          child: Text('0', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                        );
-                     }
-                     return const SizedBox.shrink();
+                    if (value == 0) {
+                      return SideTitleWidget(
+                        axisSide: meta.axisSide,
+                        child: Text(
+                          '0',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
                   }
                   return SideTitleWidget(
                     axisSide: meta.axisSide,
@@ -263,7 +279,9 @@ class _TrendLineChart extends StatelessWidget {
                 interval: xInterval,
                 getTitlesWidget: (value, meta) {
                   final year = value.toInt();
-                  if (year < minYear || year > maxYear) return const SizedBox.shrink();
+                  if (year < minYear || year > maxYear) {
+                    return const SizedBox.shrink();
+                  }
                   return SideTitleWidget(
                     axisSide: meta.axisSide,
                     space: 8,
@@ -303,8 +321,12 @@ class _TrendLineChart extends StatelessWidget {
               }).toList();
             },
             touchTooltipData: LineTouchTooltipData(
-              getTooltipColor: (touchedSpot) => Colors.black.withValues(alpha: 0.8),
-              tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              getTooltipColor: (touchedSpot) =>
+                  Colors.black.withValues(alpha: 0.8),
+              tooltipPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
               tooltipRoundedRadius: 8,
               getTooltipItems: (touchedSpots) {
                 return touchedSpots.map((spot) {
@@ -315,7 +337,8 @@ class _TrendLineChart extends StatelessWidget {
                     final current = spot.y;
                     if (prev > 0) {
                       final change = ((current - prev) / prev) * 100;
-                      yoyChange = '\n${change >= 0 ? '+' : ''}${change.toStringAsFixed(1)}% YoY';
+                      yoyChange =
+                          '\n${change >= 0 ? '+' : ''}${change.toStringAsFixed(1)}% YoY';
                     }
                   }
 
@@ -332,7 +355,8 @@ class _TrendLineChart extends StatelessWidget {
                         ),
                       ),
                       TextSpan(
-                        text: '${Formatters.formatNumber(spot.y.toInt())} publications',
+                        text:
+                            '${Formatters.formatNumber(spot.y.toInt())} publications',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,
@@ -342,7 +366,9 @@ class _TrendLineChart extends StatelessWidget {
                         TextSpan(
                           text: yoyChange,
                           style: TextStyle(
-                            color: yoyChange.contains('+') ? Colors.greenAccent : Colors.redAccent,
+                            color: yoyChange.contains('+')
+                                ? Colors.greenAccent
+                                : Colors.redAccent,
                             fontSize: 11,
                           ),
                         ),
@@ -355,11 +381,7 @@ class _TrendLineChart extends StatelessWidget {
           showingTooltipIndicators: [
             // Always show the peak point tooltip as an annotation bubble
             ShowingTooltipIndicators([
-              LineBarSpot(
-                LineChartBarData(spots: spots),
-                0,
-                peakSpot,
-              ),
+              LineBarSpot(LineChartBarData(spots: spots), 0, peakSpot),
             ]),
           ],
           lineBarsData: [
@@ -378,7 +400,7 @@ class _TrendLineChart extends StatelessWidget {
                 },
                 getDotPainter: (spot, percent, barData, index) {
                   if (spot.x == peakSpot.x) {
-                     return FlDotCirclePainter(
+                    return FlDotCirclePainter(
                       radius: 4,
                       color: Colors.white,
                       strokeWidth: 2,

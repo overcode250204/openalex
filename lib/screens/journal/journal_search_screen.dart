@@ -3,12 +3,12 @@ import 'package:provider/provider.dart';
 
 import '../../models/journal/journal_publication.dart';
 import '../../models/journal/journal_source.dart';
-import '../../providers/journal_search_provider.dart';
+import '../../routes/app_routes.dart';
+import '../../viewmodels/journal_view_model.dart';
 import '../../widgets/journal/highest_cited_paper_card.dart';
 import '../../widgets/journal/journal_publication_card.dart';
 import '../../widgets/journal/journal_source_card.dart';
 import '../../widgets/search/journal_suggestion_dropdown.dart';
-import 'journal_publication_detail_screen.dart';
 
 String _formatCount(int n) {
   if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
@@ -42,19 +42,17 @@ class _JournalSearchScreenState extends State<JournalSearchScreen> {
 
   Future<void> _search() async {
     FocusScope.of(context).unfocus();
-    final provider = context.read<JournalSearchProvider>();
+    final provider = context.read<JournalViewModel>();
     provider.hideJournalSuggestions();
     await provider.searchJournals(_queryController.text);
   }
 
   void _openPublication(JournalPublication publication) {
-    context.read<JournalSearchProvider>().selectPublication(publication);
-    Navigator.push(
+    context.read<JournalViewModel>().selectPublication(publication);
+    Navigator.pushNamed(
       context,
-      MaterialPageRoute(
-        builder: (_) =>
-            JournalPublicationDetailScreen(publication: publication),
-      ),
+      AppRoutes.journalDetail,
+      arguments: publication,
     );
   }
 
@@ -64,16 +62,16 @@ class _JournalSearchScreenState extends State<JournalSearchScreen> {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
     );
-    await context.read<JournalSearchProvider>().selectJournal(journal);
+    await context.read<JournalViewModel>().selectJournal(journal);
   }
 
   void _clearSelection() {
-    context.read<JournalSearchProvider>().clearSelection();
+    context.read<JournalViewModel>().clearSelection();
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<JournalSearchProvider>();
+    final provider = context.watch<JournalViewModel>();
     final hasSelection = provider.selectedJournal != null;
 
     return Scaffold(
@@ -117,7 +115,7 @@ class _JournalSearchScreenState extends State<JournalSearchScreen> {
 
 class _JournalSearchView extends StatelessWidget {
   final ScrollController scrollController;
-  final JournalSearchProvider provider;
+  final JournalViewModel provider;
   final TextEditingController queryController;
   final VoidCallback onSearch;
   final ValueChanged<JournalSource> onSelect;
@@ -217,7 +215,7 @@ class _JournalSearchView extends StatelessWidget {
 
 class _JournalDetailView extends StatelessWidget {
   final ScrollController scrollController;
-  final JournalSearchProvider provider;
+  final JournalViewModel provider;
   final VoidCallback onBack;
   final ValueChanged<JournalPublication> onOpenPublication;
 
@@ -264,7 +262,8 @@ class _JournalDetailView extends StatelessWidget {
               const SizedBox(height: 20),
               _SectionHeader(
                 title: 'Publications',
-                subtitle: '${_formatCount(journal.worksCount)} works in OpenAlex',
+                subtitle:
+                    '${_formatCount(journal.worksCount)} works in OpenAlex',
               ),
               const SizedBox(height: 12),
             ]),
@@ -284,24 +283,21 @@ class _JournalDetailView extends StatelessWidget {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  if (index == provider.publications.length) {
-                    return provider.isLoadingMorePublications
-                        ? const Padding(
-                            padding: EdgeInsets.all(20),
-                            child: Center(child: CircularProgressIndicator()),
-                          )
-                        : const SizedBox(height: 24);
-                  }
-                  return JournalPublicationCard(
-                    publication: provider.publications[index],
-                    onViewDetail: () =>
-                        onOpenPublication(provider.publications[index]),
-                  );
-                },
-                childCount: provider.publications.length + 1,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                if (index == provider.publications.length) {
+                  return provider.isLoadingMorePublications
+                      ? const Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      : const SizedBox(height: 24);
+                }
+                return JournalPublicationCard(
+                  publication: provider.publications[index],
+                  onViewDetail: () =>
+                      onOpenPublication(provider.publications[index]),
+                );
+              }, childCount: provider.publications.length + 1),
             ),
           ),
       ],
@@ -331,8 +327,7 @@ class _JournalHeaderBanner extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               child: Padding(
                 padding: const EdgeInsets.all(6),
-                child:
-                    Icon(Icons.arrow_back, color: scheme.onPrimaryContainer),
+                child: Icon(Icons.arrow_back, color: scheme.onPrimaryContainer),
               ),
             ),
             const SizedBox(width: 10),
@@ -485,9 +480,11 @@ class _SearchBar extends StatelessWidget {
                 prefixIcon: Icon(Icons.search),
               ),
               onChanged: onChanged,
-              onSubmitted: onSubmitted ?? (_) {
-                if (!isLoading) onSearch();
-              },
+              onSubmitted:
+                  onSubmitted ??
+                  (_) {
+                    if (!isLoading) onSearch();
+                  },
             ),
             const SizedBox(height: 12),
             FilledButton.icon(
@@ -521,19 +518,17 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         if (subtitle != null) ...[
           const SizedBox(height: 2),
           Text(
             subtitle!,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: Colors.grey.shade600),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
           ),
         ],
       ],
@@ -566,10 +561,7 @@ class _InfoBanner extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              message,
-              style: TextStyle(color: color.shade800),
-            ),
+            child: Text(message, style: TextStyle(color: color.shade800)),
           ),
         ],
       ),

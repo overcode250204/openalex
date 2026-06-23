@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openalex/widgets/analytics_chart_card.dart';
+import 'package:openalex/widgets/analytics/analytics_chart_card.dart';
 
 void main() {
   testWidgets('AnalyticsChartCard renders title subtitle dropdown and child', (

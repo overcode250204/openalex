@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
-import 'package:openalex/providers/analytics_provider.dart';
+import 'package:openalex/viewmodels/analytics_view_model.dart';
 import 'package:openalex/widgets/analytics/author_impact_chart.dart';
 
-class MockAnalyticsProvider extends Mock implements AnalyticsProvider {}
+class MockAnalyticsViewModel extends Mock implements AnalyticsViewModel {}
 
 void main() {
-  late MockAnalyticsProvider mockProvider;
+  late MockAnalyticsViewModel mockProvider;
 
   setUp(() {
-    mockProvider = MockAnalyticsProvider();
+    mockProvider = MockAnalyticsViewModel();
   });
 
   Widget buildChart() {
@@ -20,7 +20,7 @@ void main() {
         body: SizedBox(
           width: 2000,
           height: 1000,
-          child: ChangeNotifierProvider<AnalyticsProvider>.value(
+          child: ChangeNotifierProvider<AnalyticsViewModel>.value(
             value: mockProvider,
             child: const AuthorImpactChart(),
           ),
@@ -73,9 +73,10 @@ void main() {
   testWidgets('long label does not crash', (tester) async {
     when(() => mockProvider.authorImpact).thenReturn([
       AuthorImpact(
-          name: 'A Very Very Very Long Author Name Indeed',
-          paperCount: 5,
-          totalCitations: 20),
+        name: 'A Very Very Very Long Author Name Indeed',
+        paperCount: 5,
+        totalCitations: 20,
+      ),
     ]);
 
     await tester.pumpWidget(buildChart());

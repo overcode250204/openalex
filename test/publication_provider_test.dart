@@ -1,17 +1,24 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openalex/models/publication.dart';
-import 'package:openalex/providers/publication_provider.dart';
+import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/viewmodels/home_view_model.dart';
 import 'package:openalex/services/history_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
 
 class FakeOpenAlexService extends OpenAlexService {
-  FakeOpenAlexService({this.results = const [], this.error, this.total = 0});
+  FakeOpenAlexService({
+    this.results = const [],
+    this.error,
+    this.total = 0,
+    this.topicIds = const ['T1'],
+  });
 
   final List<Publication> results;
   int total;
   final Object? error;
+  final List<String> topicIds;
   String? requestedKeyword;
+  List<String>? requestedTopicIds;
   int? requestedFromYear;
   int? requestedToYear;
 
@@ -20,9 +27,10 @@ class FakeOpenAlexService extends OpenAlexService {
     required String keyword,
     int perPage = 50,
     String sort = 'cited_by_count:desc',
-    List<String>? topicIds
+    List<String>? topicIds,
   }) async {
     requestedKeyword = keyword;
+    requestedTopicIds = topicIds;
 
     if (error != null) {
       throw error!;
@@ -31,7 +39,8 @@ class FakeOpenAlexService extends OpenAlexService {
     return (total, results);
   }
 
-  
+  @override
+  Future<List<String>> getTopicIdsFromKeyword(String keyword) async => topicIds;
 }
 
 class FakeSearchHistoryService extends SearchHistoryService {
@@ -56,8 +65,8 @@ class FakeSuggestionService extends SuggestionService {
   }
 }
 
-PublicationProvider testProvider(OpenAlexService service) {
-  return PublicationProvider(
+HomeViewModel testProvider(OpenAlexService service) {
+  return HomeViewModel(
     service,
     historyService: FakeSearchHistoryService(),
     suggestionService: FakeSuggestionService(),
@@ -82,7 +91,7 @@ Publication publication({
     authors: authors,
     referencedWorkIds: List.empty(),
     relatedWorkIds: List.empty(),
-    oaUrl: ""
+    oaUrl: "",
   );
 }
 
@@ -132,13 +141,13 @@ void main() {
     final loadingStates = <bool>[];
     provider.addListener(() => loadingStates.add(provider.isLoading));
 
-    await provider.searchPublications(
-      keyword: '  AI  ',
-    );
+    await provider.searchPublications(keyword: '  AI  ');
 
-    expect(service.requestedKeyword, '  AI  ');
+    expect(service.requestedKeyword, 'AI');
     expect(loadingStates, [true, false]);
     expect(provider.currentTopic, 'AI');
+    expect(provider.currentTopicId, 'T1');
+    expect(service.requestedTopicIds, ['T1']);
     expect(provider.errorMessage, isNull);
     expect(provider.totalPublications, 3);
     expect(provider.averageCitationCount, closeTo(26 / 3, 0.001));
@@ -166,6 +175,7 @@ void main() {
       await provider.searchPublications(keyword: 'AI');
 
       expect(provider.publications, isEmpty);
+      expect(provider.currentTopicId, isNull);
       expect(provider.isLoading, isFalse);
       expect(
         provider.errorMessage,

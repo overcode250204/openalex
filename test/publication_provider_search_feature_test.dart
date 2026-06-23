@@ -1,17 +1,32 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openalex/models/publication.dart';
-import 'package:openalex/models/search_filter.dart';
-import 'package:openalex/models/topic.dart';
-import 'package:openalex/providers/publication_provider.dart';
+import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/models/search/search_filter.dart';
+import 'package:openalex/models/topic/topic.dart';
+import 'package:openalex/viewmodels/home_view_model.dart';
 import 'package:openalex/services/openalex_service.dart';
 
 class FakeFilterOpenAlexService extends OpenAlexService {
-  FakeFilterOpenAlexService({required this.responses, this.errorOnCall});
+  FakeFilterOpenAlexService({
+    required this.responses,
+    this.errorOnCall,
+    List<String>? topicIds,
+  }) : topicIds = topicIds ?? const ['T10616', 'T10862', 'T12002'];
 
   final List<(int total, List<Publication> publications)> responses;
   final int? errorOnCall;
+
+  // Topic IDs giả lập cho keyword search.
+  final List<String> topicIds;
+
   final List<Map<String, String>> requestedParams = [];
+
   var _callCount = 0;
+
+  // THÊM HÀM NÀY: đây là phần đang thiếu.
+  @override
+  Future<List<String>> getTopicIdsFromKeyword(String keyword) async {
+    return List<String>.from(topicIds);
+  }
 
   @override
   Future<(int total, List<Publication> publications)> searchWithFilter(
@@ -49,14 +64,14 @@ List<Publication> publications(int count, {String prefix = 'P'}) {
 }
 
 void main() {
-  group('PublicationProvider search feature flow', () {
+  group('HomeViewModel search feature flow', () {
     test(
       'searchWithFilter resets pagination and exposes total results',
       () async {
         final service = FakeFilterOpenAlexService(
           responses: [(120, publications(50))],
         );
-        final provider = PublicationProvider(service);
+        final provider = HomeViewModel(service);
 
         await provider.searchWithFilter('AI', null);
 
@@ -81,7 +96,7 @@ void main() {
             (75, publications(25, prefix: 'B')),
           ],
         );
-        final provider = PublicationProvider(service);
+        final provider = HomeViewModel(service);
 
         await provider.searchWithFilter('AI', null);
         await provider.loadMore();
@@ -102,7 +117,7 @@ void main() {
           (4, publications(4, prefix: 'Filtered')),
         ],
       );
-      final provider = PublicationProvider(service);
+      final provider = HomeViewModel(service);
 
       await provider.searchWithFilter('AI', null);
       await provider.updateFilter(
@@ -134,7 +149,7 @@ void main() {
         final service = FakeFilterOpenAlexService(
           responses: [(2, publications(2))],
         );
-        final provider = PublicationProvider(service);
+        final provider = HomeViewModel(service);
 
         await provider.updateFilter(
           const SearchFilter(sortOption: SortOption.yearDesc),
@@ -155,7 +170,7 @@ void main() {
           responses: [(50, publications(50))],
           errorOnCall: 2,
         );
-        final provider = PublicationProvider(service);
+        final provider = HomeViewModel(service);
 
         await provider.searchWithFilter('AI', null);
         await provider.loadMore();
@@ -174,7 +189,7 @@ void main() {
       final service = FakeFilterOpenAlexService(
         responses: [(1, publications(1))],
       );
-      final provider = PublicationProvider(service);
+      final provider = HomeViewModel(service);
 
       await provider.searchWithFilter(
         'AI',

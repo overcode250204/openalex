@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/publication.dart';
-import '../core/utils/formatters.dart';
+import '../models/publication/publication.dart';
+import '../utils/formatters.dart';
 
 class TopInfluentialPapersHorizontalChart extends StatelessWidget {
   final List<Publication> papers;

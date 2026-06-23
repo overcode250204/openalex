@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/journal/journal_publication.dart';
-import '../../services/openalex_journal_service.dart';
+import '../../viewmodels/journal_publication_detail_view_model.dart';
 
 class JournalPublicationDetailScreen extends StatefulWidget {
   final JournalPublication publication;
@@ -16,38 +17,16 @@ class JournalPublicationDetailScreen extends StatefulWidget {
 
 class _JournalPublicationDetailScreenState
     extends State<JournalPublicationDetailScreen> {
-  final OpenAlexJournalService _service = OpenAlexJournalService();
-
-  late JournalPublication _publication = widget.publication;
-  bool _isLoading = false;
-
   @override
   void initState() {
     super.initState();
-    _loadDetail();
-  }
-
-  Future<void> _loadDetail() async {
-    if (_publication.workId.trim().isEmpty) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final detail = await _service.getPublicationDetail(_publication.workId);
-      if (!mounted || detail == null) return;
-
-      setState(() {
-        _publication = detail;
-      });
-    } finally {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        context.read<JournalPublicationDetailViewModel>().load(
+          widget.publication,
+        );
       }
-    }
+    });
   }
 
   Future<void> _openUrl(String? value) async {
@@ -65,7 +44,8 @@ class _JournalPublicationDetailScreenState
 
   @override
   Widget build(BuildContext context) {
-    final publication = _publication;
+    final viewModel = context.watch<JournalPublicationDetailViewModel>();
+    final publication = viewModel.publication ?? widget.publication;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),
@@ -141,7 +121,7 @@ class _JournalPublicationDetailScreenState
               ),
             ],
           ),
-          if (_isLoading)
+          if (viewModel.isLoading)
             const Positioned(
               left: 0,
               right: 0,

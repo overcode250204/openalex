@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:provider/provider.dart';
-import 'package:openalex/providers/analytics_provider.dart';
+import 'package:openalex/viewmodels/analytics_view_model.dart';
 import 'package:openalex/widgets/analytics/country_output_chart.dart';
 
-class MockAnalyticsProvider extends Mock implements AnalyticsProvider {}
+class MockAnalyticsViewModel extends Mock implements AnalyticsViewModel {}
 
 void main() {
-  late MockAnalyticsProvider mockProvider;
+  late MockAnalyticsViewModel mockProvider;
 
   setUp(() {
-    mockProvider = MockAnalyticsProvider();
+    mockProvider = MockAnalyticsViewModel();
   });
 
   Widget buildChart() {
@@ -20,7 +20,7 @@ void main() {
         body: SizedBox(
           width: 2000,
           height: 1000,
-          child: ChangeNotifierProvider<AnalyticsProvider>.value(
+          child: ChangeNotifierProvider<AnalyticsViewModel>.value(
             value: mockProvider,
             child: const CountryOutputChart(),
           ),
@@ -49,10 +49,7 @@ void main() {
 
   testWidgets('non-empty data renders safely', (tester) async {
     when(() => mockProvider.isLoading).thenReturn(false);
-    when(() => mockProvider.countryOutput).thenReturn({
-      'USA': 100,
-      'UK': 80,
-    });
+    when(() => mockProvider.countryOutput).thenReturn({'USA': 100, 'UK': 80});
 
     await tester.pumpWidget(buildChart());
     expect(find.byType(CountryOutputChart), findsOneWidget);
@@ -61,10 +58,7 @@ void main() {
 
   testWidgets('zero values do not crash', (tester) async {
     when(() => mockProvider.isLoading).thenReturn(false);
-    when(() => mockProvider.countryOutput).thenReturn({
-      'USA': 0,
-      'UK': 0,
-    });
+    when(() => mockProvider.countryOutput).thenReturn({'USA': 0, 'UK': 0});
 
     await tester.pumpWidget(buildChart());
     expect(find.byType(CountryOutputChart), findsOneWidget);
@@ -73,9 +67,9 @@ void main() {
 
   testWidgets('multiple items render safely', (tester) async {
     when(() => mockProvider.isLoading).thenReturn(false);
-    when(() => mockProvider.countryOutput).thenReturn({
-      for (int i = 0; i < 20; i++) 'Country $i': i * 10,
-    });
+    when(
+      () => mockProvider.countryOutput,
+    ).thenReturn({for (int i = 0; i < 20; i++) 'Country $i': i * 10});
 
     await tester.pumpWidget(buildChart());
     expect(find.byType(CountryOutputChart), findsOneWidget);

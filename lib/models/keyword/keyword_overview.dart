@@ -23,10 +23,7 @@ class KeywordOverview {
     this.trend = const [],
   });
 
-  KeywordOverview copyWith({
-    double? hotScore,
-    List<KeywordTrendPoint>? trend,
-  }) {
+  KeywordOverview copyWith({double? hotScore, List<KeywordTrendPoint>? trend}) {
     return KeywordOverview(
       id: id,
       name: name,

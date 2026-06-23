@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:openalex/models/topic.dart';
-import 'package:openalex/providers/publication_provider.dart';
+import 'package:openalex/models/topic/topic.dart';
+import 'package:openalex/viewmodels/home_view_model.dart';
 import 'package:provider/provider.dart';
 
 class SearchSuggestionOverlay extends StatelessWidget {
   final TextEditingController controller;
+  final double maxHeight;
   final ValueChanged<TopicSuggestion?>? onSearch;
 
   const SearchSuggestionOverlay({
     super.key,
     required this.controller,
+    this.maxHeight = 220,
     required this.onSearch,
   });
 
   @override
   Widget build(BuildContext context) {
     return Focus(
-      child: Consumer<PublicationProvider>(
+      child: Consumer<HomeViewModel>(
         builder: (context, provider, _) {
           if (!provider.showSuggestions) {
             return const SizedBox.shrink();
@@ -30,12 +32,12 @@ class SearchSuggestionOverlay extends StatelessWidget {
             return const SizedBox.shrink();
           }
 
-          return Container(
+          return ConstrainedBox(
             key: const Key('search_suggestion_overlay_content'),
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               children: [
                 // History
                 if (query.isEmpty && hasHistory) ...[

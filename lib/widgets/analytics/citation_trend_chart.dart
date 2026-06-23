@@ -1,14 +1,14 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/analytics_provider.dart';
+import '../../viewmodels/analytics_view_model.dart';
 
 class CitationTrendChart extends StatelessWidget {
   const CitationTrendChart({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final analytics = context.watch<AnalyticsProvider>();
+    final analytics = context.watch<AnalyticsViewModel>();
     final data = analytics.publicationTrend;
 
     if (analytics.isLoading) {
@@ -42,11 +42,16 @@ class CitationTrendChart extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text('Publication Trend by Year',
-                    style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  'Publication Trend by Year',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.blue.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
@@ -81,17 +86,28 @@ class CitationTrendChart extends StatelessWidget {
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        interval: (years.length / 5).ceilToDouble().clamp(1, double.infinity),
+                        interval: (years.length / 5).ceilToDouble().clamp(
+                          1,
+                          double.infinity,
+                        ),
                         getTitlesWidget: (v, meta) {
                           final idx = v.toInt();
-                          if (idx < 0 || idx >= years.length) return const SizedBox();
-                          return Text(years[idx].toString(),
-                              style: const TextStyle(fontSize: 10));
+                          if (idx < 0 || idx >= years.length) {
+                            return const SizedBox();
+                          }
+                          return Text(
+                            years[idx].toString(),
+                            style: const TextStyle(fontSize: 10),
+                          );
                         },
                       ),
                     ),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
                   ),
                   borderData: FlBorderData(show: false),
                   lineBarsData: [

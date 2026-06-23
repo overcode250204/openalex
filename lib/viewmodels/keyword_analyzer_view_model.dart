@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/keyword/keyword_analysis_result.dart';
 import '../models/keyword/openalex_keyword.dart';
 import '../services/openalex_keyword_service.dart';
+
 class KeywordAnalyzerViewModel extends ChangeNotifier {
   final OpenAlexKeywordService _service;
 
@@ -19,6 +20,7 @@ class KeywordAnalyzerViewModel extends ChangeNotifier {
   int _selectedToYear = DateTime.now().year;
   bool _isLoadingTrend = false;
   bool _hasTrendError = false;
+  bool _isResolvingKeyword = false;
 
   String get keyword => _keyword;
   bool get isLoading => _isLoading;
@@ -29,6 +31,21 @@ class KeywordAnalyzerViewModel extends ChangeNotifier {
   int get selectedToYear => _selectedToYear;
   bool get isLoadingTrend => _isLoadingTrend;
   bool get hasTrendError => _hasTrendError;
+  bool get isResolvingKeyword => _isResolvingKeyword;
+
+  Future<OpenAlexKeyword?> resolveKeyword(String keyword) async {
+    final trimmedKeyword = keyword.trim();
+    if (trimmedKeyword.isEmpty) return null;
+
+    _isResolvingKeyword = true;
+    notifyListeners();
+    try {
+      return await _service.resolveKeyword(trimmedKeyword);
+    } finally {
+      _isResolvingKeyword = false;
+      notifyListeners();
+    }
+  }
 
   Future<void> updateKeywordTrendYearRange({
     required int fromYear,
@@ -118,7 +135,9 @@ class KeywordAnalyzerViewModel extends ChangeNotifier {
   }
 
   Future<void> analyzeResolvedKeyword(
-      String keyword, OpenAlexKeyword resolvedKeyword) async {
+    String keyword,
+    OpenAlexKeyword resolvedKeyword,
+  ) async {
     final trimmedKeyword = keyword.trim();
     _keyword = trimmedKeyword;
     _isLoading = true;
@@ -155,6 +174,4 @@ class KeywordAnalyzerViewModel extends ChangeNotifier {
     _hasTrendError = false;
     notifyListeners();
   }
-
-
 }

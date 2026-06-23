@@ -1,9 +1,28 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
+    // START: FlutterFire Configuration
+    id("com.google.gms.google-services")
+    // END: FlutterFire Configuration
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+val hasSharedSigningConfig = keystorePropertiesFile.exists()
+
+if (hasSharedSigningConfig) {
+    keystorePropertiesFile.inputStream().use { inputStream ->
+        keystoreProperties.load(inputStream)
+    }
+}
+
+fun requireKeystoreProperty(name: String): String =
+    keystoreProperties.getProperty(name)
+        ?: throw org.gradle.api.GradleException("Missing $name in android/key.properties")
 
 android {
     namespace = "com.example.openalex"
@@ -16,7 +35,7 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "17"
     }
 
     defaultConfig {
@@ -30,12 +49,30 @@ android {
         versionName = flutter.versionName
     }
     
+    signingConfigs {
+        if (hasSharedSigningConfig) {
+            create("shared") {
+                storeFile = rootProject.file(requireKeystoreProperty("storeFile"))
+                storePassword = requireKeystoreProperty("storePassword")
+                keyAlias = requireKeystoreProperty("keyAlias")
+                keyPassword = requireKeystoreProperty("keyPassword")
+            }
+        }
+    }
 
     buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+        getByName("debug") {
+            if (hasSharedSigningConfig) {
+                signingConfig = signingConfigs.getByName("shared")
+            }
+        }
+
+        getByName("release") {
+            if (hasSharedSigningConfig) {
+                signingConfig = signingConfigs.getByName("shared")
+            }
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openalex/models/publication.dart';
-import 'package:openalex/providers/publication_provider.dart';
+import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/viewmodels/home_view_model.dart';
 import 'package:openalex/services/history_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
@@ -12,18 +12,16 @@ class FakeOpenAlexService extends OpenAlexService {
   final List<Publication> results;
   final int total;
 
- @override
+  @override
   Future<(int total, List<Publication> publications)> searchPublications({
     required String keyword,
     int perPage = 50,
     String sort = 'cited_by_count:desc',
-    List<String>? topicIds
+    List<String>? topicIds,
   }) async {
-
     return (total, results);
   }
 }
-
 
 class FakeSearchHistoryService extends SearchHistoryService {
   @override
@@ -42,8 +40,8 @@ class FakeSuggestionService extends SuggestionService {
   }
 }
 
-PublicationProvider testProvider(OpenAlexService service) {
-  return PublicationProvider(
+HomeViewModel testProvider(OpenAlexService service) {
+  return HomeViewModel(
     service,
     historyService: FakeSearchHistoryService(),
     suggestionService: FakeSuggestionService(),
@@ -67,7 +65,7 @@ Publication publication({
     abstractText: null,
     authors: authors,
     referencedWorkIds: ["1", "2"],
-    relatedWorkIds:  ["1", "2"],
+    relatedWorkIds: ["1", "2"],
     oaUrl: "123",
   );
 }
@@ -90,8 +88,7 @@ void main() {
           journal: 'Journal A',
           authors: ['Ada Lovelace', 'Grace Hopper'],
         ),
-        
-      ],total: 2),
+      ], total: 2),
     );
     await provider.searchPublications(keyword: 'Artificial Intelligence');
 

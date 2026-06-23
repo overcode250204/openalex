@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openalex/core/utils/formatters.dart';
+import 'package:openalex/utils/formatters.dart';
 
 void main() {
   group('Formatters', () {

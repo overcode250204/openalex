@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/app_page.dart';
+import '../models/app/app_page.dart';
 
 class AppDrawer extends StatelessWidget {
   final AppPage selectedPage;
@@ -94,8 +94,7 @@ class AppDrawer extends StatelessWidget {
                     context: context,
                     title: 'Journal',
                     icon: Icons.menu_book_outlined,
-                    initiallyExpanded:
-                        selectedPage == AppPage.journals,
+                    initiallyExpanded: selectedPage == AppPage.journals,
                     children: [
                       _buildNavItem(
                         title: 'Search Journal',
@@ -106,7 +105,6 @@ class AppDrawer extends StatelessWidget {
                         mutedColor: mutedColor,
                         textColor: textColor,
                       ),
-
                     ],
                     textColor: textColor,
                     mutedColor: mutedColor,
@@ -116,8 +114,7 @@ class AppDrawer extends StatelessWidget {
                     context: context,
                     title: 'Keywords',
                     icon: Icons.local_offer_outlined,
-                    initiallyExpanded:
-                        selectedPage == AppPage.trends,
+                    initiallyExpanded: selectedPage == AppPage.trends,
                     children: [
                       _buildNavItem(
                         title: 'Trends',
@@ -128,7 +125,6 @@ class AppDrawer extends StatelessWidget {
                         mutedColor: mutedColor,
                         textColor: textColor,
                       ),
-
                     ],
                     textColor: textColor,
                     mutedColor: mutedColor,
