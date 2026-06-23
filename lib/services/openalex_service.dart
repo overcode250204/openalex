@@ -251,7 +251,9 @@ class OpenAlexService {
     }
 
     final Map<String, dynamic> body = jsonDecode(response.body);
-    return _parseGroupBy(body);
+    return _parseGroupBy(
+      body,
+    ).ifEmpty(() => _parseJournalResults(body, limit: limit));
   }
 
   Future<Map<String, int>> fetchTopContributingAuthors({
@@ -278,7 +280,9 @@ class OpenAlexService {
     }
 
     final Map<String, dynamic> body = jsonDecode(response.body);
-    return _parseGroupBy(body);
+    return _parseGroupBy(
+      body,
+    ).ifEmpty(() => _parseAuthorResults(body, limit: limit));
   }
 
   Future<Map<int, int>> fetchPublicationTrend({
@@ -359,5 +363,56 @@ class OpenAlexService {
         ),
       ),
     );
+  }
+
+  Map<String, int> _parseJournalResults(
+    Map<String, dynamic> body, {
+    int? limit,
+  }) {
+    final counts = <String, int>{};
+    for (final item in body['results'] as List<dynamic>? ?? const []) {
+      final work = item as Map<String, dynamic>;
+      final location = work['primary_location'] as Map<String, dynamic>?;
+      final source = location?['source'] as Map<String, dynamic>?;
+      final name = source?['display_name']?.toString().trim();
+      final journal = name == null || name.isEmpty ? 'Unknown Journal' : name;
+      counts[journal] = (counts[journal] ?? 0) + 1;
+    }
+    return _sortAndLimit(counts, limit);
+  }
+
+  Map<String, int> _parseAuthorResults(
+    Map<String, dynamic> body, {
+    int? limit,
+  }) {
+    final counts = <String, int>{};
+    for (final item in body['results'] as List<dynamic>? ?? const []) {
+      final work = item as Map<String, dynamic>;
+      for (final authorship
+          in work['authorships'] as List<dynamic>? ?? const []) {
+        final author =
+            (authorship as Map<String, dynamic>)['author']
+                as Map<String, dynamic>?;
+        final name = author?['display_name']?.toString().trim();
+        if (name == null || name.isEmpty) continue;
+        counts[name] = (counts[name] ?? 0) + 1;
+      }
+    }
+    return _sortAndLimit(counts, limit);
+  }
+
+  Map<String, int> _sortAndLimit(Map<String, int> counts, int? limit) {
+    final entries = counts.entries.toList()
+      ..sort((a, b) {
+        final byCount = b.value.compareTo(a.value);
+        return byCount != 0 ? byCount : a.key.compareTo(b.key);
+      });
+    return Map.fromEntries(entries.take(limit ?? entries.length));
+  }
+}
+
+extension _MapIfEmpty<K, V> on Map<K, V> {
+  Map<K, V> ifEmpty(Map<K, V> Function() fallback) {
+    return isEmpty ? fallback() : this;
   }
 }

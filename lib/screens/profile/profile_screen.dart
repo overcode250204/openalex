@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/auth/app_user.dart';
 import '../../utils/app_keys.dart';
 import '../../viewmodels/auth_view_model.dart';
 import '../../viewmodels/selected_topic_view_model.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
+
+  static const _background = Color(0xFFF5F7FB);
+  static const _primary = Color(0xFF2563EB);
+  static const _ink = Color(0xFF111827);
+  static const _muted = Color(0xFF6B7280);
 
   @override
   Widget build(BuildContext context) {
@@ -15,32 +21,235 @@ class ProfileScreen extends StatelessWidget {
     final selectedTopic = context.watch<SelectedTopicViewModel>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundImage: user?.photoUrl == null
-                    ? null
-                    : NetworkImage(user!.photoUrl!),
-                child: user?.photoUrl == null
-                    ? const Icon(Icons.person_outline)
-                    : null,
+      backgroundColor: _background,
+      appBar: AppBar(
+        title: const Text('Profile'),
+        backgroundColor: _background,
+        surfaceTintColor: Colors.transparent,
+      ),
+      body: SafeArea(
+        top: false,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 720;
+
+            return ListView(
+              padding: EdgeInsets.fromLTRB(
+                isWide ? 32 : 16,
+                12,
+                isWide ? 32 : 16,
+                24,
               ),
-              title: Text(user?.displayName ?? 'Research profile'),
-              subtitle: Text(user?.email ?? 'Signed in with Google'),
+              children: [
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 980),
+                  child: isWide
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(flex: 5, child: _ProfileCard(user: user)),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              flex: 4,
+                              child: _WorkspaceCard(
+                                selectedTopic: selectedTopic,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            _ProfileCard(user: user),
+                            const SizedBox(height: 16),
+                            _WorkspaceCard(selectedTopic: selectedTopic),
+                          ],
+                        ),
+                ),
+                const SizedBox(height: 16),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 980),
+                  child: _AccountActionsCard(auth: auth),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard({required this.user});
+
+  final AppUser? user;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayName = _displayName;
+    final email = _email;
+
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _UserAvatar(displayName: displayName, photoUrl: user?.photoUrl),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: ProfileScreen._ink,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        email,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: ProfileScreen._muted,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.topic_outlined),
-              title: const Text('Selected topic'),
-              subtitle: Text(
-                selectedTopic.selectedTopic ?? 'No topic selected',
+            const SizedBox(height: 20),
+            _InfoRow(
+              icon: Icons.verified_user_outlined,
+              label: 'Sign-in provider',
+              value: 'Google via Firebase Auth',
+            ),
+            const SizedBox(height: 12),
+            _InfoRow(
+              icon: Icons.mail_outline,
+              label: 'Email status',
+              value: user?.isEmailVerified == true ? 'Verified' : 'Unverified',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String get _displayName {
+    final value = user?.displayName?.toString().trim();
+    if (value != null && value.isNotEmpty) return value;
+
+    final email = user?.email?.toString().trim();
+    if (email != null && email.isNotEmpty) return email.split('@').first;
+
+    return 'Researcher';
+  }
+
+  String get _email {
+    final value = user?.email?.toString().trim();
+    if (value != null && value.isNotEmpty) return value;
+    return 'No email available';
+  }
+}
+
+class _UserAvatar extends StatelessWidget {
+  const _UserAvatar({required this.displayName, required this.photoUrl});
+
+  final String displayName;
+  final String? photoUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmedPhotoUrl = photoUrl?.trim();
+    final hasPhoto = trimmedPhotoUrl != null && trimmedPhotoUrl.isNotEmpty;
+
+    return CircleAvatar(
+      radius: 36,
+      backgroundColor: ProfileScreen._primary.withValues(alpha: 0.12),
+      backgroundImage: hasPhoto ? NetworkImage(trimmedPhotoUrl) : null,
+      child: hasPhoto
+          ? null
+          : Text(
+              _initials(displayName),
+              style: const TextStyle(
+                color: ProfileScreen._primary,
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
               ),
+            ),
+    );
+  }
+
+  String _initials(String value) {
+    final parts = value
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+
+    if (parts.isEmpty) return 'R';
+    if (parts.length == 1) return parts.first.characters.first.toUpperCase();
+
+    return '${parts.first.characters.first}${parts.last.characters.first}'
+        .toUpperCase();
+  }
+}
+
+class _WorkspaceCard extends StatelessWidget {
+  const _WorkspaceCard({required this.selectedTopic});
+
+  final SelectedTopicViewModel selectedTopic;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Research workspace',
+              style: TextStyle(
+                color: ProfileScreen._ink,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Your current context is restored while you explore.',
+              style: TextStyle(color: ProfileScreen._muted, fontSize: 13),
+            ),
+            const SizedBox(height: 18),
+            _InfoRow(
+              icon: Icons.topic_outlined,
+              label: 'Selected topic',
+              value: selectedTopic.selectedTopic ?? 'No topic selected',
               trailing: selectedTopic.hasSelectedTopic
                   ? IconButton(
                       tooltip: 'Clear selected topic',
@@ -49,16 +258,210 @@ class ProfileScreen extends StatelessWidget {
                     )
                   : null,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AccountActionsCard extends StatelessWidget {
+  const _AccountActionsCard({required this.auth});
+
+  final AuthViewModel auth;
+
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final shouldSignOut = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Sign out?'),
+          content: const Text(
+            'You will need to sign in again to access your research dashboard.',
           ),
-          const SizedBox(height: 24),
-          OutlinedButton.icon(
-            key: AppKeys.logoutButton,
-            onPressed: auth.isLoading ? null : auth.signOut,
-            icon: const Icon(Icons.logout),
-            label: Text(auth.isLoading ? 'Signing out...' : 'Sign out'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Sign out'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldSignOut != true) {
+      return;
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+
+    await auth.signOut();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Account',
+              style: TextStyle(
+                color: ProfileScreen._ink,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'You will be asked to sign in again after signing out.',
+              style: TextStyle(color: ProfileScreen._muted, fontSize: 13),
+            ),
+            if (auth.errorMessage != null) ...[
+              const SizedBox(height: 16),
+              _SignOutErrorBox(message: auth.errorMessage!),
+            ],
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              key: AppKeys.logoutButton,
+              onPressed: auth.isLoading ? null : () => _confirmSignOut(context),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: colorScheme.error,
+                side: BorderSide(
+                  color: colorScheme.error.withValues(alpha: 0.5),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              icon: auth.isLoading
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: colorScheme.error,
+                      ),
+                    )
+                  : const Icon(Icons.logout),
+              label: Text(auth.isLoading ? 'Signing out...' : 'Sign out'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SignOutErrorBox extends StatelessWidget {
+  const _SignOutErrorBox({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.error_outline,
+            color: colorScheme.onErrorContainer,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: colorScheme.onErrorContainer,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.trailing,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: ProfileScreen._primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: ProfileScreen._primary, size: 19),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: ProfileScreen._muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: ProfileScreen._ink,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+        ?trailing,
+      ],
     );
   }
 }

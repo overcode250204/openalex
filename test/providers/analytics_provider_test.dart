@@ -133,11 +133,7 @@ void main() {
     expect(provider.topJournalName, 'Nature');
     expect(provider.mostCitedTitle, 'Top Work');
     verify(
-      () => mockService.fetchSummary(
-        'AI',
-        any(),
-        topicId: 'T1',
-      ),
+      () => mockService.fetchSummary('AI', any(), topicId: 'T1'),
     ).called(1);
     verifyNever(
       () => mockService.fetchAll(
@@ -241,38 +237,40 @@ void main() {
     expect(attempts, 2);
   });
 
-  test('reuses the visible trend when the summary trend part is unavailable', (
-    ) async {
-    when(
-      () => mockService.fetchSummary(
-        any(),
-        any(),
-        topicId: any<String?>(named: 'topicId'),
-      ),
-    ).thenAnswer(
-      (_) async => const TopicAnalytics(
-        publicationTrend: {},
-        topKeywords: {},
-        institutionRanking: {},
-        countryOutput: {},
-        topAuthors: {'Ada': 2},
-      ),
-    );
+  test(
+    'reuses the visible trend when the summary trend part is unavailable',
+    () async {
+      when(
+        () => mockService.fetchSummary(
+          any(),
+          any(),
+          topicId: any<String?>(named: 'topicId'),
+        ),
+      ).thenAnswer(
+        (_) async => const TopicAnalytics(
+          publicationTrend: {},
+          topKeywords: {},
+          institutionRanking: {},
+          countryOutput: {},
+          topAuthors: {'Ada': 2},
+        ),
+      );
 
-    await provider.fetchAnalytics(
-      'AI',
-      const SearchFilter(yearFrom: 2023, yearTo: 2024),
-      [],
-      topicId: 'T1',
-      fallbackTrend: const {2023: 2, 2024: 5},
-      includeCharts: false,
-    );
+      await provider.fetchAnalytics(
+        'AI',
+        const SearchFilter(yearFrom: 2023, yearTo: 2024),
+        [],
+        topicId: 'T1',
+        fallbackTrend: const {2023: 2, 2024: 5},
+        includeCharts: false,
+      );
 
-    expect(provider.publicationTrend, {2023: 2, 2024: 5});
-    expect(provider.totalWorks, 7);
-    expect(provider.mostActiveYear, 2024);
-    expect(provider.topAuthorName, 'Ada');
-  });
+      expect(provider.publicationTrend, {2023: 2, 2024: 5});
+      expect(provider.totalWorks, 7);
+      expect(provider.mostActiveYear, 2024);
+      expect(provider.topAuthorName, 'Ada');
+    },
+  );
 
   test('clear resets state', () async {
     when(
@@ -331,7 +329,18 @@ void main() {
         any(),
         topicId: any<String?>(named: 'topicId'),
       ),
-    ).thenAnswer((_) async => TopicAnalytics.empty());
+    ).thenAnswer(
+      (_) async => const TopicAnalytics(
+        publicationTrend: {},
+        topKeywords: {},
+        institutionRanking: {},
+        countryOutput: {},
+        authorImpact: [
+          AuthorImpactSummary(name: 'Alice', paperCount: 2, totalCitations: 30),
+          AuthorImpactSummary(name: 'Bob', paperCount: 1, totalCitations: 10),
+        ],
+      ),
+    );
 
     final pubs = <Publication>[
       Publication(
@@ -408,13 +417,7 @@ void main() {
       topicId: 'T1',
     );
 
-    verify(
-      () => mockService.fetchAll(
-        'AI',
-        any(),
-        topicId: 'T1',
-      ),
-    ).called(1);
+    verify(() => mockService.fetchAll('AI', any(), topicId: 'T1')).called(1);
   });
 
   test('refreshes for topic and year changes without stale values', () async {

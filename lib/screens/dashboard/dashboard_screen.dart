@@ -7,7 +7,6 @@ import '../../routes/route_arguments.dart';
 import '../../viewmodels/analytics_view_model.dart';
 import '../../viewmodels/dashboard_view_model.dart';
 import '../../viewmodels/home_view_model.dart';
-import '../../viewmodels/selected_topic_view_model.dart';
 import '../../utils/app_keys.dart';
 import '../../widgets/analytics/author_impact_chart.dart';
 import '../../widgets/analytics/citation_trend_chart.dart';
@@ -32,10 +31,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   /// The base search filter with the dashboard's year range applied on top.
   SearchFilter _effectiveFilter() {
-    return SearchFilter(
-      yearFrom: _yearFrom,
-      yearTo: _yearTo,
-    );
+    return SearchFilter(yearFrom: _yearFrom, yearTo: _yearTo);
   }
 
   /// Refetches full-dataset analytics whenever the topic or year range changes.
@@ -94,90 +90,89 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Research Dashboard')),
       body: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Text(
-                  'Dashboard: ${widget.arguments.topicName}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                if (analytics.error != null) ...[
-                  _AnalyticsErrorBanner(
-                    onRetry: () {
-                      _lastSignature = null;
-                      _syncAnalytics();
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                TopicSummaryGrid(
-                  isLoading: loading,
-                  totalPublications: analytics.hasLoaded
-                      ? _compactNumber(analytics.totalWorks)
-                      : 'N/A',
-                  averageCitations:
-                      analytics.averageCitations?.toStringAsFixed(1) ?? 'N/A',
-                  averageCitationsLabel: analytics.averageCitationsLabel,
-                  mostActiveYear:
-                      analytics.mostActiveYear?.toString() ?? 'N/A',
-                  topAuthor: analytics.topAuthorName ?? 'N/A',
-                  topJournal: analytics.topJournalName ?? 'N/A',
-                  mostInfluentialPaper: analytics.mostCitedTitle ?? 'N/A',
-                  influentialPaperDetails: _influentialPaperDetails(analytics),
-                  onInfluentialPaperTap:
-                      analytics.mostInfluentialPaper?.id.isNotEmpty == true
-                      ? () {
-                          final paper = analytics.mostInfluentialPaper!;
-                          Navigator.pushNamed(
-                            context,
-                            AppRoutes.publicationDetail,
-                            arguments: PublicationDetailRouteArgs(
-                              workId: paper.id,
-                              initialTitle: paper.title,
-                            ),
-                          );
-                        }
-                      : null,
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Analytics',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Aggregated across the full matching dataset on OpenAlex, '
-                  'not just the loaded sample.',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
-                ),
-                const SizedBox(height: 12),
-                _YearRangeFilterCard(
-                  yearFrom: _yearFrom,
-                  yearTo: _yearTo,
-                  onFromChanged: _onYearFromChanged,
-                  onToChanged: _onYearToChanged,
-                  onClear: _clearYears,
-                ),
-                const SizedBox(height: 16),
-                const CitationTrendChart(),
-                const SizedBox(height: 16),
-                const AuthorImpactChart(),
-                const SizedBox(height: 16),
-                const TopKeywordsChart(),
-                const SizedBox(height: 16),
-                const InstitutionRankingChart(),
-                const SizedBox(height: 16),
-                const CountryOutputChart(),
-                const SizedBox(height: 24),
-                _ExportTrendReportButton(provider: provider),
-              ],
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(
+            'Dashboard: ${widget.arguments.topicName}',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          if (analytics.error != null) ...[
+            _AnalyticsErrorBanner(
+              onRetry: () {
+                _lastSignature = null;
+                _syncAnalytics();
+              },
             ),
+            const SizedBox(height: 12),
+          ],
+          TopicSummaryGrid(
+            isLoading: loading,
+            totalPublications: analytics.hasLoaded
+                ? _compactNumber(analytics.totalWorks)
+                : 'N/A',
+            averageCitations:
+                analytics.averageCitations?.toStringAsFixed(1) ?? 'N/A',
+            averageCitationsLabel: analytics.averageCitationsLabel,
+            mostActiveYear: analytics.mostActiveYear?.toString() ?? 'N/A',
+            topAuthor: analytics.topAuthorName ?? 'N/A',
+            topJournal: analytics.topJournalName ?? 'N/A',
+            mostInfluentialPaper: analytics.mostCitedTitle ?? 'N/A',
+            influentialPaperDetails: _influentialPaperDetails(analytics),
+            onInfluentialPaperTap:
+                analytics.mostInfluentialPaper?.id.isNotEmpty == true
+                ? () {
+                    final paper = analytics.mostInfluentialPaper!;
+                    Navigator.pushNamed(
+                      context,
+                      AppRoutes.publicationDetail,
+                      arguments: PublicationDetailRouteArgs(
+                        workId: paper.id,
+                        initialTitle: paper.title,
+                      ),
+                    );
+                  }
+                : null,
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Analytics',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Aggregated across the full matching dataset on OpenAlex, '
+            'not just the loaded sample.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 12),
+          _YearRangeFilterCard(
+            yearFrom: _yearFrom,
+            yearTo: _yearTo,
+            onFromChanged: _onYearFromChanged,
+            onToChanged: _onYearToChanged,
+            onClear: _clearYears,
+          ),
+          const SizedBox(height: 16),
+          const CitationTrendChart(),
+          const SizedBox(height: 16),
+          const AuthorImpactChart(),
+          const SizedBox(height: 16),
+          const TopKeywordsChart(),
+          const SizedBox(height: 16),
+          const InstitutionRankingChart(),
+          const SizedBox(height: 16),
+          const CountryOutputChart(),
+          const SizedBox(height: 24),
+          _ExportTrendReportButton(provider: provider),
+        ],
+      ),
     );
   }
 }

@@ -12,28 +12,17 @@ plugins {
 
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
+val hasSharedSigningConfig = keystorePropertiesFile.exists()
 
-if (!keystorePropertiesFile.exists()) {
-    throw org.gradle.api.GradleException(
-        "Missing android/key.properties. Please create this file before building."
-    )
+if (hasSharedSigningConfig) {
+    keystorePropertiesFile.inputStream().use { inputStream ->
+        keystoreProperties.load(inputStream)
+    }
 }
 
-keystorePropertiesFile.inputStream().use { inputStream ->
-    keystoreProperties.load(inputStream)
-}
-
-val sharedStoreFile: String = keystoreProperties.getProperty("storeFile")
-    ?: throw org.gradle.api.GradleException("Missing storeFile in android/key.properties")
-
-val sharedStorePassword: String = keystoreProperties.getProperty("storePassword")
-    ?: throw org.gradle.api.GradleException("Missing storePassword in android/key.properties")
-
-val sharedKeyAlias: String = keystoreProperties.getProperty("keyAlias")
-    ?: throw org.gradle.api.GradleException("Missing keyAlias in android/key.properties")
-
-val sharedKeyPassword: String = keystoreProperties.getProperty("keyPassword")
-    ?: throw org.gradle.api.GradleException("Missing keyPassword in android/key.properties")
+fun requireKeystoreProperty(name: String): String =
+    keystoreProperties.getProperty(name)
+        ?: throw org.gradle.api.GradleException("Missing $name in android/key.properties")
 
 android {
     namespace = "com.example.openalex"
@@ -61,21 +50,27 @@ android {
     }
     
     signingConfigs {
-        create("shared") {
-            storeFile = rootProject.file(sharedStoreFile)
-            storePassword = sharedStorePassword
-            keyAlias = sharedKeyAlias
-            keyPassword = sharedKeyPassword
+        if (hasSharedSigningConfig) {
+            create("shared") {
+                storeFile = rootProject.file(requireKeystoreProperty("storeFile"))
+                storePassword = requireKeystoreProperty("storePassword")
+                keyAlias = requireKeystoreProperty("keyAlias")
+                keyPassword = requireKeystoreProperty("keyPassword")
+            }
         }
     }
 
     buildTypes {
         getByName("debug") {
-            signingConfig = signingConfigs.getByName("shared")
+            if (hasSharedSigningConfig) {
+                signingConfig = signingConfigs.getByName("shared")
+            }
         }
 
         getByName("release") {
-            signingConfig = signingConfigs.getByName("shared")
+            if (hasSharedSigningConfig) {
+                signingConfig = signingConfigs.getByName("shared")
+            }
             isMinifyEnabled = false
             isShrinkResources = false
         }
