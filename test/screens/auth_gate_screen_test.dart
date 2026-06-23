@@ -48,16 +48,14 @@ Widget _build(AuthViewModel viewModel) {
 }
 
 void main() {
-  testWidgets('shows login screen when the user is not signed in', (
-    tester,
-  ) async {
+  testWidgets('logged-out user opens Login Screen directly', (tester) async {
     final service = FakeAuthService();
     final viewModel = AuthViewModel(authService: service);
 
     await tester.pumpWidget(_build(viewModel));
-    await tester.pump();
 
     expect(find.text('OpenAlex Research'), findsOneWidget);
+    expect(find.text('Welcome back'), findsOneWidget);
     expect(find.byKey(AppKeys.googleSignInButton), findsOneWidget);
     expect(find.text('Authenticated app'), findsNothing);
 
@@ -65,27 +63,13 @@ void main() {
     await service.dispose();
   });
 
-  testWidgets('shows loading screen while auth state is checking', (
+  testWidgets('logged-in user opens AppShell directly after restart', (
     tester,
   ) async {
-    final service = _PendingAuthService();
-    final viewModel = AuthViewModel(authService: service);
-
-    await tester.pumpWidget(_build(viewModel));
-
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(find.text('OpenAlex Research'), findsNothing);
-
-    viewModel.dispose();
-    await service.dispose();
-  });
-
-  testWidgets('shows the app when the user is signed in', (tester) async {
     final service = FakeAuthService(initialUser: fakeUser());
     final viewModel = AuthViewModel(authService: service);
 
     await tester.pumpWidget(_build(viewModel));
-    await tester.pump();
 
     expect(find.text('Authenticated app'), findsOneWidget);
     expect(find.text('OpenAlex Research'), findsNothing);

@@ -40,8 +40,35 @@ class _CompleterAuthService implements AuthService {
 
 void main() {
   group('AuthViewModel', () {
+    test('uses persisted signed-in user immediately on startup', () async {
+      final user = fakeUser();
+      final service = FakeAuthService(initialUser: user);
+      final viewModel = AuthViewModel(authService: service);
+
+      expect(viewModel.status, AuthStatus.authenticated);
+      expect(viewModel.currentUser, user);
+      expect(viewModel.isAuthenticated, isTrue);
+
+      viewModel.dispose();
+      await service.dispose();
+    });
+
     test(
-      'moves from checking to unauthenticated when no user is emitted',
+      'uses unauthenticated state immediately when no user is persisted',
+      () async {
+        final service = FakeAuthService();
+        final viewModel = AuthViewModel(authService: service);
+
+        expect(viewModel.status, AuthStatus.unauthenticated);
+        expect(viewModel.currentUser, isNull);
+
+        viewModel.dispose();
+        await service.dispose();
+      },
+    );
+
+    test(
+      'keeps unauthenticated state when auth stream emits no user',
       () async {
         final service = FakeAuthService();
         final viewModel = AuthViewModel(authService: service);

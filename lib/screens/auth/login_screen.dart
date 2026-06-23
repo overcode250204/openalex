@@ -10,6 +10,7 @@ class LoginScreen extends StatelessWidget {
   static const _background = Color(0xFFF5F7FB);
   static const _primary = Color(0xFF2563EB);
   static const _ink = Color(0xFF111827);
+  static const _muted = Color(0xFF6B7280);
 
   @override
   Widget build(BuildContext context) {
@@ -20,39 +21,19 @@ class LoginScreen extends StatelessWidget {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(20),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: BorderSide(color: Colors.grey.shade200),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const _BrandHeader(),
-                      const SizedBox(height: 24),
-                      if (auth.errorMessage != null) ...[
-                        _ErrorBanner(
-                          message: auth.errorMessage!,
-                          onDismiss: auth.clearError,
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      _GoogleSignInButton(
-                        isLoading: auth.isLoading,
-                        onPressed: auth.isLoading
-                            ? null
-                            : context.read<AuthViewModel>().signInWithGoogle,
-                      ),
-                    ],
-                  ),
-                ),
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const _BrandHeader(),
+                  const SizedBox(height: 18),
+                  _LoginCard(auth: auth),
+                  const SizedBox(height: 14),
+                  const _PrivacyNote(),
+                ],
               ),
             ),
           ),
@@ -68,36 +49,157 @@ class _BrandHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
-          width: 64,
-          height: 64,
+          width: 68,
+          height: 68,
+          decoration: BoxDecoration(
+            color: LoginScreen._primary,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: LoginScreen._primary.withValues(alpha: 0.24),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: const Icon(Icons.auto_graph, color: Colors.white, size: 36),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Journal Research',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: LoginScreen._ink,
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Explore research trends with your saved workspace.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: LoginScreen._muted, fontSize: 14),
+        ),
+      ],
+    );
+  }
+}
+
+class _LoginCard extends StatelessWidget {
+  const _LoginCard({required this.auth});
+
+  final AuthViewModel auth;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Welcome back',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: LoginScreen._ink,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Sign in once and stay connected on this device.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: LoginScreen._muted, fontSize: 14),
+            ),
+            const SizedBox(height: 20),
+            const _BenefitList(),
+            if (auth.errorMessage != null) ...[
+              const SizedBox(height: 18),
+              _ErrorBanner(
+                message: auth.errorMessage!,
+                onDismiss: auth.clearError,
+              ),
+            ],
+            const SizedBox(height: 20),
+            _GoogleSignInButton(
+              isLoading: auth.isLoading,
+              onPressed: auth.isLoading
+                  ? null
+                  : context.read<AuthViewModel>().signInWithGoogle,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BenefitList extends StatelessWidget {
+  const _BenefitList();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      children: [
+        _BenefitItem(
+          icon: Icons.history,
+          text: 'Keep your research context ready after restart',
+        ),
+        SizedBox(height: 10),
+        _BenefitItem(
+          icon: Icons.verified_user_outlined,
+          text: 'Secure sign-in with your Google account',
+        ),
+        SizedBox(height: 10),
+        _BenefitItem(
+          icon: Icons.insights_outlined,
+          text: 'Jump straight into trends, journals, and keywords',
+        ),
+      ],
+    );
+  }
+}
+
+class _BenefitItem extends StatelessWidget {
+  const _BenefitItem({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
           decoration: BoxDecoration(
             color: LoginScreen._primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Icon(
-            Icons.auto_graph,
-            color: LoginScreen._primary,
-            size: 34,
-          ),
+          child: Icon(icon, size: 17, color: LoginScreen._primary),
         ),
-        const SizedBox(height: 18),
-        const Text(
-          'OpenAlex Research',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: LoginScreen._ink,
-            fontSize: 26,
-            fontWeight: FontWeight.w800,
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: LoginScreen._ink,
+              fontSize: 13,
+              height: 1.3,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Sign in to continue your research workspace.',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
         ),
       ],
     );
@@ -155,23 +257,39 @@ class _GoogleSignInButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
+    return FilledButton(
       key: AppKeys.googleSignInButton,
       onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: LoginScreen._ink,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        side: BorderSide(color: Colors.grey.shade300),
+      style: FilledButton.styleFrom(
+        backgroundColor: LoginScreen._primary,
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: LoginScreen._primary.withValues(alpha: 0.68),
+        disabledForegroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 150),
         child: isLoading
-            ? const SizedBox(
+            ? const Row(
                 key: ValueKey('google-sign-in-loading'),
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2.5),
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.4,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Text(
+                    'Signing in...',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ],
               )
             : const Row(
                 key: ValueKey('google-sign-in-label'),
@@ -200,9 +318,9 @@ class _GoogleMark extends StatelessWidget {
       width: 22,
       height: 22,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.grey.shade300),
+        color: Colors.white,
       ),
       child: const Text(
         'G',
@@ -212,6 +330,19 @@ class _GoogleMark extends StatelessWidget {
           fontSize: 14,
         ),
       ),
+    );
+  }
+}
+
+class _PrivacyNote extends StatelessWidget {
+  const _PrivacyNote();
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      'We use Google only to verify your identity and restore your session.',
+      textAlign: TextAlign.center,
+      style: TextStyle(color: Colors.grey.shade600, fontSize: 12, height: 1.35),
     );
   }
 }

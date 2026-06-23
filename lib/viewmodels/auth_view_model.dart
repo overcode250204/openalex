@@ -12,6 +12,11 @@ enum AuthStatus { checking, authenticated, unauthenticated }
 class AuthViewModel extends ChangeNotifier {
   AuthViewModel({required AuthService authService})
     : _authService = authService {
+    final persistedUser = _authService.getCurrentUser();
+    _currentUser = persistedUser;
+    _status = persistedUser == null
+        ? AuthStatus.unauthenticated
+        : AuthStatus.authenticated;
     _listenToAuthChanges();
   }
 
