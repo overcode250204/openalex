@@ -125,6 +125,23 @@ void main() {
       await service.dispose();
     });
 
+    test('maps missing Google id token to a friendly message', () async {
+      final service = FakeAuthService(
+        signInError: const GoogleSignInIdTokenException(),
+      );
+      final viewModel = AuthViewModel(authService: service);
+
+      await viewModel.signInWithGoogle();
+
+      expect(
+        viewModel.errorMessage,
+        'Google Sign-In could not verify this account. Please try again.',
+      );
+
+      viewModel.dispose();
+      await service.dispose();
+    });
+
     test(
       'signOut clears the current user when auth state emits null',
       () async {

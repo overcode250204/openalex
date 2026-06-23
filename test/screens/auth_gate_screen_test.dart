@@ -94,6 +94,27 @@ void main() {
     await service.dispose();
   });
 
+  testWidgets('successful Google Sign-In redirects to the app', (tester) async {
+    final service = FakeAuthService();
+    final viewModel = AuthViewModel(authService: service);
+
+    await tester.pumpWidget(_build(viewModel));
+    await tester.pump();
+
+    expect(find.text('OpenAlex Research'), findsOneWidget);
+
+    await tester.tap(find.byKey(AppKeys.googleSignInButton));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Authenticated app'), findsOneWidget);
+    expect(find.text('OpenAlex Research'), findsNothing);
+    expect(service.signInCount, 1);
+
+    viewModel.dispose();
+    await service.dispose();
+  });
+
   testWidgets('shows loading and error states during failed Google Sign-In', (
     tester,
   ) async {

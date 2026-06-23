@@ -128,6 +128,10 @@ class AuthViewModel extends ChangeNotifier {
       return error.message ?? 'Google Sign-In failed.';
     }
 
+    if (error is GoogleSignInIdTokenException) {
+      return 'Google Sign-In could not verify this account. Please try again.';
+    }
+
     return 'Unable to sign in with Google. Please try again.';
   }
 
