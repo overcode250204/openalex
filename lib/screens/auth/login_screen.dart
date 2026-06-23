@@ -68,7 +68,7 @@ class _BrandHeader extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         const Text(
-          'Journal Research',
+          'Journal Trend Analyzer',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: LoginScreen._ink,

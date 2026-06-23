@@ -143,7 +143,7 @@ void main() {
 
     await provider.searchPublications(keyword: '  AI  ');
 
-    expect(service.requestedKeyword, '  AI  ');
+    expect(service.requestedKeyword, 'AI');
     expect(loadingStates, [true, false]);
     expect(provider.currentTopic, 'AI');
     expect(provider.currentTopicId, 'T1');

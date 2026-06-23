@@ -54,7 +54,7 @@ void main() {
 
     await tester.pumpWidget(_build(viewModel));
 
-    expect(find.text('OpenAlex Research'), findsOneWidget);
+    expect(find.text('Journal Trend Analyzer'), findsOneWidget);
     expect(find.text('Welcome back'), findsOneWidget);
     expect(find.byKey(AppKeys.googleSignInButton), findsOneWidget);
     expect(find.text('Authenticated app'), findsNothing);
@@ -72,7 +72,7 @@ void main() {
     await tester.pumpWidget(_build(viewModel));
 
     expect(find.text('Authenticated app'), findsOneWidget);
-    expect(find.text('OpenAlex Research'), findsNothing);
+    expect(find.text('Journal Trend Analyzer'), findsNothing);
 
     viewModel.dispose();
     await service.dispose();
@@ -85,14 +85,14 @@ void main() {
     await tester.pumpWidget(_build(viewModel));
     await tester.pump();
 
-    expect(find.text('OpenAlex Research'), findsOneWidget);
+    expect(find.text('Journal Trend Analyzer'), findsOneWidget);
 
     await tester.tap(find.byKey(AppKeys.googleSignInButton));
     await tester.pump();
     await tester.pump();
 
     expect(find.text('Authenticated app'), findsOneWidget);
-    expect(find.text('OpenAlex Research'), findsNothing);
+    expect(find.text('Journal Trend Analyzer'), findsNothing);
     expect(service.signInCount, 1);
 
     viewModel.dispose();
