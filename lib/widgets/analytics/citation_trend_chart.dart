@@ -1,6 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../viewmodels/analytics_view_model.dart';
 
 class CitationTrendChart extends StatelessWidget {
@@ -64,81 +67,106 @@ class CitationTrendChart extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              height: 200,
-              child: LineChart(
-                LineChartData(
-                  gridData: FlGridData(
-                    drawVerticalLine: false,
-                    horizontalInterval: maxY > 0 ? maxY / 4 : 1,
-                  ),
-                  titlesData: FlTitlesData(
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 52,
-                        getTitlesWidget: (v, meta) => Text(
-                          _formatCount(v.toInt()),
-                          style: const TextStyle(fontSize: 10),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final chartWidth = math.max(
+                  constraints.maxWidth,
+                  years.length * 56.0,
+                );
+
+                return SizedBox(
+                  height: 200,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: SizedBox(
+                      width: chartWidth,
+                      child: LineChart(
+                        LineChartData(
+                          gridData: FlGridData(
+                            drawVerticalLine: false,
+                            horizontalInterval: maxY > 0 ? maxY / 4 : 1,
+                          ),
+                          titlesData: FlTitlesData(
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 52,
+                                getTitlesWidget: (v, meta) => Text(
+                                  _formatCount(v.toInt()),
+                                  style: const TextStyle(fontSize: 10),
+                                ),
+                              ),
+                            ),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 32,
+                                interval: 1,
+                                getTitlesWidget: (v, meta) {
+                                  final idx = v.toInt();
+                                  if (idx < 0 || idx >= years.length) {
+                                    return const SizedBox();
+                                  }
+                                  return SideTitleWidget(
+                                    axisSide: meta.axisSide,
+                                    space: 8,
+                                    child: SizedBox(
+                                      width: 48,
+                                      child: Text(
+                                        years[idx].toString(),
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(fontSize: 10),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            topTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            rightTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                          ),
+                          borderData: FlBorderData(show: false),
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: spots,
+                              isCurved: true,
+                              color: Colors.blue,
+                              barWidth: 2,
+                              dotData: const FlDotData(show: false),
+                              belowBarData: BarAreaData(
+                                show: true,
+                                color: Colors.blue.withValues(alpha: 0.12),
+                              ),
+                            ),
+                          ],
+                          lineTouchData: LineTouchData(
+                            touchTooltipData: LineTouchTooltipData(
+                              getTooltipItems: (spots) => spots.map((s) {
+                                final idx = s.x.toInt();
+                                final year = idx >= 0 && idx < years.length
+                                    ? years[idx]
+                                    : '';
+                                return LineTooltipItem(
+                                  '$year\n${_formatCount(s.y.toInt())} papers',
+                                  const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        interval: (years.length / 5).ceilToDouble().clamp(
-                          1,
-                          double.infinity,
-                        ),
-                        getTitlesWidget: (v, meta) {
-                          final idx = v.toInt();
-                          if (idx < 0 || idx >= years.length) {
-                            return const SizedBox();
-                          }
-                          return Text(
-                            years[idx].toString(),
-                            style: const TextStyle(fontSize: 10),
-                          );
-                        },
-                      ),
-                    ),
-                    topTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
-                    rightTitles: const AxisTitles(
-                      sideTitles: SideTitles(showTitles: false),
-                    ),
                   ),
-                  borderData: FlBorderData(show: false),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: spots,
-                      isCurved: true,
-                      color: Colors.blue,
-                      barWidth: 2,
-                      dotData: const FlDotData(show: false),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        color: Colors.blue.withValues(alpha: 0.12),
-                      ),
-                    ),
-                  ],
-                  lineTouchData: LineTouchData(
-                    touchTooltipData: LineTouchTooltipData(
-                      getTooltipItems: (spots) => spots.map((s) {
-                        final idx = s.x.toInt();
-                        final year = idx >= 0 && idx < years.length
-                            ? years[idx]
-                            : '';
-                        return LineTooltipItem(
-                          '$year\n${_formatCount(s.y.toInt())} papers',
-                          const TextStyle(color: Colors.white, fontSize: 11),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-              ),
+                );
+              },
             ),
           ],
         ),
