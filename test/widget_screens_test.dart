@@ -16,7 +16,7 @@ import 'package:openalex/screens/publication/publication_detail_screen.dart'
 import 'package:openalex/screens/search/search_screen.dart';
 import 'package:openalex/screens/trend/trend_analysis_screen.dart';
 import 'package:openalex/services/history_service.dart';
-import 'package:openalex/services/analytics_service.dart';
+import 'package:openalex/services/analytics/analytics_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
 import 'package:openalex/services/trend_report_export_service.dart';

@@ -75,7 +75,6 @@ class SearchSuggestionOverlay extends StatelessWidget {
                         controller.text = h;
                         provider.hideSuggestions();
                         onSearch?.call(null);
-                        onSearch!(null);
                       },
                       onDelete: () => provider.removeHistory(h),
                     ),

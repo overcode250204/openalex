@@ -243,40 +243,38 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
                   onChanged: viewModel.updateTopPapers,
                 ),
                 child:
-                    viewModel.isLoadingPapers || viewModel.fetchedPapers == null
+                    analytics.isLoading ||
+                        (!analytics.hasLoaded && analytics.error == null)
                     ? const SizedBox(
                         height: 260,
                         child: Center(child: CircularProgressIndicator()),
                       )
-                    : viewModel.hasErrorPapers
-                    ? SizedBox(
-                        height: 260,
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text('Failed to load influential papers.'),
-                              const SizedBox(height: 16),
-                              ElevatedButton(
-                                onPressed: () =>
-                                    viewModel.loadInfluentialPapers(
-                                      limit: viewModel.selectedTopPapers,
-                                    ),
-                                child: const Text('Retry'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : viewModel.fetchedPapers!.isEmpty
+                    : analytics.topInfluentialPapers.isEmpty
                     ? const SizedBox(
                         height: 260,
                         child: Center(
                           child: Text('No influential papers available.'),
                         ),
                       )
-                    : TopInfluentialPapersHorizontalChart(
-                        papers: viewModel.fetchedPapers!,
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 8.0, left: 4.0),
+                            child: Text(
+                              'Influential',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          TopInfluentialPapersHorizontalChart(
+                            papers: analytics.topInfluentialPapers
+                                .take(viewModel.selectedTopPapers ?? 5)
+                                .toList(),
+                          ),
+                        ],
                       ),
               ),
               const SizedBox(height: 16),

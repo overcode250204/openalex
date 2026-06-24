@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-import '../models/publication/publication.dart';
 import '../services/openalex_service.dart';
 
 class TrendAnalysisViewModel extends ChangeNotifier {
@@ -14,9 +13,6 @@ class TrendAnalysisViewModel extends ChangeNotifier {
   bool _isInitialized = false;
 
   int? selectedTopPapers = 5;
-  bool isLoadingPapers = false;
-  bool hasErrorPapers = false;
-  List<Publication>? fetchedPapers;
 
   int? selectedTopJournals = 10;
   bool isLoadingJournals = false;
@@ -48,14 +44,12 @@ class TrendAnalysisViewModel extends ChangeNotifier {
     _topicId = topicId;
     _isInitialized = true;
     fetchedTrendData = null;
-    fetchedPapers = null;
     fetchedJournalsData = null;
     fetchedAuthorsData = null;
     notifyListeners();
 
     await Future.wait([
       loadPublicationTrend(),
-      loadInfluentialPapers(limit: selectedTopPapers),
       loadTopResearchJournals(limit: selectedTopJournals),
       loadTopContributingAuthors(limit: selectedTopAuthors),
     ]);
@@ -77,16 +71,14 @@ class TrendAnalysisViewModel extends ChangeNotifier {
     notifyListeners();
     await Future.wait([
       loadPublicationTrend(),
-      loadInfluentialPapers(limit: selectedTopPapers),
       loadTopResearchJournals(limit: selectedTopJournals),
       loadTopContributingAuthors(limit: selectedTopAuthors),
     ]);
   }
 
-  Future<void> updateTopPapers(int? limit) async {
+  void updateTopPapers(int? limit) {
     selectedTopPapers = limit;
     notifyListeners();
-    await loadInfluentialPapers(limit: limit);
   }
 
   Future<void> updateTopJournals(int? limit) async {
@@ -118,28 +110,6 @@ class TrendAnalysisViewModel extends ChangeNotifier {
       hasErrorTrend = true;
     } finally {
       isLoadingTrend = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> loadInfluentialPapers({int? limit}) async {
-    if (_topic.trim().isEmpty) return;
-    isLoadingPapers = true;
-    hasErrorPapers = false;
-    notifyListeners();
-
-    try {
-      fetchedPapers = await _service.fetchInfluentialPapers(
-        keyword: _topic,
-        limit: limit,
-        topicId: _topicId,
-        fromYear: selectedFromYear,
-        toYear: selectedToYear,
-      );
-    } catch (_) {
-      hasErrorPapers = true;
-    } finally {
-      isLoadingPapers = false;
       notifyListeners();
     }
   }

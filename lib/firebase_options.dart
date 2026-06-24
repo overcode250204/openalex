@@ -63,8 +63,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '489601979984',
     projectId: 'openalex-34f8f',
     storageBucket: 'openalex-34f8f.firebasestorage.app',
-    androidClientId: '489601979984-62mu6ri1ij6k8bhdvkkv01n2d9sipa8p.apps.googleusercontent.com',
-    iosClientId: '489601979984-ke3v643g3gflp57h52okp6i0vt21a2h3.apps.googleusercontent.com',
+    androidClientId:
+        '489601979984-62mu6ri1ij6k8bhdvkkv01n2d9sipa8p.apps.googleusercontent.com',
+    iosClientId:
+        '489601979984-ke3v643g3gflp57h52okp6i0vt21a2h3.apps.googleusercontent.com',
     iosBundleId: 'com.example.openalex',
   );
   static const FirebaseOptions macos = FirebaseOptions(
@@ -73,8 +75,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '489601979984',
     projectId: 'openalex-34f8f',
     storageBucket: 'openalex-34f8f.firebasestorage.app',
-    androidClientId: '489601979984-62mu6ri1ij6k8bhdvkkv01n2d9sipa8p.apps.googleusercontent.com',
-    iosClientId: '489601979984-ke3v643g3gflp57h52okp6i0vt21a2h3.apps.googleusercontent.com',
+    androidClientId:
+        '489601979984-62mu6ri1ij6k8bhdvkkv01n2d9sipa8p.apps.googleusercontent.com',
+    iosClientId:
+        '489601979984-ke3v643g3gflp57h52okp6i0vt21a2h3.apps.googleusercontent.com',
     iosBundleId: 'com.example.openalex',
   );
 

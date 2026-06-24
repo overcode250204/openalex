@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:openalex/services/firebase_auth_service.dart';
+import 'package:openalex/services/firebase/firebase_auth_service.dart';
 
 import '../models/auth/app_user.dart';
-import '../services/firebase_analytics_service.dart';
+import '../services/analytics/app_analytics_service.dart';
+import '../services/firebase/firebase_analytics_service.dart';
+import '../services/analytics/no_op_analytics_service.dart';
 
 enum AuthStatus { checking, authenticated, unauthenticated }
 

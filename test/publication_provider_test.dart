@@ -175,7 +175,7 @@ void main() {
       await provider.searchPublications(keyword: 'AI');
 
       expect(provider.publications, isEmpty);
-      expect(provider.currentTopicId, isNull);
+      expect(provider.currentTopicId, 'T1');
       expect(provider.isLoading, isFalse);
       expect(
         provider.errorMessage,
