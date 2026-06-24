@@ -80,7 +80,17 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
   }
 
   @override
-  Future<void> logSearchTopic(String keyword) async {
+  Future<void> logSearchTopic(
+    String keyword, {
+    int? resultCount,
+    String? searchSource,
+    String? topicId,
+    int? hasValidTopic,
+    int? filterYearFrom,
+    int? filterYearTo,
+    int? openAccessOnly,
+    String? sortOption,
+  }) async {
     final cleanKeyword = keyword.trim();
     if (cleanKeyword.isEmpty) return;
 
@@ -89,7 +99,17 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
 
       await _analytics.logEvent(
         name: 'search_topic',
-        parameters: {'keyword': cleanKeyword},
+        parameters: {
+          'keyword': cleanKeyword,
+          if (resultCount != null) 'result_count': resultCount,
+          if (searchSource != null) 'search_source': searchSource,
+          if (topicId != null) 'topic_id': topicId,
+          if (hasValidTopic != null) 'has_valid_topic': hasValidTopic,
+          if (filterYearFrom != null) 'filter_year_from': filterYearFrom,
+          if (filterYearTo != null) 'filter_year_to': filterYearTo,
+          if (openAccessOnly != null) 'open_access_only': openAccessOnly,
+          if (sortOption != null) 'sort_option': sortOption,
+        },
       );
 
       debugPrint('''
@@ -124,6 +144,29 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
   User UID: ${_activeUser?.uid ?? 'anonymous'}
   Publication: $cleanTitle
   Year: $publicationYear
+''');
+    });
+  }
+
+  @override
+  Future<void> logViewKeyword({required String keyword}) async {
+    final cleanKeyword = keyword.trim();
+    if (cleanKeyword.isEmpty) return;
+
+    await _safely(() async {
+      await _ensureCollectionEnabled();
+
+      final user = _activeUser;
+
+      await _analytics.logEvent(
+        name: 'view_keyword',
+        parameters: {'keyword': cleanKeyword},
+      );
+
+      debugPrint('''
+[Analytics] view_keyword logged
+  Viewer UID: ${user?.uid ?? 'anonymous'}
+  Keyword: $cleanKeyword
 ''');
     });
   }

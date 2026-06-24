@@ -63,7 +63,7 @@ class AnalyticsService {
         ?.replaceAll('https://openalex.org/', '')
         .trim();
     final topicFilter = normalizedTopicId?.isNotEmpty == true
-        ? 'topics.id:$normalizedTopicId'
+        ? 'primary_topic.id:$normalizedTopicId'
         : null;
     final filters = <String>[
       ?topicFilter,

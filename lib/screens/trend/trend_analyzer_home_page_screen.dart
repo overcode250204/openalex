@@ -78,7 +78,25 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
     }
 
     debugPrint('[Search UI] Calling logSearchTopic...');
-    await context.read<AppAnalyticsService>().logSearchTopic(keyword);
+    AppAnalyticsService? analytics;
+    try {
+      analytics = context.read<AppAnalyticsService>();
+    } catch (_) {
+      // Provider not found, gracefully skip
+    }
+
+    if (analytics != null) {
+      await analytics.logSearchTopic(
+        keyword,
+        resultCount: homeViewModel.totalResults,
+        topicId: homeViewModel.currentTopicId,
+        hasValidTopic: homeViewModel.selectedTopic != null ? 1 : 0,
+        filterYearFrom: homeViewModel.filter.yearFrom,
+        filterYearTo: homeViewModel.filter.yearTo,
+        openAccessOnly: homeViewModel.filter.isOpenAccess == true ? 1 : 0,
+        sortOption: homeViewModel.filter.sortOption.name,
+      );
+    }
     debugPrint('[Search UI] logSearchTopic completed.');
   }
 

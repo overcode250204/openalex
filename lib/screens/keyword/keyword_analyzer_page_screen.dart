@@ -17,6 +17,7 @@ import '../../widgets/keyword/open_access_papers_card.dart';
 import '../../widgets/top_contributing_authors_column_chart.dart';
 import '../../widgets/top_research_journals_donut_chart.dart';
 import '../../widgets/top_selector_dropdown.dart';
+import '../../services/analytics/app_analytics_service.dart';
 
 class KeywordAnalyzerPage extends StatefulWidget {
   final VoidCallback? onOpenDrawer;
@@ -37,6 +38,8 @@ class KeywordAnalyzerPage extends StatefulWidget {
 }
 
 class _KeywordAnalyzerPageState extends State<KeywordAnalyzerPage> {
+  bool _hasLoggedViewKeyword = false;
+
   @override
   void initState() {
     super.initState();
@@ -45,14 +48,42 @@ class _KeywordAnalyzerPageState extends State<KeywordAnalyzerPage> {
 
   Future<void> _analyzeInitial() async {
     final viewModel = context.read<KeywordAnalyzerViewModel>();
+
     if (widget.selectedKeyword != null) {
       final text =
           widget.originalSearchText ?? widget.selectedKeyword!.displayName;
+
       await viewModel.analyzeResolvedKeyword(text, widget.selectedKeyword!);
     } else if (widget.originalSearchText != null &&
         widget.originalSearchText!.trim().isNotEmpty) {
       await viewModel.analyze(widget.originalSearchText!);
+    } else {
+      return;
     }
+
+    // Chỉ log sau khi Keyword Detail/analyze tải thành công.
+    if (!mounted ||
+        _hasLoggedViewKeyword ||
+        viewModel.errorMessage != null ||
+        viewModel.result == null ||
+        viewModel.result!.isEmpty) {
+      return;
+    }
+
+    final keyword = viewModel.result!.keyword.trim();
+    if (keyword.isEmpty) return;
+
+    _hasLoggedViewKeyword = true;
+
+    AppAnalyticsService? analytics;
+
+    try {
+      analytics = context.read<AppAnalyticsService>();
+    } on ProviderNotFoundException {
+      // Analytics là optional trong widget test hoặc standalone screen.
+    }
+
+    await analytics?.logViewKeyword(keyword: keyword);
   }
 
   void _openPaper(KeywordAnalysisPaper paper) {

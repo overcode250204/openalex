@@ -256,10 +256,25 @@ class _TrendAnalysisScreenState extends State<TrendAnalysisScreen> {
                           child: Text('No influential papers available.'),
                         ),
                       )
-                    : TopInfluentialPapersHorizontalChart(
-                        papers: analytics.topInfluentialPapers
-                            .take(viewModel.selectedTopPapers ?? 5)
-                            .toList(),
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 8.0, left: 4.0),
+                            child: Text(
+                              'Influential',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          TopInfluentialPapersHorizontalChart(
+                            papers: analytics.topInfluentialPapers
+                                .take(viewModel.selectedTopPapers ?? 5)
+                                .toList(),
+                          ),
+                        ],
                       ),
               ),
               const SizedBox(height: 16),

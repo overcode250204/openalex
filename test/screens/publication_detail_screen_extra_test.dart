@@ -58,7 +58,17 @@ class FakeFirebaseAnalyticsService implements AppAnalyticsService {
   }) async {}
 
   @override
-  Future<void> logSearchTopic(String keyword) async {}
+  Future<void> logSearchTopic(
+    String keyword, {
+    int? resultCount,
+    String? searchSource,
+    String? topicId,
+    int? hasValidTopic,
+    int? filterYearFrom,
+    int? filterYearTo,
+    int? openAccessOnly,
+    String? sortOption,
+  }) async {}
 
   @override
   Future<void> logViewPublication({
@@ -68,6 +78,9 @@ class FakeFirebaseAnalyticsService implements AppAnalyticsService {
     if (publicationTitle.trim().isEmpty || publicationYear == null) return;
     viewEvents.add((title: publicationTitle.trim(), year: publicationYear));
   }
+
+  @override
+  Future<void> logViewKeyword({required String keyword}) async {}
 }
 
 Publication fakePublication({

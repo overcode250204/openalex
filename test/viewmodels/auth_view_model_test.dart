@@ -67,13 +67,26 @@ class _RecordingAnalyticsService implements AppAnalyticsService {
   }
 
   @override
-  Future<void> logSearchTopic(String keyword) async {}
+  Future<void> logSearchTopic(
+    String keyword, {
+    int? resultCount,
+    String? searchSource,
+    String? topicId,
+    int? hasValidTopic,
+    int? filterYearFrom,
+    int? filterYearTo,
+    int? openAccessOnly,
+    String? sortOption,
+  }) async {}
 
   @override
   Future<void> logViewPublication({
     required String publicationTitle,
     required int? publicationYear,
   }) async {}
+
+  @override
+  Future<void> logViewKeyword({required String keyword}) async {}
 }
 
 class _OrderedSignOutAuthService extends FakeAuthService {

@@ -201,89 +201,47 @@ class _KeywordTrendComparisonChartState
               ),
             ),
 
-          // ── chart area: Y-axis fixed, plot + X-axis scrollable ─────────
-          SizedBox(
-            height: 250,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Fixed Y-axis
-                SizedBox(
-                  width: _yAxisReservedSize,
-                  child: LineChart(
-                    duration: Duration.zero,
-                    LineChartData(
-                      minX: adjustedMinYear.toDouble(),
-                      maxX: adjustedMaxYear.toDouble(),
-                      minY: 0,
-                      maxY: maxCount + (maxCount * 0.15) + 1,
-                      gridData: const FlGridData(show: false),
-                      borderData: FlBorderData(show: false),
-                      lineTouchData: const LineTouchData(enabled: false),
-                      titlesData: FlTitlesData(
-                        topTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        bottomTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: _yAxisReservedSize,
-                            interval: yInterval,
-                            getTitlesWidget: _buildYLabel,
-                          ),
-                        ),
-                      ),
-                      lineBarsData: _buildLineBars(
-                        topKeywords,
-                        filtered,
-                        transparent: true,
-                      ),
+          // ── chart area: X-axis and plot scrollable ─────────
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const ClampingScrollPhysics(),
+            child: SizedBox(
+              width: chartWidth,
+              height: 250,
+              child: LineChart(
+                duration: const Duration(milliseconds: 350),
+                curve: Curves.easeInOutCubic,
+                LineChartData(
+                  minX: adjustedMinYear.toDouble(),
+                  maxX: adjustedMaxYear.toDouble(),
+                  minY: 0,
+                  maxY: maxCount + (maxCount * 0.15) + 1,
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    horizontalInterval: yInterval,
+                    getDrawingHorizontalLine: (value) => FlLine(
+                      color: Colors.grey.shade200,
+                      strokeWidth: 1,
+                      dashArray: [4, 4],
                     ),
                   ),
-                ),
-
-                // Scrollable plot + X-axis
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const ClampingScrollPhysics(),
-                    child: SizedBox(
-                      width: chartWidth,
-                      child: LineChart(
-                        duration: const Duration(milliseconds: 350),
-                        curve: Curves.easeInOutCubic,
-                        LineChartData(
-                          minX: adjustedMinYear.toDouble(),
-                          maxX: adjustedMaxYear.toDouble(),
-                          minY: 0,
-                          maxY: maxCount + (maxCount * 0.15) + 1,
-                          gridData: FlGridData(
-                            show: true,
-                            drawVerticalLine: false,
-                            horizontalInterval: yInterval,
-                            getDrawingHorizontalLine: (value) => FlLine(
-                              color: Colors.grey.shade200,
-                              strokeWidth: 1,
-                              dashArray: [4, 4],
-                            ),
-                          ),
-                          borderData: FlBorderData(show: false),
-                          titlesData: FlTitlesData(
-                            topTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            rightTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            leftTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
+                  borderData: FlBorderData(show: false),
+                  titlesData: FlTitlesData(
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: _yAxisReservedSize,
+                        interval: yInterval,
+                        getTitlesWidget: _buildYLabel,
+                      ),
+                    ),
                             bottomTitles: AxisTitles(
                               sideTitles: SideTitles(
                                 showTitles: true,
@@ -303,18 +261,14 @@ class _KeywordTrendComparisonChartState
                               ),
                             ),
                           ),
-                          lineTouchData: _buildTouchData(topKeywords),
-                          lineBarsData: _buildLineBars(
-                            topKeywords,
-                            filtered,
-                            transparent: false,
-                          ),
-                        ),
-                      ),
-                    ),
+                  lineTouchData: _buildTouchData(topKeywords),
+                  lineBarsData: _buildLineBars(
+                    topKeywords,
+                    filtered,
+                    transparent: false,
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ],
