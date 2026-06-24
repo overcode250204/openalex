@@ -29,14 +29,19 @@ abstract final class AppProviders {
   static List<SingleChildWidget> build({
     AuthService? authService,
     AppAnalyticsService? analyticsService,
+    OpenAlexKeywordService? keywordService,
+    KeywordDashboardService? keywordDashboardService,
+    SuggestionService? suggestionService,
   }) {
     return [
       Provider(create: (_) => OpenAlexService()),
-      Provider(create: (_) => OpenAlexKeywordService()),
+      Provider(create: (_) => keywordService ?? OpenAlexKeywordService()),
       Provider(create: (_) => OpenAlexJournalService()),
       Provider(create: (_) => AnalyticsService(apiKey: _openAlexApiKey())),
-      Provider(create: (_) => KeywordDashboardService()),
-      Provider(create: (_) => SuggestionService()),
+      Provider(
+        create: (_) => keywordDashboardService ?? KeywordDashboardService(),
+      ),
+      Provider(create: (_) => suggestionService ?? SuggestionService()),
       Provider(create: (_) => const TrendReportExportService()),
       Provider(create: (_) => ZoteroService()),
       Provider<AuthService>(

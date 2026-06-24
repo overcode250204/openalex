@@ -6,6 +6,7 @@ import '../../models/keyword/keyword_analysis_result.dart';
 import '../../models/keyword/openalex_keyword.dart';
 import '../../routes/app_routes.dart';
 import '../../routes/route_arguments.dart';
+import '../../utils/app_keys.dart';
 import '../../viewmodels/keyword_analyzer_view_model.dart';
 import '../../widgets/analytics/analytics_chart_card.dart';
 import '../../widgets/keyword/charts/keyword_publication_trend_chart.dart';
@@ -104,9 +105,14 @@ class _KeywordAnalyzerPageState extends State<KeywordAnalyzerPage> {
     final viewModel = context.watch<KeywordAnalyzerViewModel>();
 
     return Scaffold(
+      key: AppKeys.keywordDetailScreen,
       backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
-        title: const Text('Keyword Analyzer', overflow: TextOverflow.ellipsis),
+        title: const Text(
+          'Keyword Analyzer',
+          key: AppKeys.keywordDetailTitle,
+          overflow: TextOverflow.ellipsis,
+        ),
         leadingWidth: widget.showBackToDashboard ? 190 : null,
         leading: widget.showBackToDashboard
             ? TextButton.icon(
@@ -148,7 +154,10 @@ class _KeywordAnalyzerBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (viewModel.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        key: AppKeys.keywordAnalysisLoading,
+        child: CircularProgressIndicator(),
+      );
     }
 
     if (viewModel.errorMessage != null) {
@@ -178,7 +187,10 @@ class _KeywordAnalyzerBody extends StatelessWidget {
       );
     }
 
-    return _KeywordDashboard(result: result, onPaperTap: onPaperTap);
+    return KeyedSubtree(
+      key: AppKeys.keywordAnalysisResult,
+      child: _KeywordDashboard(result: result, onPaperTap: onPaperTap),
+    );
   }
 }
 
@@ -261,24 +273,42 @@ class _KeywordDashboardState extends State<_KeywordDashboard> {
               ),
               const SizedBox(height: 16),
             ],
-            KeywordAnalysisSummary(result: result),
+            KeyedSubtree(
+              key: AppKeys.keywordMetricsSection,
+              child: KeywordAnalysisSummary(result: result),
+            ),
             const SizedBox(height: 16),
-            KeywordPublicationTrendChart(
-              viewModel: context.read<KeywordAnalyzerViewModel>(),
-              trend: result.trend,
+            KeyedSubtree(
+              key: AppKeys.keywordTrendChart,
+              child: KeywordPublicationTrendChart(
+                viewModel: context.read<KeywordAnalyzerViewModel>(),
+                trend: result.trend,
+              ),
             ),
             if (result.topAuthors.isNotEmpty) ...[
               const SizedBox(height: 16),
-              AnalyticsChartCard(
-                title: 'Top Contributing Authors',
-                subtitle: 'Authors with the most publications on this keyword.',
-                customDropdown: TopSelectorDropdown(
-                  value: _topAuthors,
-                  options: _topOptions,
-                  onChanged: (v) => setState(() => _topAuthors = v),
-                ),
-                child: TopContributingAuthorsColumnChart(
-                  authorsData: _take(result.topAuthors, _topAuthors),
+              KeyedSubtree(
+                key: AppKeys.authorRankingSection,
+                child: AnalyticsChartCard(
+                  title: 'Top Contributing Authors',
+                  subtitle:
+                      'Authors with the most publications on this keyword.',
+                  customDropdown: TopSelectorDropdown(
+                    value: _topAuthors,
+                    options: _topOptions,
+                    onChanged: (v) => setState(() => _topAuthors = v),
+                  ),
+                  child: Column(
+                    children: [
+                      TopContributingAuthorsColumnChart(
+                        authorsData: _take(result.topAuthors, _topAuthors),
+                      ),
+                      const SizedBox(height: 12),
+                      _AuthorRankingList(
+                        authors: _take(result.topAuthors, _topAuthors),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -324,6 +354,73 @@ class _KeywordDashboardState extends State<_KeywordDashboard> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _AuthorRankingList extends StatelessWidget {
+  final Map<String, int> authors;
+
+  const _AuthorRankingList({required this.authors});
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = authors.entries.toList();
+    return Column(
+      key: AppKeys.authorRankingList,
+      children: [
+        for (var index = 0; index < entries.length; index++)
+          _AuthorRankingRow(
+            rank: index + 1,
+            authorName: entries[index].key,
+            publicationCount: entries[index].value,
+          ),
+      ],
+    );
+  }
+}
+
+class _AuthorRankingRow extends StatelessWidget {
+  final int rank;
+  final String authorName;
+  final int publicationCount;
+
+  const _AuthorRankingRow({
+    required this.rank,
+    required this.authorName,
+    required this.publicationCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isFirst = rank == 1;
+    return Padding(
+      key: isFirst ? AppKeys.authorRank1 : null,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 40,
+            child: Text(
+              '#$rank',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              authorName,
+              key: isFirst ? AppKeys.authorName1 : null,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '$publicationCount papers',
+            style: TextStyle(color: Colors.grey.shade700),
+          ),
+        ],
       ),
     );
   }
