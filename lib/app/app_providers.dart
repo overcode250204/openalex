@@ -8,6 +8,7 @@ import '../viewmodels/keyword_dashboard_view_model.dart';
 import '../viewmodels/home_view_model.dart';
 import '../services/keyword_dashboard_service.dart';
 import '../services/analytics_service.dart';
+import '../services/firebase_analytics_service.dart';
 import '../services/firebase_auth_service.dart';
 import '../services/openalex_journal_service.dart';
 import '../services/openalex_keyword_service.dart';
@@ -24,7 +25,10 @@ import '../services/firebase_analytics_service.dart';
 
 /// The single dependency-registration boundary for the application.
 abstract final class AppProviders {
-  static List<SingleChildWidget> build({AuthService? authService}) {
+  static List<SingleChildWidget> build({
+    AuthService? authService,
+    AppAnalyticsService? analyticsService,
+  }) {
     return [
       Provider(create: (_) => OpenAlexService()),
       Provider(create: (_) => OpenAlexKeywordService()),
@@ -41,9 +45,18 @@ abstract final class AppProviders {
       Provider<AuthService>(
         create: (_) => authService ?? FirebaseAuthService(),
       ),
+      Provider<AppAnalyticsService>(
+        create: (_) =>
+            analyticsService ??
+            (authService == null
+                ? FirebaseAnalyticsService()
+                : const NoOpAnalyticsService()),
+      ),
       ChangeNotifierProvider(
-        create: (context) =>
-            AuthViewModel(authService: context.read<AuthService>()),
+        create: (context) => AuthViewModel(
+          authService: context.read<AuthService>(),
+          analyticsService: context.read<AppAnalyticsService>(),
+        ),
       ),
       ChangeNotifierProvider(create: (_) => SelectedTopicViewModel()),
       ChangeNotifierProvider(
