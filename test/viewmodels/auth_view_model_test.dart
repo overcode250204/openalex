@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/models/auth/app_user.dart';
+import 'package:openalex/services/firebase_analytics_service.dart';
 import 'package:openalex/services/firebase_auth_service.dart';
 import 'package:openalex/viewmodels/auth_view_model.dart';
 
@@ -36,6 +37,49 @@ class _CompleterAuthService implements AuthService {
   }
 
   Future<void> dispose() => _controller.close();
+}
+
+class _RecordingAnalyticsService implements AppAnalyticsService {
+  _RecordingAnalyticsService({List<String>? eventSink})
+    : events = eventSink ?? <String>[];
+
+  final List<String> events;
+  final users = <AppUser?>[];
+
+  @override
+  Future<void> logLogin({required AppUser user, required String method}) async {
+    events.add('login:$method');
+    users.add(user);
+  }
+
+  @override
+  Future<void> logLogout({
+    required AppUser? user,
+    required String method,
+  }) async {
+    events.add('logout:$method');
+    users.add(user);
+  }
+
+  @override
+  Future<void> clearUser() async {
+    events.add('clear-user');
+  }
+}
+
+class _OrderedSignOutAuthService extends FakeAuthService {
+  _OrderedSignOutAuthService({
+    required AppUser initialUser,
+    required this.events,
+  }) : super(initialUser: initialUser);
+
+  final List<String> events;
+
+  @override
+  Future<void> signOut() async {
+    events.add('auth-sign-out');
+    await super.signOut();
+  }
 }
 
 void main() {
@@ -121,6 +165,43 @@ void main() {
       },
     );
 
+    test('logs login event after successful Google sign-in', () async {
+      final service = FakeAuthService();
+      final analytics = _RecordingAnalyticsService();
+      final viewModel = AuthViewModel(
+        authService: service,
+        analyticsService: analytics,
+      );
+
+      await viewModel.signInWithGoogle();
+
+      expect(service.signInCount, 1);
+      expect(analytics.events, ['login:google']);
+      expect(analytics.users.single, viewModel.currentUser);
+
+      viewModel.dispose();
+      await service.dispose();
+    });
+
+    test('does not log login event when Google sign-in fails', () async {
+      final service = FakeAuthService(
+        signInError: FirebaseAuthException(code: 'network-request-failed'),
+      );
+      final analytics = _RecordingAnalyticsService();
+      final viewModel = AuthViewModel(
+        authService: service,
+        analyticsService: analytics,
+      );
+
+      await viewModel.signInWithGoogle();
+
+      expect(service.signInCount, 1);
+      expect(analytics.events, isEmpty);
+
+      viewModel.dispose();
+      await service.dispose();
+    });
+
     test('maps Firebase auth errors to friendly messages', () async {
       final service = FakeAuthService(
         signInError: FirebaseAuthException(code: 'network-request-failed'),
@@ -186,5 +267,27 @@ void main() {
         await service.dispose();
       },
     );
+
+    test('logs logout event before signing out', () async {
+      final events = <String>[];
+      final user = fakeUser();
+      final service = _OrderedSignOutAuthService(
+        initialUser: user,
+        events: events,
+      );
+      final analytics = _RecordingAnalyticsService(eventSink: events);
+      final viewModel = AuthViewModel(
+        authService: service,
+        analyticsService: analytics,
+      );
+
+      await viewModel.signOut();
+
+      expect(events, ['logout:google', 'auth-sign-out', 'clear-user']);
+      expect(analytics.users.single, user);
+
+      viewModel.dispose();
+      await service.dispose();
+    });
   });
 }
