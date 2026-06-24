@@ -9,6 +9,20 @@ import '../models/publication/publication.dart';
 import '../models/trend/trend_report_snapshot.dart';
 import '../services/openalex_service.dart';
 
+class TopicResolutionResult {
+  final String topicName;
+  final String? topicId;
+  final TopicSuggestion? suggestion;
+
+  const TopicResolutionResult({
+    required this.topicName,
+    required this.topicId,
+    required this.suggestion,
+  });
+
+  List<String> get topicIds => topicId == null ? [] : [topicId!];
+}
+
 class HomeViewModel extends ChangeNotifier {
   final OpenAlexService _openAlexService;
   final SearchHistoryService _historyService;
@@ -43,6 +57,7 @@ class HomeViewModel extends ChangeNotifier {
   List<TopicSuggestion> _conceptSuggestions = [];
   List<String> _relatedKeywords = [];
   bool _showSuggestions = false;
+  int _searchRequestVersion = 0;
 
   List<Publication> get publications => _publications;
 
@@ -91,34 +106,59 @@ class HomeViewModel extends ChangeNotifier {
     return null;
   }
 
-  void clearResolvedTopicIfQueryChanged(String query) {
-    final normalizedQuery = query.trim().toLowerCase();
-    final normalizedTopic = _currentTopic.trim().toLowerCase();
-
-    if (normalizedQuery != normalizedTopic) {
-      _selectedTopic = null;
-      _currentTopicId = null;
-      _currentTopicIds = [];
-      notifyListeners();
-    }
-  }
-
   String _normalizeTopicId(String topicId) {
     return topicId.replaceAll('https://openalex.org/', '');
   }
 
-  void _applyResolvedTopicState(String keyword, TopicSuggestion? resolvedTopic) {
-    _selectedTopic = resolvedTopic;
-    _currentTopic = resolvedTopic?.displayName ?? keyword.trim();
-    _currentTopicId = resolvedTopic == null
+  TopicResolutionResult _resolutionFrom(
+    String keyword,
+    TopicSuggestion? resolvedTopic,
+  ) {
+    final topicId = resolvedTopic == null
         ? null
         : _normalizeTopicId(resolvedTopic.id);
-    _currentTopicIds = _currentTopicId == null ? [] : [_currentTopicId!];
+
+    return TopicResolutionResult(
+      topicName: resolvedTopic?.displayName ?? keyword.trim(),
+      topicId: topicId,
+      suggestion: resolvedTopic,
+    );
+  }
+
+  void _commitAnalyzedTopic(TopicResolutionResult result) {
+    _selectedTopic = result.suggestion;
+    _currentTopic = result.topicName;
+    _currentTopicId = result.topicId;
+    _currentTopicIds = result.topicIds;
 
     _selectedTopicViewModel?.setTopic(
       _currentTopic,
-      suggestion: resolvedTopic,
+      suggestion: result.suggestion,
     );
+  }
+
+  void _clearAnalyzedTopicIdForNewSearch() {
+    _selectedTopic = null;
+    _currentTopicId = null;
+    _currentTopicIds = [];
+  }
+
+  Future<TopicResolutionResult> resolveAndCommitAnalyzedTopic(
+    String keyword, {
+    TopicSuggestion? selectedTopic,
+    required int requestVersion,
+  }) async {
+    final resolvedTopic = await resolveTopicForSearch(
+      keyword,
+      selectedTopic: selectedTopic,
+    );
+    final result = _resolutionFrom(keyword, resolvedTopic);
+
+    if (requestVersion == _searchRequestVersion) {
+      _commitAnalyzedTopic(result);
+    }
+
+    return result;
   }
 
   Future<void> searchPublications({
@@ -133,11 +173,14 @@ class HomeViewModel extends ChangeNotifier {
       return;
     }
 
+    final requestVersion = ++_searchRequestVersion;
+
     _currentPage = 1;
     _publications = [];
     _totalResults = 0;
     _hasMore = true;
     _isLoadingMore = false;
+    _clearAnalyzedTopicIdForNewSearch();
 
     _showSuggestions = false;
     _isLoading = true;
@@ -148,17 +191,24 @@ class HomeViewModel extends ChangeNotifier {
 
     notifyListeners();
 
+    var hasCommittedResolution = false;
+
     try {
-      final resolvedTopic = await resolveTopicForSearch(
+      final resolution = await resolveAndCommitAnalyzedTopic(
         trimmedKeyword,
         selectedTopic: topic,
+        requestVersion: requestVersion,
       );
-      _applyResolvedTopicState(trimmedKeyword, resolvedTopic);
+
+      if (requestVersion != _searchRequestVersion) return;
+      hasCommittedResolution = true;
 
       final (total, result) = await _openAlexService.searchPublications(
-        keyword: _currentTopic,
-        topicIds: _currentTopicIds,
+        keyword: resolution.topicName,
+        topicIds: resolution.topicIds,
       );
+
+      if (requestVersion != _searchRequestVersion) return;
 
       _totalResults = total;
       _publications = result;
@@ -167,13 +217,17 @@ class HomeViewModel extends ChangeNotifier {
       // Page đầu tiên xong, lần loadMore tiếp theo phải load page 2.
       _currentPage = 2;
     } catch (_) {
-      _currentTopicId = null;
-      _currentTopicIds = [];
-      _selectedTopic = null;
+      if (requestVersion != _searchRequestVersion) return;
+      if (!hasCommittedResolution) {
+        _currentTopicId = null;
+        _currentTopicIds = [];
+        _selectedTopic = null;
+      }
       _publications = [];
       _totalResults = 0;
       _errorMessage = 'Cannot load publications. Please try again.';
     } finally {
+      if (requestVersion != _searchRequestVersion) return;
       _isLoading = false;
 
       try {
@@ -348,14 +402,18 @@ class HomeViewModel extends ChangeNotifier {
     try {
       // Khi user bấm filter hoặc chọn topic mới.
       // Khi loadMore() thì topic null và phải giữ topic đã resolve trước đó.
-      final cachedTopic = topic == null && keyword.trim() == _currentTopic
-          ? _selectedTopic
-          : null;
-      final effectiveTopic = await resolveTopicForSearch(
-        keyword,
-        selectedTopic: topic ?? cachedTopic,
-      );
-      _applyResolvedTopicState(keyword, effectiveTopic);
+      if (topic != null) {
+        final result = _resolutionFrom(keyword, topic);
+        _commitAnalyzedTopic(result);
+      } else if (_currentTopic.trim().isEmpty) {
+        _commitAnalyzedTopic(
+          TopicResolutionResult(
+            topicName: keyword.trim(),
+            topicId: null,
+            suggestion: null,
+          ),
+        );
+      }
 
       final params = _filter.toQueryParams(_currentTopic, _currentTopicIds);
       params['page'] = _currentPage.toString();
@@ -410,8 +468,6 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> onQueryChanged(String query) async {
-    clearResolvedTopicIfQueryChanged(query);
-
     if (query.trim().isEmpty) {
       _conceptSuggestions = [];
       _showSuggestions = true;

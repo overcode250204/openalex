@@ -66,7 +66,6 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
 
   void _onQueryChanged(String value) {
     _debounce?.cancel();
-    context.read<HomeViewModel>().clearResolvedTopicIfQueryChanged(value);
     _debounce = Timer(const Duration(milliseconds: 400), () {
       context.read<HomeViewModel>().onQueryChanged(value);
     });
