@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -39,8 +40,31 @@ class _KeywordTrendComparisonChartState
     Color(0xFF16A085), // Teal/Green
   ];
 
+  /// Minimum pixel width per year point so labels never crowd each other.
+  static const double _pixelsPerYear = 52.0;
+
+  /// How many pixels to reserve for the Y-axis label column.
+  static const double _yAxisReservedSize = 52.0;
+
+  /// Horizontal padding applied by the parent card (left + right).
+  static const double _cardHorizontalPadding = 32.0;
+
+  // ── helpers ──────────────────────────────────────────────────────────────
+
+  /// Returns a step so that at most ~8 labels are shown on the X-axis.
+  /// Always shows the first and last year by clamping in the title builder.
+  int _xLabelInterval(int totalYears) {
+    if (totalYears <= 8) return 1;
+    if (totalYears <= 16) return 2;
+    if (totalYears <= 24) return 3;
+    return 5;
+  }
+
+  // ── build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
+    // ── empty: no series ──────────────────────────────────────────────────
     if (widget.series.isEmpty) {
       return const KeywordChartCard(
         title: 'Keyword Trend Comparison',
@@ -51,7 +75,7 @@ class _KeywordTrendComparisonChartState
 
     final topKeywords = widget.series.keys.take(3).toList();
 
-    // Filter by date range
+    // ── filter to year range ──────────────────────────────────────────────
     final filtered = <String, List<KeywordTrendPoint>>{};
     for (final keyword in topKeywords) {
       final points = widget.series[keyword]!;
@@ -66,6 +90,8 @@ class _KeywordTrendComparisonChartState
     }
 
     final allPoints = filtered.values.expand((v) => v).toList();
+
+    // ── empty: no points after filter ────────────────────────────────────
     if (allPoints.isEmpty) {
       return const KeywordChartCard(
         title: 'Keyword Trend Comparison',
@@ -74,11 +100,14 @@ class _KeywordTrendComparisonChartState
       );
     }
 
-    // Use user-selected range for x-axis bounds, not the actual data min/max
+    // ── axis bounds ───────────────────────────────────────────────────────
     final minYear = widget.fromYear;
     final maxYear = widget.toYear;
+    final totalYears = maxYear - minYear + 1;
 
-    // Only calculate max count based on visible series
+    final adjustedMinYear = minYear == maxYear ? minYear - 1 : minYear;
+    final adjustedMaxYear = minYear == maxYear ? maxYear + 1 : maxYear;
+
     final visiblePoints = filtered.entries
         .where((e) => !_hiddenSeries.contains(e.key))
         .expand((e) => e.value)
@@ -88,11 +117,17 @@ class _KeywordTrendComparisonChartState
         ? visiblePoints.map((p) => p.count).reduce((a, b) => a > b ? a : b)
         : 1;
 
-    final adjustedMinYear = minYear == maxYear ? minYear - 1 : minYear;
-    final adjustedMaxYear = minYear == maxYear ? maxYear + 1 : maxYear;
-    final xInterval = (adjustedMaxYear - adjustedMinYear) > 10 ? 2.0 : 1.0;
-
     final yInterval = maxCount > 4 ? (maxCount / 4).ceilToDouble() : 1.0;
+    final labelStep = _xLabelInterval(totalYears);
+
+    // ── layout sizing ─────────────────────────────────────────────────────
+    final screenWidth = MediaQuery.of(context).size.width;
+    final availableWidth =
+        screenWidth - _cardHorizontalPadding - _yAxisReservedSize;
+
+    // Dynamic chart width: expand when there are many years.
+    final chartWidth = max(availableWidth, totalYears * _pixelsPerYear);
+    final needsScroll = chartWidth > availableWidth;
 
     return KeywordChartCard(
       title: 'Keyword Trend Comparison',
@@ -107,6 +142,7 @@ class _KeywordTrendComparisonChartState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── legend chips ───────────────────────────────────────────────
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -123,8 +159,7 @@ class _KeywordTrendComparisonChartState
                       setState(() {
                         if (isVisible &&
                             topKeywords.length - _hiddenSeries.length <= 1) {
-                          // Prevent hiding the last series
-                          return;
+                          return; // keep at least one series visible
                         }
                         if (isVisible) {
                           _hiddenSeries.add(keyword);
@@ -138,202 +173,308 @@ class _KeywordTrendComparisonChartState
               }),
             ),
           ),
-          const SizedBox(height: 24),
+
+          const SizedBox(height: 16),
+
+          // ── scroll hint ────────────────────────────────────────────────
+          if (needsScroll)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.swipe,
+                    size: 14,
+                    color: Colors.grey.shade400,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Swipe horizontally to explore years',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade400,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // ── chart area: Y-axis fixed, plot + X-axis scrollable ─────────
           SizedBox(
             height: 250,
-            child: LineChart(
-              duration: const Duration(milliseconds: 350),
-              curve: Curves.easeInOutCubic,
-              LineChartData(
-                minX: adjustedMinYear.toDouble(),
-                maxX: adjustedMaxYear.toDouble(),
-                minY: 0,
-                maxY: maxCount + (maxCount * 0.15) + 1,
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: yInterval,
-                  getDrawingHorizontalLine: (value) => FlLine(
-                    color: Colors.grey.shade200,
-                    strokeWidth: 1,
-                    dashArray: [4, 4],
-                  ),
-                ),
-                borderData: FlBorderData(show: false),
-                titlesData: FlTitlesData(
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 42,
-                      interval: yInterval,
-                      getTitlesWidget: (value, meta) {
-                        if (value % 1 != 0 || value == 0) {
-                          if (value == 0) {
-                            return SideTitleWidget(
-                              axisSide: meta.axisSide,
-                              child: Text(
-                                '0',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey.shade500,
-                                ),
-                              ),
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        }
-                        return SideTitleWidget(
-                          axisSide: meta.axisSide,
-                          child: Text(
-                            Formatters.formatCompactAxis(value.toInt()),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey.shade500,
-                            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Fixed Y-axis
+                SizedBox(
+                  width: _yAxisReservedSize,
+                  child: LineChart(
+                    duration: Duration.zero,
+                    LineChartData(
+                      minX: adjustedMinYear.toDouble(),
+                      maxX: adjustedMaxYear.toDouble(),
+                      minY: 0,
+                      maxY: maxCount + (maxCount * 0.15) + 1,
+                      gridData: const FlGridData(show: false),
+                      borderData: FlBorderData(show: false),
+                      lineTouchData: const LineTouchData(enabled: false),
+                      titlesData: FlTitlesData(
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        bottomTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: _yAxisReservedSize,
+                            interval: yInterval,
+                            getTitlesWidget: _buildYLabel,
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 30,
-                      interval: xInterval,
-                      getTitlesWidget: (value, meta) {
-                        final year = value.toInt();
-                        if (year < minYear || year > maxYear) {
-                          return const SizedBox.shrink();
-                        }
-                        return SideTitleWidget(
-                          axisSide: meta.axisSide,
-                          space: 8,
-                          child: Text(
-                            year.toString(),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                lineTouchData: LineTouchData(
-                  handleBuiltInTouches: true,
-                  getTouchedSpotIndicator:
-                      (LineChartBarData barData, List<int> spotIndexes) {
-                        return spotIndexes.map((spotIndex) {
-                          return TouchedSpotIndicatorData(
-                            FlLine(
-                              color: Colors.grey.shade300,
-                              strokeWidth: 2,
-                              dashArray: [4, 4],
-                            ),
-                            FlDotData(
-                              getDotPainter: (spot, percent, barData, index) {
-                                return FlDotCirclePainter(
-                                  radius: 4,
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                  strokeColor: barData.color ?? Colors.blue,
-                                );
-                              },
-                            ),
-                          );
-                        }).toList();
-                      },
-                  touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (touchedSpot) =>
-                        Colors.black.withValues(alpha: 0.8),
-                    tooltipPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    tooltipRoundedRadius: 8,
-                    getTooltipItems: (touchedSpots) {
-                      return touchedSpots.map((spot) {
-                        final keyword = topKeywords[spot.barIndex];
-                        if (_hiddenSeries.contains(keyword)) return null;
-
-                        final color = _colors[spot.barIndex % _colors.length];
-                        return LineTooltipItem(
-                          '',
-                          const TextStyle(),
-                          children: [
-                            TextSpan(
-                              text: '${spot.x.toInt()}\n',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            TextSpan(
-                              text: '$keyword\n',
-                              style: TextStyle(
-                                color: color,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            TextSpan(
-                              text:
-                                  '${Formatters.formatCompactAxis(spot.y.toInt())} works',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        );
-                      }).toList();
-                    },
-                  ),
-                ),
-                lineBarsData: List.generate(topKeywords.length, (index) {
-                  final keyword = topKeywords[index];
-                  final isVisible = !_hiddenSeries.contains(keyword);
-                  final color = _colors[index % _colors.length];
-                  final isPrimary = index == 0;
-
-                  return LineChartBarData(
-                    show: isVisible,
-                    spots: filtered[keyword]!
-                        .map(
-                          (p) => FlSpot(p.year.toDouble(), p.count.toDouble()),
-                        )
-                        .toList(),
-                    isCurved: true,
-                    curveSmoothness: 0.35,
-                    color: color,
-                    barWidth: isPrimary ? 3.5 : 2.0,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: isPrimary && isVisible,
-                      gradient: LinearGradient(
-                        colors: [
-                          color.withValues(alpha: 0.2),
-                          color.withValues(alpha: 0.0),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+                        ),
+                      ),
+                      lineBarsData: _buildLineBars(
+                        topKeywords,
+                        filtered,
+                        transparent: true,
                       ),
                     ),
-                  );
-                }),
-              ),
+                  ),
+                ),
+
+                // Scrollable plot + X-axis
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const ClampingScrollPhysics(),
+                    child: SizedBox(
+                      width: chartWidth,
+                      child: LineChart(
+                        duration: const Duration(milliseconds: 350),
+                        curve: Curves.easeInOutCubic,
+                        LineChartData(
+                          minX: adjustedMinYear.toDouble(),
+                          maxX: adjustedMaxYear.toDouble(),
+                          minY: 0,
+                          maxY: maxCount + (maxCount * 0.15) + 1,
+                          gridData: FlGridData(
+                            show: true,
+                            drawVerticalLine: false,
+                            horizontalInterval: yInterval,
+                            getDrawingHorizontalLine: (value) => FlLine(
+                              color: Colors.grey.shade200,
+                              strokeWidth: 1,
+                              dashArray: [4, 4],
+                            ),
+                          ),
+                          borderData: FlBorderData(show: false),
+                          titlesData: FlTitlesData(
+                            topTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            rightTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            leftTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 30,
+                                // interval=1 so we get every year as a
+                                // potential tick; the builder filters which
+                                // ones to actually render.
+                                interval: 1,
+                                getTitlesWidget: (value, meta) =>
+                                    _buildXLabel(
+                                  value,
+                                  meta,
+                                  minYear: minYear,
+                                  maxYear: maxYear,
+                                  labelStep: labelStep,
+                                ),
+                              ),
+                            ),
+                          ),
+                          lineTouchData: _buildTouchData(topKeywords),
+                          lineBarsData: _buildLineBars(
+                            topKeywords,
+                            filtered,
+                            transparent: false,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ── label builders ────────────────────────────────────────────────────────
+
+  Widget _buildYLabel(double value, TitleMeta meta) {
+    if (value % 1 != 0) return const SizedBox.shrink();
+    if (value == meta.max) return const SizedBox.shrink(); // skip top overflow
+    return SideTitleWidget(
+      axisSide: meta.axisSide,
+      child: Text(
+        Formatters.formatCompactAxis(value.toInt()),
+        style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+      ),
+    );
+  }
+
+  Widget _buildXLabel(
+    double value,
+    TitleMeta meta, {
+    required int minYear,
+    required int maxYear,
+    required int labelStep,
+  }) {
+    final year = value.toInt();
+    // Hide out-of-range ticks
+    if (year < minYear || year > maxYear) return const SizedBox.shrink();
+
+    // Show first year, last year, and every `labelStep` year
+    final isFirst = year == minYear;
+    final isLast = year == maxYear;
+    final isStep = (year - minYear) % labelStep == 0;
+
+    if (!isFirst && !isLast && !isStep) return const SizedBox.shrink();
+
+    return SideTitleWidget(
+      axisSide: meta.axisSide,
+      space: 8,
+      child: Text(
+        year.toString(),
+        style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+      ),
+    );
+  }
+
+  // ── line bars ─────────────────────────────────────────────────────────────
+
+  List<LineChartBarData> _buildLineBars(
+    List<String> topKeywords,
+    Map<String, List<KeywordTrendPoint>> filtered, {
+    required bool transparent,
+  }) {
+    return List.generate(topKeywords.length, (index) {
+      final keyword = topKeywords[index];
+      final isVisible = !_hiddenSeries.contains(keyword) && !transparent;
+      final color = _colors[index % _colors.length];
+      final isPrimary = index == 0;
+
+      return LineChartBarData(
+        show: isVisible,
+        spots: filtered[keyword]!
+            .map((p) => FlSpot(p.year.toDouble(), p.count.toDouble()))
+            .toList(),
+        isCurved: true,
+        curveSmoothness: 0.35,
+        color: transparent ? Colors.transparent : color,
+        barWidth: isPrimary ? 3.5 : 2.0,
+        isStrokeCapRound: true,
+        dotData: const FlDotData(show: false),
+        belowBarData: BarAreaData(
+          show: isPrimary && isVisible && !transparent,
+          gradient: LinearGradient(
+            colors: [
+              color.withValues(alpha: 0.2),
+              color.withValues(alpha: 0.0),
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+      );
+    });
+  }
+
+  // ── touch / tooltip ───────────────────────────────────────────────────────
+
+  LineTouchData _buildTouchData(List<String> topKeywords) {
+    return LineTouchData(
+      handleBuiltInTouches: true,
+      getTouchedSpotIndicator:
+          (LineChartBarData barData, List<int> spotIndexes) {
+            return spotIndexes.map((spotIndex) {
+              return TouchedSpotIndicatorData(
+                FlLine(
+                  color: Colors.grey.shade300,
+                  strokeWidth: 2,
+                  dashArray: [4, 4],
+                ),
+                FlDotData(
+                  getDotPainter: (spot, percent, barData, index) {
+                    return FlDotCirclePainter(
+                      radius: 4,
+                      color: Colors.white,
+                      strokeWidth: 2,
+                      strokeColor: barData.color ?? Colors.blue,
+                    );
+                  },
+                ),
+              );
+            }).toList();
+          },
+      touchTooltipData: LineTouchTooltipData(
+        getTooltipColor: (touchedSpot) => Colors.black.withValues(alpha: 0.8),
+        tooltipPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 8,
+        ),
+        tooltipRoundedRadius: 8,
+        getTooltipItems: (touchedSpots) {
+          return touchedSpots.map((spot) {
+            final keyword = topKeywords[spot.barIndex];
+            if (_hiddenSeries.contains(keyword)) return null;
+
+            final color = _colors[spot.barIndex % _colors.length];
+            return LineTooltipItem(
+              '',
+              const TextStyle(),
+              children: [
+                TextSpan(
+                  text: '${spot.x.toInt()}\n',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                TextSpan(
+                  text: '$keyword\n',
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                TextSpan(
+                  text:
+                      '${Formatters.formatCompactAxis(spot.y.toInt())} works',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            );
+          }).toList();
+        },
       ),
     );
   }
