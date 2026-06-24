@@ -58,7 +58,7 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
     final keyword = _topicController.text.trim();
     if (keyword.isEmpty) return;
     FocusScope.of(context).unfocus();
-    context.read<HomeViewModel>().searchPublications(
+    await context.read<HomeViewModel>().searchPublications(
       keyword: keyword,
       topic: topic,
     );

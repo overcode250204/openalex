@@ -78,6 +78,7 @@ class HomeViewModel extends ChangeNotifier {
   List<TopicSuggestion> get conceptSuggestions => _conceptSuggestions;
   List<String> get relatedKeywords => _relatedKeywords;
   bool get showSuggestions => _showSuggestions;
+
   Future<TopicSuggestion?> resolveTopicForSearch(
     String keyword, {
     TopicSuggestion? selectedTopic,
@@ -86,7 +87,7 @@ class HomeViewModel extends ChangeNotifier {
       return selectedTopic;
     }
 
-    final normalizedKeyword = keyword.trim().toLowerCase();
+    final normalizedKeyword = _normalizeTopicText(keyword);
     if (normalizedKeyword.isEmpty) return null;
 
     final suggestions = await _suggestionService.fetchTopicSuggestions(keyword);
@@ -94,16 +95,95 @@ class HomeViewModel extends ChangeNotifier {
     if (suggestions.isEmpty) return null;
 
     for (final suggestion in suggestions) {
-      if (suggestion.displayName.trim().toLowerCase() == normalizedKeyword) {
+      if (_normalizeTopicText(suggestion.displayName) == normalizedKeyword) {
         return suggestion;
       }
     }
 
-    if (suggestions.length == 1) {
-      return suggestions.single;
+    final topSuggestion = suggestions.first;
+    if (_isHighConfidenceTopicMatch(
+      keyword: keyword,
+      suggestion: topSuggestion,
+      nextSuggestion: suggestions.length > 1 ? suggestions[1] : null,
+    )) {
+      return topSuggestion;
     }
 
     return null;
+  }
+
+  String _normalizeTopicText(String value) {
+    return value
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  bool _isHighConfidenceTopicMatch({
+    required String keyword,
+    required TopicSuggestion suggestion,
+    TopicSuggestion? nextSuggestion,
+  }) {
+    final normalizedKeyword = _normalizeTopicText(keyword);
+    final normalizedSuggestion = _normalizeTopicText(suggestion.displayName);
+
+    if (normalizedKeyword.isEmpty || normalizedSuggestion.isEmpty) {
+      return false;
+    }
+
+    if (normalizedKeyword == normalizedSuggestion) {
+      return true;
+    }
+
+    if (normalizedKeyword.length >= 4 &&
+        normalizedSuggestion.contains(normalizedKeyword)) {
+      return true;
+    }
+
+    if (normalizedSuggestion.length >= 4 &&
+        normalizedKeyword.contains(normalizedSuggestion)) {
+      return true;
+    }
+
+    final suggestionTokens = normalizedSuggestion
+        .split(' ')
+        .where((token) => token.isNotEmpty)
+        .toList();
+    final keywordTokens = normalizedKeyword
+        .split(' ')
+        .where((token) => token.isNotEmpty)
+        .toList();
+
+    final abbreviation = suggestionTokens
+        .where((token) => token.isNotEmpty)
+        .map((token) => token[0])
+        .join();
+    if (normalizedKeyword.replaceAll(' ', '') == abbreviation &&
+        abbreviation.length >= 2) {
+      return true;
+    }
+
+    final meaningfulKeywordTokens = keywordTokens
+        .where((token) => token.length >= 3)
+        .toList();
+    if (meaningfulKeywordTokens.isNotEmpty &&
+        meaningfulKeywordTokens.every(suggestionTokens.contains)) {
+      return true;
+    }
+
+    final overlapCount = meaningfulKeywordTokens
+        .where(suggestionTokens.contains)
+        .length;
+    final overlapRatio = meaningfulKeywordTokens.isEmpty
+        ? 0.0
+        : overlapCount / meaningfulKeywordTokens.length;
+    final clearlyDominant =
+        nextSuggestion == null ||
+        suggestion.workCount >= nextSuggestion.workCount * 2;
+
+    return overlapRatio >= 0.6 && clearlyDominant;
   }
 
   String _normalizeTopicId(String topicId) {
