@@ -2,26 +2,56 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../models/auth/app_user.dart';
-import 'app_analytics_service.dart';
+import '../analytics/app_analytics_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class FirebaseAnalyticsService implements AppAnalyticsService {
-  FirebaseAnalyticsService({FirebaseAnalytics? analytics})
-    : _analytics = analytics ?? FirebaseAnalytics.instance;
+  FirebaseAnalyticsService({
+    FirebaseAnalytics? analytics,
+    FirebaseAuth? firebaseAuth,
+  }) : _analytics = analytics ?? FirebaseAnalytics.instance,
+       _auth = firebaseAuth ?? FirebaseAuth.instance;
 
   static const String googleMethod = 'google';
 
   final FirebaseAnalytics _analytics;
+  final FirebaseAuth _auth;
+
   Future<void>? _enableCollectionFuture;
+  AppUser? _currentUser;
+
+  AppUser? get _activeUser {
+    final firebaseUser = _auth.currentUser;
+
+    if (firebaseUser != null) {
+      return AppUser.fromFirebaseUser(firebaseUser);
+    }
+
+    return _currentUser;
+  }
 
   @override
   Future<void> logLogin({required AppUser user, required String method}) async {
     await _safely(() async {
       await _ensureCollectionEnabled();
+
+      _currentUser = user;
+
+      // Firebase Analytics chỉ gắn UID, không gửi email/name.
       await _analytics.setUserId(id: user.uid);
+
       await _analytics.logLogin(
         loginMethod: method,
         parameters: {'auth_provider': method},
       );
+
+      debugPrint('''
+[Analytics] Login logged successfully
+  UID: ${user.uid}
+  Name: ${user.displayName ?? 'Unknown'}
+  Email: ${user.email ?? 'No email'}
+  Provider: $method
+''');
     });
   }
 
@@ -43,7 +73,9 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
   Future<void> clearUser() async {
     await _safely(() async {
       await _ensureCollectionEnabled();
+
       await _analytics.setUserId(id: null);
+      _currentUser = null;
     });
   }
 
@@ -54,10 +86,17 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
 
     await _safely(() async {
       await _ensureCollectionEnabled();
+
       await _analytics.logEvent(
         name: 'search_topic',
         parameters: {'keyword': cleanKeyword},
       );
+
+      debugPrint('''
+[Analytics] search_topic logged
+  User UID: ${_activeUser?.uid ?? 'anonymous'}
+  Keyword: $cleanKeyword
+''');
     });
   }
 
@@ -71,6 +110,7 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
 
     await _safely(() async {
       await _ensureCollectionEnabled();
+
       await _analytics.logEvent(
         name: 'view_publication',
         parameters: {
@@ -78,6 +118,13 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
           'publication_year': publicationYear,
         },
       );
+
+      debugPrint('''
+[Analytics] view_publication logged
+  User UID: ${_activeUser?.uid ?? 'anonymous'}
+  Publication: $cleanTitle
+  Year: $publicationYear
+''');
     });
   }
 

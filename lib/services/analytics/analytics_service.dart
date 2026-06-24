@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../models/analytics/topic_analytics.dart';
-import '../models/search/search_filter.dart';
+import '../../models/analytics/topic_analytics.dart';
+import '../../models/search/search_filter.dart';
 
 class _WorksSummary {
   final int total;

@@ -6,7 +6,7 @@ import 'package:openalex/models/analytics/topic_analytics.dart';
 import 'package:openalex/models/publication/publication.dart';
 import 'package:openalex/models/search/search_filter.dart';
 import 'package:openalex/viewmodels/analytics_view_model.dart';
-import 'package:openalex/services/analytics_service.dart';
+import 'package:openalex/services/analytics/analytics_service.dart';
 
 class MockAnalyticsService extends Mock implements AnalyticsService {}
 

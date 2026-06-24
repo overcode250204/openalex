@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/analytics/topic_analytics.dart';
 import '../models/publication/publication.dart';
 import '../models/search/search_filter.dart';
-import '../services/analytics_service.dart';
+import '../services/analytics/analytics_service.dart';
 
 class AuthorImpact {
   final String name;

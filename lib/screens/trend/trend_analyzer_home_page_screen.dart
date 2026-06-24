@@ -1,5 +1,5 @@
 import 'dart:async';
-
+import '../../services/analytics/app_analytics_service.dart';
 import 'package:flutter/material.dart';
 import 'package:openalex/models/search/search_filter.dart';
 import 'package:openalex/models/topic/topic.dart';
@@ -57,11 +57,29 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
   Future<void> _search(TopicSuggestion? topic) async {
     final keyword = _topicController.text.trim();
     if (keyword.isEmpty) return;
+
+    debugPrint('[Search UI] Analyze Topic clicked. keyword=$keyword');
+
     FocusScope.of(context).unfocus();
-    await context.read<HomeViewModel>().searchPublications(
-      keyword: keyword,
-      topic: topic,
-    );
+
+    final homeViewModel = context.read<HomeViewModel>();
+
+    await homeViewModel.searchPublications(keyword: keyword, topic: topic);
+
+    debugPrint('''
+[Search UI] Search completed
+  error: ${homeViewModel.errorMessage}
+  totalResults: ${homeViewModel.totalResults}
+''');
+
+    if (!mounted || homeViewModel.errorMessage != null) {
+      debugPrint('[Search UI] Analytics skipped because search failed.');
+      return;
+    }
+
+    debugPrint('[Search UI] Calling logSearchTopic...');
+    await context.read<AppAnalyticsService>().logSearchTopic(keyword);
+    debugPrint('[Search UI] logSearchTopic completed.');
   }
 
   void _onQueryChanged(String value) {

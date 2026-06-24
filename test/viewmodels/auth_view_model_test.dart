@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/models/auth/app_user.dart';
 import 'package:openalex/services/analytics/app_analytics_service.dart';
-import 'package:openalex/services/firebase_auth_service.dart';
+import 'package:openalex/services/firebase/firebase_auth_service.dart';
 import 'package:openalex/viewmodels/auth_view_model.dart';
 
 import '../fakes/fake_auth_service.dart';

@@ -8,7 +8,7 @@ import 'package:openalex/models/publication/publication.dart';
 import 'package:openalex/models/search/search_filter.dart';
 import 'package:openalex/routes/route_arguments.dart';
 import 'package:openalex/screens/dashboard/dashboard_screen.dart';
-import 'package:openalex/services/analytics_service.dart';
+import 'package:openalex/services/analytics/analytics_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:openalex/services/trend_report_export_service.dart';
 import 'package:openalex/utils/app_keys.dart';
