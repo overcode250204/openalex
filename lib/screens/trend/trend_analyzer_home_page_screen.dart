@@ -1,5 +1,4 @@
 import 'dart:async';
-import '../../services/analytics/app_analytics_service.dart';
 import 'package:flutter/material.dart';
 import 'package:openalex/models/search/search_filter.dart';
 import 'package:openalex/models/topic/topic.dart';
@@ -77,27 +76,6 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
       return;
     }
 
-    debugPrint('[Search UI] Calling logSearchTopic...');
-    AppAnalyticsService? analytics;
-    try {
-      analytics = context.read<AppAnalyticsService>();
-    } catch (_) {
-      // Provider not found, gracefully skip
-    }
-
-    if (analytics != null) {
-      await analytics.logSearchTopic(
-        keyword,
-        resultCount: homeViewModel.totalResults,
-        topicId: homeViewModel.currentTopicId,
-        hasValidTopic: homeViewModel.selectedTopic != null ? 1 : 0,
-        filterYearFrom: homeViewModel.filter.yearFrom,
-        filterYearTo: homeViewModel.filter.yearTo,
-        openAccessOnly: homeViewModel.filter.isOpenAccess == true ? 1 : 0,
-        sortOption: homeViewModel.filter.sortOption.name,
-      );
-    }
-    debugPrint('[Search UI] logSearchTopic completed.');
   }
 
   void _onQueryChanged(String value) {

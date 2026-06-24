@@ -7,6 +7,8 @@ import 'package:openalex/viewmodels/selected_topic_view_model.dart';
 
 import '../models/publication/publication.dart';
 import '../models/trend/trend_report_snapshot.dart';
+import '../services/analytics/app_analytics_service.dart';
+import '../services/analytics/no_op_analytics_service.dart';
 import '../services/openalex_service.dart';
 
 class TopicResolutionResult {
@@ -28,15 +30,18 @@ class HomeViewModel extends ChangeNotifier {
   final SearchHistoryService _historyService;
   final SuggestionService _suggestionService;
   final SelectedTopicViewModel? _selectedTopicViewModel;
+  final AppAnalyticsService _analyticsService;
 
   HomeViewModel(
     this._openAlexService, {
     SearchHistoryService? historyService,
     SuggestionService? suggestionService,
     SelectedTopicViewModel? selectedTopicViewModel,
+    AppAnalyticsService analyticsService = const NoOpAnalyticsService(),
   }) : _historyService = historyService ?? SearchHistoryService(),
        _suggestionService = suggestionService ?? SuggestionService(),
-       _selectedTopicViewModel = selectedTopicViewModel;
+       _selectedTopicViewModel = selectedTopicViewModel,
+       _analyticsService = analyticsService;
 
   List<Publication> _publications = [];
   bool _isLoading = false;
@@ -307,6 +312,12 @@ class HomeViewModel extends ChangeNotifier {
 
       // Page đầu tiên xong, lần loadMore tiếp theo phải load page 2.
       _currentPage = 2;
+
+      await _logSearchTopic(
+        trimmedKeyword,
+        resultCount: total,
+        searchSource: topic == null ? 'manual' : 'suggestion',
+      );
     } catch (_) {
       if (requestVersion != _searchRequestVersion) return;
       if (!hasCommittedResolution) {
@@ -318,18 +329,19 @@ class HomeViewModel extends ChangeNotifier {
       _totalResults = 0;
       _errorMessage = 'Cannot load publications. Please try again.';
     } finally {
-      if (requestVersion != _searchRequestVersion) return;
-      _isLoading = false;
+      if (requestVersion == _searchRequestVersion) {
+        _isLoading = false;
 
-      try {
-        _relatedKeywords = await _suggestionService.fetchRelatedKeywords(
-          _currentTopic,
-        );
-      } catch (_) {
-        _relatedKeywords = [];
+        try {
+          _relatedKeywords = await _suggestionService.fetchRelatedKeywords(
+            _currentTopic,
+          );
+        } catch (_) {
+          _relatedKeywords = [];
+        }
+
+        notifyListeners();
       }
-
-      notifyListeners();
     }
   }
 
@@ -528,6 +540,14 @@ class HomeViewModel extends ChangeNotifier {
 
       _hasMore = result.length >= 50;
       _currentPage++;
+
+      if (resetPage) {
+        await _logSearchTopic(
+          keyword,
+          resultCount: total,
+          searchSource: 'filter',
+        );
+      }
     } catch (_) {
       _currentTopicId = null;
       _currentTopicIds = [];
@@ -546,6 +566,24 @@ class HomeViewModel extends ChangeNotifier {
   Future<void> loadMore() async {
     if (!_hasMore || _isLoading) return;
     await searchWithFilter(_currentTopic, null, resetPage: false);
+  }
+
+  Future<void> _logSearchTopic(
+    String keyword, {
+    required int resultCount,
+    required String searchSource,
+  }) async {
+    await _analyticsService.logSearchTopic(
+      keyword,
+      resultCount: resultCount,
+      searchSource: searchSource,
+      topicId: _currentTopicId,
+      hasValidTopic: _currentTopicIds.isNotEmpty ? 1 : 0,
+      filterYearFrom: _filter.yearFrom,
+      filterYearTo: _filter.yearTo,
+      openAccessOnly: _filter.isOpenAccess == true ? 1 : 0,
+      sortOption: _filter.sortOption.name,
+    );
   }
 
   void resetFilter() {

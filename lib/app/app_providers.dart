@@ -65,6 +65,7 @@ abstract final class AppProviders {
           context.read<OpenAlexService>(),
           suggestionService: context.read<SuggestionService>(),
           selectedTopicViewModel: context.read<SelectedTopicViewModel>(),
+          analyticsService: context.read<AppAnalyticsService>(),
         ),
       ),
       ChangeNotifierProvider(

@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:openalex/models/auth/app_user.dart';
 import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/services/analytics/app_analytics_service.dart';
 import 'package:openalex/viewmodels/home_view_model.dart';
 import 'package:openalex/services/history_service.dart';
 import 'package:openalex/services/openalex_service.dart';
@@ -65,11 +67,65 @@ class FakeSuggestionService extends SuggestionService {
   }
 }
 
-HomeViewModel testProvider(OpenAlexService service) {
+class RecordingAnalyticsService implements AppAnalyticsService {
+  final searchTopicEvents = <Map<String, Object?>>[];
+
+  @override
+  Future<void> logLogin({required AppUser user, required String method}) async {}
+
+  @override
+  Future<void> logLogout({
+    required AppUser? user,
+    required String method,
+  }) async {}
+
+  @override
+  Future<void> clearUser() async {}
+
+  @override
+  Future<void> logSearchTopic(
+    String keyword, {
+    int? resultCount,
+    String? searchSource,
+    String? topicId,
+    int? hasValidTopic,
+    int? filterYearFrom,
+    int? filterYearTo,
+    int? openAccessOnly,
+    String? sortOption,
+  }) async {
+    searchTopicEvents.add({
+      'keyword': keyword,
+      'resultCount': resultCount,
+      'searchSource': searchSource,
+      'topicId': topicId,
+      'hasValidTopic': hasValidTopic,
+      'filterYearFrom': filterYearFrom,
+      'filterYearTo': filterYearTo,
+      'openAccessOnly': openAccessOnly,
+      'sortOption': sortOption,
+    });
+  }
+
+  @override
+  Future<void> logViewKeyword({required String keyword}) async {}
+
+  @override
+  Future<void> logViewPublication({
+    required String publicationTitle,
+    required int? publicationYear,
+  }) async {}
+}
+
+HomeViewModel testProvider(
+  OpenAlexService service, {
+  AppAnalyticsService? analyticsService,
+}) {
   return HomeViewModel(
     service,
     historyService: FakeSearchHistoryService(),
     suggestionService: FakeSuggestionService(),
+    analyticsService: analyticsService ?? RecordingAnalyticsService(),
   );
 }
 
@@ -163,6 +219,43 @@ void main() {
     expect(provider.topJournal, 'Journal A');
     expect(provider.topAuthors, {'Ada': 2, 'Grace': 1, 'Linus': 1});
     expect(provider.topAuthor, 'Ada');
+  });
+
+  test('logs search_topic after a successful topic search', () async {
+    final analytics = RecordingAnalyticsService();
+    final service = FakeOpenAlexService(
+      total: 42,
+      results: [publication(title: 'First', citations: 5, year: 2024)],
+      topicIds: const ['T123'],
+    );
+    final provider = testProvider(service, analyticsService: analytics);
+
+    await provider.searchPublications(keyword: '  AI  ');
+
+    expect(analytics.searchTopicEvents, hasLength(1));
+    expect(analytics.searchTopicEvents.single, {
+      'keyword': 'AI',
+      'resultCount': 42,
+      'searchSource': 'manual',
+      'topicId': 'T123',
+      'hasValidTopic': 1,
+      'filterYearFrom': null,
+      'filterYearTo': null,
+      'openAccessOnly': 0,
+      'sortOption': 'relevance',
+    });
+  });
+
+  test('does not log search_topic when topic search fails', () async {
+    final analytics = RecordingAnalyticsService();
+    final provider = testProvider(
+      FakeOpenAlexService(error: Exception('boom')),
+      analyticsService: analytics,
+    );
+
+    await provider.searchPublications(keyword: 'AI');
+
+    expect(analytics.searchTopicEvents, isEmpty);
   });
 
   test(

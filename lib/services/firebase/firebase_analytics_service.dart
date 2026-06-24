@@ -97,25 +97,39 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
     await _safely(() async {
       await _ensureCollectionEnabled();
 
+      final parameters = <String, Object>{
+        'keyword': _analyticsString(cleanKeyword),
+      };
+      if (resultCount != null) parameters['result_count'] = resultCount;
+      if (searchSource != null) {
+        parameters['search_source'] = _analyticsString(searchSource);
+      }
+      if (topicId != null) parameters['topic_id'] = _analyticsString(topicId);
+      if (hasValidTopic != null) {
+        parameters['has_valid_topic'] = hasValidTopic;
+      }
+      if (filterYearFrom != null) {
+        parameters['filter_year_from'] = filterYearFrom;
+      }
+      if (filterYearTo != null) parameters['filter_year_to'] = filterYearTo;
+      if (openAccessOnly != null) {
+        parameters['open_access_only'] = openAccessOnly;
+      }
+      if (sortOption != null) {
+        parameters['sort_option'] = _analyticsString(sortOption);
+      }
+
       await _analytics.logEvent(
         name: 'search_topic',
-        parameters: {
-          'keyword': cleanKeyword,
-          if (resultCount != null) 'result_count': resultCount,
-          if (searchSource != null) 'search_source': searchSource,
-          if (topicId != null) 'topic_id': topicId,
-          if (hasValidTopic != null) 'has_valid_topic': hasValidTopic,
-          if (filterYearFrom != null) 'filter_year_from': filterYearFrom,
-          if (filterYearTo != null) 'filter_year_to': filterYearTo,
-          if (openAccessOnly != null) 'open_access_only': openAccessOnly,
-          if (sortOption != null) 'sort_option': sortOption,
-        },
+        parameters: parameters,
       );
 
       debugPrint('''
 [Analytics] search_topic logged
   User UID: ${_activeUser?.uid ?? 'anonymous'}
   Keyword: $cleanKeyword
+  Source: ${searchSource ?? 'unknown'}
+  Results: ${resultCount ?? 'unknown'}
 ''');
     });
   }
@@ -126,17 +140,21 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
     required int? publicationYear,
   }) async {
     final cleanTitle = publicationTitle.trim();
-    if (cleanTitle.isEmpty || publicationYear == null) return;
+    if (cleanTitle.isEmpty) return;
 
     await _safely(() async {
       await _ensureCollectionEnabled();
 
+      final parameters = <String, Object>{
+        'publication_title': _analyticsString(cleanTitle),
+      };
+      if (publicationYear != null) {
+        parameters['publication_year'] = publicationYear;
+      }
+
       await _analytics.logEvent(
         name: 'view_publication',
-        parameters: {
-          'publication_title': cleanTitle,
-          'publication_year': publicationYear,
-        },
+        parameters: parameters,
       );
 
       debugPrint('''
@@ -160,7 +178,7 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
 
       await _analytics.logEvent(
         name: 'view_keyword',
-        parameters: {'keyword': cleanKeyword},
+        parameters: {'keyword': _analyticsString(cleanKeyword)},
       );
 
       debugPrint('''
@@ -175,6 +193,14 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
     return _enableCollectionFuture ??= _analytics.setAnalyticsCollectionEnabled(
       true,
     );
+  }
+
+  String _analyticsString(String value) {
+    final normalized = value.trim();
+    if (normalized.length <= 100) {
+      return normalized;
+    }
+    return normalized.substring(0, 100);
   }
 
   Future<void> _safely(Future<void> Function() action) async {

@@ -152,6 +152,14 @@ class FakeAnalyticsService extends AnalyticsService {
         citedByCount: 20,
         publicationYear: 2024,
       ),
+      topInfluentialPapers: [
+        InfluentialPaperSummary(
+          id: 'W1',
+          title: 'Influential',
+          citedByCount: 30,
+          publicationYear: 2024,
+        ),
+      ],
       authorImpact: [
         AuthorImpactSummary(
           name: 'Ada Lovelace',
@@ -184,6 +192,14 @@ class FakeAnalyticsService extends AnalyticsService {
         citedByCount: 20,
         publicationYear: 2024,
       ),
+      topInfluentialPapers: [
+        InfluentialPaperSummary(
+          id: 'W1',
+          title: 'Influential',
+          citedByCount: 30,
+          publicationYear: 2024,
+        ),
+      ],
     );
   }
 }
@@ -386,7 +402,7 @@ void main() {
     expect(find.text('Top Influential Papers'), findsOneWidget);
     expect(find.text('Top Research Journals'), findsOneWidget);
     expect(find.text('Top Contributing Authors'), findsOneWidget);
-    expect(find.text('Influential'), findsOneWidget);
+    expect(find.text('Influential'), findsWidgets);
   });
 
   testWidgets(
