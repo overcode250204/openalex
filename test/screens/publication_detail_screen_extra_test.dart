@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:openalex/models/auth/app_user.dart';
 import 'package:openalex/models/publication/publication.dart';
 import 'package:openalex/viewmodels/publication_detail_view_model.dart';
 import 'package:openalex/screens/publication/publication_detail_screen.dart';
-import 'package:openalex/services/firebase_analytics_service.dart';
+import 'package:openalex/services/analytics/app_analytics_service.dart';
 import 'package:provider/provider.dart';
 
 class FakePublicationDetailViewModel extends PublicationDetailViewModel {
@@ -38,10 +39,26 @@ class FakePublicationDetailViewModel extends PublicationDetailViewModel {
   }
 }
 
-class FakeFirebaseAnalyticsService extends FirebaseAnalyticsService {
-  FakeFirebaseAnalyticsService() : super.testing();
-
+class FakeFirebaseAnalyticsService implements AppAnalyticsService {
   final List<({String title, int? year})> viewEvents = [];
+
+  @override
+  Future<void> clearUser() async {}
+
+  @override
+  Future<void> logLogin({
+    required AppUser user,
+    required String method,
+  }) async {}
+
+  @override
+  Future<void> logLogout({
+    required AppUser? user,
+    required String method,
+  }) async {}
+
+  @override
+  Future<void> logSearchTopic(String keyword) async {}
 
   @override
   Future<void> logViewPublication({
@@ -114,7 +131,7 @@ Widget buildScreen({
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<PublicationDetailViewModel>.value(value: provider),
-      Provider<FirebaseAnalyticsService>.value(
+      Provider<AppAnalyticsService>.value(
         value: analytics ?? FakeFirebaseAnalyticsService(),
       ),
     ],

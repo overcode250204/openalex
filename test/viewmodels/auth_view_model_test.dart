@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/models/auth/app_user.dart';
-import 'package:openalex/services/firebase_analytics_service.dart';
+import 'package:openalex/services/analytics/app_analytics_service.dart';
 import 'package:openalex/services/firebase_auth_service.dart';
 import 'package:openalex/viewmodels/auth_view_model.dart';
 
@@ -65,6 +65,15 @@ class _RecordingAnalyticsService implements AppAnalyticsService {
   Future<void> clearUser() async {
     events.add('clear-user');
   }
+
+  @override
+  Future<void> logSearchTopic(String keyword) async {}
+
+  @override
+  Future<void> logViewPublication({
+    required String publicationTitle,
+    required int? publicationYear,
+  }) async {}
 }
 
 class _OrderedSignOutAuthService extends FakeAuthService {

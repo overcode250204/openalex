@@ -71,6 +71,38 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
     });
   }
 
+  void _showTopicRequiredMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Please select a valid research topic from the suggestions before opening analytics.',
+        ),
+      ),
+    );
+  }
+
+  void _openTopicAnalytics({
+    required String routeName,
+    required HomeViewModel provider,
+  }) {
+    final topicId = provider.currentTopicId;
+    final topicName = provider.currentTopic.trim();
+
+    if (topicId == null || topicName.isEmpty) {
+      _showTopicRequiredMessage();
+      return;
+    }
+
+    Navigator.pushNamed(
+      context,
+      routeName,
+      arguments: TopicAnalyticsRouteArgs(
+        topicId: topicId,
+        topicName: topicName,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<HomeViewModel>();
@@ -88,9 +120,11 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
                   provider.filter.isOpenAccess != null ||
                   provider.filter.documentType != DocumentType.all ||
                   provider.filter.sortOption != SortOption.relevance;
+
               return Stack(
                 children: [
                   IconButton(
+                    tooltip: 'Filters',
                     icon: const Icon(Icons.tune),
                     onPressed: () => showModalBottomSheet(
                       context: context,
@@ -120,20 +154,13 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
               );
             },
           ),
+
           IconButton(
             tooltip: 'Trend Analysis',
-            onPressed: provider.currentTopicId == null
-                ? null
-                : () {
-                    Navigator.pushNamed(
-                      context,
-                      AppRoutes.trendAnalysis,
-                      arguments: TopicAnalyticsRouteArgs(
-                        topicId: provider.currentTopicId!,
-                        topicName: provider.currentTopic,
-                      ),
-                    );
-                  },
+            onPressed: () => _openTopicAnalytics(
+              routeName: AppRoutes.trendAnalysis,
+              provider: provider,
+            ),
             icon: const Icon(Icons.show_chart),
           ),
 
@@ -142,20 +169,13 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
             onPressed: _openZoteroLibrary,
             icon: const Icon(Icons.library_books),
           ),
+
           IconButton(
             tooltip: 'Dashboard',
-            onPressed: provider.currentTopicId == null
-                ? null
-                : () {
-                    Navigator.pushNamed(
-                      context,
-                      AppRoutes.dashboard,
-                      arguments: TopicAnalyticsRouteArgs(
-                        topicId: provider.currentTopicId!,
-                        topicName: provider.currentTopic,
-                      ),
-                    );
-                  },
+            onPressed: () => _openTopicAnalytics(
+              routeName: AppRoutes.dashboard,
+              provider: provider,
+            ),
             icon: const Icon(Icons.dashboard),
           ),
         ],
@@ -260,7 +280,7 @@ class _SearchHeader extends StatelessWidget {
 
             FilledButton.icon(
               key: AppKeys.searchTopicButton,
-              onPressed: () => {onSearch?.call(null)},
+              onPressed: onSearch == null ? null : () => onSearch!(null),
               icon: const Icon(Icons.analytics),
               label: const Text('Analyze Topic'),
             ),

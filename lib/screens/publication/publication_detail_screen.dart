@@ -4,7 +4,7 @@ import 'package:openalex/viewmodels/publication_detail_view_model.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/publication/publication.dart';
-import '../../services/firebase_analytics_service.dart';
+import '../../services/analytics/app_analytics_service.dart';
 import '../../routes/app_routes.dart';
 import '../../routes/route_arguments.dart';
 import '../../viewmodels/publication_list_view_model.dart';
@@ -47,7 +47,7 @@ class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
       }
 
       _hasLoggedViewEvent = true;
-      await context.read<FirebaseAnalyticsService>().logViewPublication(
+      await context.read<AppAnalyticsService>().logViewPublication(
         publicationTitle: publication.title,
         publicationYear: publication.publicationYear,
       );

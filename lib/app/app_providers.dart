@@ -8,7 +8,9 @@ import '../viewmodels/keyword_dashboard_view_model.dart';
 import '../viewmodels/home_view_model.dart';
 import '../services/keyword_dashboard_service.dart';
 import '../services/analytics_service.dart';
-import '../services/firebase_analytics_service.dart';
+import '../services/analytics/app_analytics_service.dart';
+import '../services/analytics/firebase_analytics_service.dart';
+import '../services/analytics/no_op_analytics_service.dart';
 import '../services/firebase_auth_service.dart';
 import '../services/openalex_journal_service.dart';
 import '../services/openalex_keyword_service.dart';
@@ -21,7 +23,6 @@ import '../viewmodels/auth_view_model.dart';
 import '../viewmodels/keyword_analyzer_view_model.dart';
 import '../viewmodels/selected_topic_view_model.dart';
 import '../viewmodels/trend_analysis_view_model.dart';
-import '../services/firebase_analytics_service.dart';
 
 /// The single dependency-registration boundary for the application.
 abstract final class AppProviders {
@@ -38,10 +39,6 @@ abstract final class AppProviders {
       Provider(create: (_) => SuggestionService()),
       Provider(create: (_) => const TrendReportExportService()),
       Provider(create: (_) => ZoteroService()),
-      Provider<FirebaseAnalyticsService>(
-        create: (_) => FirebaseAnalyticsService(),
-      ),
-
       Provider<AuthService>(
         create: (_) => authService ?? FirebaseAuthService(),
       ),
