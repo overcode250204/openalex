@@ -8,10 +8,12 @@ import '../models/search/search_filter.dart';
 class _WorksSummary {
   final int total;
   final InfluentialPaperSummary? mostInfluentialPaper;
+  final List<InfluentialPaperSummary> topInfluentialPapers;
 
   const _WorksSummary({
     required this.total,
     required this.mostInfluentialPaper,
+    required this.topInfluentialPapers,
   });
 }
 
@@ -61,7 +63,7 @@ class AnalyticsService {
         ?.replaceAll('https://openalex.org/', '')
         .trim();
     final topicFilter = normalizedTopicId?.isNotEmpty == true
-        ? 'primary_topic.id:$normalizedTopicId'
+        ? 'topics.id:$normalizedTopicId'
         : null;
     final filters = <String>[
       ?topicFilter,
@@ -106,32 +108,33 @@ class AnalyticsService {
     );
   }
 
-  Future<_WorksSummary> _fetchTopWork(Map<String, String> baseParams) async {
+  Future<_WorksSummary> _fetchTopWorks(Map<String, String> baseParams) async {
     final body = await _getJson({
       ...baseParams,
       'sort': 'cited_by_count:desc',
-      'per_page': '1',
+      'per-page': '50',
       'select': 'id,doi,display_name,publication_year,cited_by_count',
     });
     final meta = body['meta'] as Map<String, dynamic>? ?? const {};
     final results = body['results'] as List<dynamic>? ?? [];
     final total = (meta['count'] as num? ?? 0).toInt();
-    InfluentialPaperSummary? mostInfluentialPaper;
-
-    if (results.isNotEmpty) {
-      final work = results.first as Map<String, dynamic>;
-      mostInfluentialPaper = InfluentialPaperSummary(
+    final topInfluentialPapers = results.map((item) {
+      final work = item as Map<String, dynamic>;
+      return InfluentialPaperSummary(
         id: work['id']?.toString() ?? '',
         title: work['display_name']?.toString() ?? 'No title',
         citedByCount: (work['cited_by_count'] as num? ?? 0).toInt(),
         publicationYear: (work['publication_year'] as num?)?.toInt(),
         doi: work['doi']?.toString(),
       );
-    }
+    }).toList();
 
     return _WorksSummary(
       total: total,
-      mostInfluentialPaper: mostInfluentialPaper,
+      mostInfluentialPaper: topInfluentialPapers.isEmpty
+          ? null
+          : topInfluentialPapers.first,
+      topInfluentialPapers: topInfluentialPapers,
     );
   }
 
@@ -147,7 +150,7 @@ class AnalyticsService {
       final body = await _getJson({
         ...baseParams,
         'group_by': 'cited_by_count',
-        'per_page': '100',
+        'per-page': '100',
         'cursor': cursor,
       });
       final groups = body['group_by'] as List<dynamic>? ?? [];
@@ -230,7 +233,7 @@ class AnalyticsService {
       _tryFetch(_fetchGroupBy(baseParams, 'publication_year')),
       _tryFetch(_fetchGroupBy(baseParams, 'primary_location.source.id')),
       _tryFetch(_fetchGroupBy(baseParams, 'authorships.author.id')),
-      _tryFetch(_fetchTopWork(baseParams)),
+      _tryFetch(_fetchTopWorks(baseParams)),
       _tryFetch(_fetchCitationStats(baseParams)),
     ]);
 
@@ -266,6 +269,7 @@ class AnalyticsService {
       analyzedWorks: citationStats?.analyzedWorks ?? 0,
       totalCitations: citationStats?.totalCitations ?? 0,
       mostInfluentialPaper: worksSummary?.mostInfluentialPaper,
+      topInfluentialPapers: worksSummary?.topInfluentialPapers ?? const [],
     );
   }
 
@@ -295,6 +299,7 @@ class AnalyticsService {
       analyzedWorks: summary.analyzedWorks,
       totalCitations: summary.totalCitations,
       mostInfluentialPaper: summary.mostInfluentialPaper,
+      topInfluentialPapers: summary.topInfluentialPapers,
       authorImpact: results[4] as List<AuthorImpactSummary>? ?? const [],
     );
   }

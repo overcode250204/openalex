@@ -131,6 +131,9 @@ class AnalyticsViewModel extends ChangeNotifier {
   InfluentialPaperSummary? get mostInfluentialPaper =>
       _result.mostInfluentialPaper;
 
+  List<InfluentialPaperSummary> get topInfluentialPapers =>
+      _result.topInfluentialPapers;
+
   String? get mostCitedTitle => mostInfluentialPaper?.title;
 
   // Citation count of the most-cited paper across the full dataset.
@@ -208,6 +211,7 @@ class AnalyticsViewModel extends ChangeNotifier {
         analyzedWorks: result.analyzedWorks,
         totalCitations: result.totalCitations,
         mostInfluentialPaper: result.mostInfluentialPaper,
+        topInfluentialPapers: result.topInfluentialPapers,
         authorImpact: result.authorImpact,
       );
       _loadedSignature = signature;

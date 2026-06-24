@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import '../models/publication/publication.dart';
+
+import '../models/analytics/topic_analytics.dart';
 import '../utils/formatters.dart';
 
 class TopInfluentialPapersHorizontalChart extends StatelessWidget {
-  final List<Publication> papers;
+  final List<InfluentialPaperSummary> papers;
 
   const TopInfluentialPapersHorizontalChart({super.key, required this.papers});
 
@@ -49,7 +50,7 @@ class TopInfluentialPapersHorizontalChart extends StatelessWidget {
               ),
               child: Tooltip(
                 message:
-                    '${paper.title}\n${paper.displayYear} • ${paper.displayJournal}\nCitations: ${Formatters.formatCitation(paper.citedByCount)}',
+                    '${paper.title}\n${_displayYear(paper)}\nCitations: ${Formatters.formatCitation(paper.citedByCount)}',
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
@@ -71,7 +72,7 @@ class TopInfluentialPapersHorizontalChart extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${paper.displayYear} • ${paper.displayJournal}',
+                      _displayYear(paper),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -180,4 +181,8 @@ class TopInfluentialPapersHorizontalChart extends StatelessWidget {
       ],
     );
   }
+}
+
+String _displayYear(InfluentialPaperSummary paper) {
+  return paper.publicationYear?.toString() ?? 'Unknown year';
 }

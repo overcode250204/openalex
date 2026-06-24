@@ -75,7 +75,7 @@ class TopicSummaryGrid extends StatelessWidget {
             crossAxisCount: columns,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            mainAxisExtent: 164,
+            mainAxisExtent: constraints.maxWidth >= 360 ? 136 : 148,
           ),
           itemBuilder: (context, index) =>
               _MetricCard(metric: metrics[index], isLoading: isLoading),
@@ -120,21 +120,21 @@ class _MetricCard extends StatelessWidget {
         child: InkWell(
           onTap: isLoading ? null : metric.onTap,
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(7),
+                      padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
                         color: metric.color.shade50,
                         borderRadius: BorderRadius.circular(9),
                       ),
                       child: Icon(
                         metric.icon,
-                        size: 19,
+                        size: 18,
                         color: metric.color.shade700,
                       ),
                     ),
@@ -149,7 +149,7 @@ class _MetricCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const Spacer(),
+                const SizedBox(height: 12),
                 if (isLoading)
                   const SizedBox(
                     key: Key('summary_card_loading'),
@@ -162,7 +162,7 @@ class _MetricCard extends StatelessWidget {
                     message: metric.value,
                     child: Text(
                       metric.value,
-                      maxLines: 2,
+                      maxLines: metric.details == null ? 3 : 2,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
