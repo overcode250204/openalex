@@ -4,6 +4,7 @@ import 'package:openalex/viewmodels/publication_detail_view_model.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/publication/publication.dart';
+import '../../services/firebase_analytics_service.dart';
 import '../../routes/app_routes.dart';
 import '../../routes/route_arguments.dart';
 import '../../viewmodels/publication_list_view_model.dart';
@@ -25,11 +26,31 @@ class PublicationDetailScreen extends StatefulWidget {
 }
 
 class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
+  bool _hasLoggedViewEvent = false;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PublicationDetailViewModel>().loadDetail(widget.workId);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+
+      final viewModel = context.read<PublicationDetailViewModel>();
+      await viewModel.loadDetail(widget.workId);
+
+      if (!mounted || _hasLoggedViewEvent) return;
+      final publication = viewModel.publication;
+      if (viewModel.state != DetailState.success ||
+          publication == null ||
+          publication.title.trim().isEmpty ||
+          publication.publicationYear == null) {
+        return;
+      }
+
+      _hasLoggedViewEvent = true;
+      await context.read<FirebaseAnalyticsService>().logViewPublication(
+        publicationTitle: publication.title,
+        publicationYear: publication.publicationYear,
+      );
     });
   }
 

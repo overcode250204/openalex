@@ -165,10 +165,9 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
         top: false,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final suggestionMaxHeight = (constraints.maxHeight - 240).clamp(
-              0.0,
-              220.0,
-            ).toDouble();
+            final suggestionMaxHeight = (constraints.maxHeight - 240)
+                .clamp(0.0, 220.0)
+                .toDouble();
 
             return Column(
               children: [
@@ -176,14 +175,11 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
                   topicController: _topicController,
                   suggestionMaxHeight: suggestionMaxHeight,
                   onSearch: provider.isLoading ? null : _search,
-                  onQueryChanged: provider.isLoading
-                      ? null
-                      : _onQueryChanged,
+                  onQueryChanged: provider.isLoading ? null : _onQueryChanged,
                 ),
 
                 Consumer<HomeViewModel>(
-                  builder: (context, provider, _) =>
-                      provider.totalResults > 0
+                  builder: (context, provider, _) => provider.totalResults > 0
                       ? Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,

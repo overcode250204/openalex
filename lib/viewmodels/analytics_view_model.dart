@@ -95,8 +95,7 @@ class AnalyticsViewModel extends ChangeNotifier {
     if (_result.publicationTrend.isEmpty) return null;
     return _result.publicationTrend.entries
         .reduce(
-          (a, b) =>
-              a.value > b.value || (a.value == b.value && a.key > b.key)
+          (a, b) => a.value > b.value || (a.value == b.value && a.key > b.key)
               ? a
               : b,
         )
@@ -186,11 +185,7 @@ class AnalyticsViewModel extends ChangeNotifier {
 
     try {
       final result = includeCharts
-          ? await _analyticsService.fetchAll(
-              keyword,
-              filter,
-              topicId: topicId,
-            )
+          ? await _analyticsService.fetchAll(keyword, filter, topicId: topicId)
           : await _analyticsService.fetchSummary(
               keyword,
               filter,
@@ -209,10 +204,7 @@ class AnalyticsViewModel extends ChangeNotifier {
         topAuthors: result.topAuthors,
         totalWorks: result.totalWorks > 0
             ? result.totalWorks
-            : effectiveTrend.values.fold<int>(
-                0,
-                (sum, count) => sum + count,
-              ),
+            : effectiveTrend.values.fold<int>(0, (sum, count) => sum + count),
         analyzedWorks: result.analyzedWorks,
         totalCitations: result.totalCitations,
         mostInfluentialPaper: result.mostInfluentialPaper,

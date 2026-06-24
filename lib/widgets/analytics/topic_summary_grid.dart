@@ -29,7 +29,12 @@ class TopicSummaryGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final metrics = [
-      _Metric('Total Publications', totalPublications, Icons.public, Colors.teal),
+      _Metric(
+        'Total Publications',
+        totalPublications,
+        Icons.public,
+        Colors.teal,
+      ),
       _Metric(
         averageCitationsLabel,
         averageCitations,

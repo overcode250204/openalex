@@ -20,6 +20,7 @@ import '../viewmodels/auth_view_model.dart';
 import '../viewmodels/keyword_analyzer_view_model.dart';
 import '../viewmodels/selected_topic_view_model.dart';
 import '../viewmodels/trend_analysis_view_model.dart';
+import '../services/firebase_analytics_service.dart';
 
 /// The single dependency-registration boundary for the application.
 abstract final class AppProviders {
@@ -28,15 +29,15 @@ abstract final class AppProviders {
       Provider(create: (_) => OpenAlexService()),
       Provider(create: (_) => OpenAlexKeywordService()),
       Provider(create: (_) => OpenAlexJournalService()),
-      Provider(
-        create: (_) => AnalyticsService(
-          apiKey: _openAlexApiKey(),
-        ),
-      ),
+      Provider(create: (_) => AnalyticsService(apiKey: _openAlexApiKey())),
       Provider(create: (_) => KeywordDashboardService()),
       Provider(create: (_) => SuggestionService()),
       Provider(create: (_) => const TrendReportExportService()),
       Provider(create: (_) => ZoteroService()),
+      Provider<FirebaseAnalyticsService>(
+        create: (_) => FirebaseAnalyticsService(),
+      ),
+
       Provider<AuthService>(
         create: (_) => authService ?? FirebaseAuthService(),
       ),

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/models/publication/publication.dart';
 import 'package:openalex/viewmodels/publication_detail_view_model.dart';
 import 'package:openalex/screens/publication/publication_detail_screen.dart';
+import 'package:openalex/services/firebase_analytics_service.dart';
 import 'package:provider/provider.dart';
 
 class FakePublicationDetailViewModel extends PublicationDetailViewModel {
@@ -34,6 +35,21 @@ class FakePublicationDetailViewModel extends PublicationDetailViewModel {
   Future<void> loadDetail(String workId) async {
     loadDetailCalled = true;
     requestedWorkId = workId;
+  }
+}
+
+class FakeFirebaseAnalyticsService extends FirebaseAnalyticsService {
+  FakeFirebaseAnalyticsService() : super.testing();
+
+  final List<({String title, int? year})> viewEvents = [];
+
+  @override
+  Future<void> logViewPublication({
+    required String publicationTitle,
+    required int? publicationYear,
+  }) async {
+    if (publicationTitle.trim().isEmpty || publicationYear == null) return;
+    viewEvents.add((title: publicationTitle.trim(), year: publicationYear));
   }
 }
 
@@ -91,9 +107,17 @@ Publication fakePublication({
   });
 }
 
-Widget buildScreen({required FakePublicationDetailViewModel provider}) {
-  return ChangeNotifierProvider<PublicationDetailViewModel>.value(
-    value: provider,
+Widget buildScreen({
+  required FakePublicationDetailViewModel provider,
+  FakeFirebaseAnalyticsService? analytics,
+}) {
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider<PublicationDetailViewModel>.value(value: provider),
+      Provider<FirebaseAnalyticsService>.value(
+        value: analytics ?? FakeFirebaseAnalyticsService(),
+      ),
+    ],
     child: const MaterialApp(
       home: PublicationDetailScreen(
         workId: 'W1',
@@ -105,6 +129,67 @@ Widget buildScreen({required FakePublicationDetailViewModel provider}) {
 
 void main() {
   group('PublicationDetailScreen extra coverage', () {
+    testWidgets(
+      'logs one view event with title and year after successful load',
+      (tester) async {
+        final analytics = FakeFirebaseAnalyticsService();
+        final provider = FakePublicationDetailViewModel(
+          fakeState: DetailState.success,
+          fakePublication: fakePublication(title: 'Tracked Paper', year: 2023),
+        );
+
+        await tester.pumpWidget(
+          buildScreen(provider: provider, analytics: analytics),
+        );
+        await tester.pumpAndSettle();
+
+        expect(analytics.viewEvents, hasLength(1));
+        expect(analytics.viewEvents.single.title, 'Tracked Paper');
+        expect(analytics.viewEvents.single.year, 2023);
+
+        provider.notifyListeners();
+        await tester.pump();
+        await tester.pumpWidget(
+          buildScreen(provider: provider, analytics: analytics),
+        );
+        await tester.pump();
+        expect(analytics.viewEvents, hasLength(1));
+      },
+    );
+
+    testWidgets('does not log when title or year is missing', (tester) async {
+      for (final publication in [
+        fakePublication(title: '', year: 2024),
+        fakePublication(title: 'Missing Year', year: null),
+      ]) {
+        final analytics = FakeFirebaseAnalyticsService();
+        final provider = FakePublicationDetailViewModel(
+          fakeState: DetailState.success,
+          fakePublication: publication,
+        );
+        await tester.pumpWidget(
+          buildScreen(provider: provider, analytics: analytics),
+        );
+        await tester.pumpAndSettle();
+        expect(analytics.viewEvents, isEmpty);
+      }
+    });
+
+    testWidgets('does not log when detail loading fails', (tester) async {
+      final analytics = FakeFirebaseAnalyticsService();
+      final provider = FakePublicationDetailViewModel(
+        fakeState: DetailState.error,
+        fakeError: 'Failed',
+      );
+
+      await tester.pumpWidget(
+        buildScreen(provider: provider, analytics: analytics),
+      );
+      await tester.pumpAndSettle();
+
+      expect(analytics.viewEvents, isEmpty);
+    });
+
     testWidgets('shows loading state with initial title', (tester) async {
       final provider = FakePublicationDetailViewModel(
         fakeState: DetailState.loading,
