@@ -53,6 +53,7 @@ class HomeViewModel extends ChangeNotifier {
   String get currentTopic => _currentTopic;
   String? get currentTopicId => _currentTopicId;
   List<String> get currentTopicIds => List.unmodifiable(_currentTopicIds);
+  TopicSuggestion? get selectedTopic => _selectedTopic;
 
   SearchFilter get filter => _filter;
   bool get hasMore => _hasMore;
@@ -62,11 +63,10 @@ class HomeViewModel extends ChangeNotifier {
   List<TopicSuggestion> get conceptSuggestions => _conceptSuggestions;
   List<String> get relatedKeywords => _relatedKeywords;
   bool get showSuggestions => _showSuggestions;
-  Future<TopicSuggestion?> _resolveTopic(
-    String keyword,
+  Future<TopicSuggestion?> resolveTopicForSearch(
+    String keyword, {
     TopicSuggestion? selectedTopic,
-  ) async {
-    // User bấm suggestion: dùng chính xác topic đó.
+  }) async {
     if (selectedTopic != null) {
       return selectedTopic;
     }
@@ -74,34 +74,51 @@ class HomeViewModel extends ChangeNotifier {
     final normalizedKeyword = keyword.trim().toLowerCase();
     if (normalizedKeyword.isEmpty) return null;
 
-    // Tìm topic suggestion từ OpenAlex.
     final suggestions = await _suggestionService.fetchTopicSuggestions(keyword);
 
     if (suggestions.isEmpty) return null;
 
-    // Ưu tiên topic trùng tên chính xác.
     for (final suggestion in suggestions) {
       if (suggestion.displayName.trim().toLowerCase() == normalizedKeyword) {
         return suggestion;
       }
     }
 
+    if (suggestions.length == 1) {
+      return suggestions.single;
+    }
+
     return null;
   }
 
-  Future<List<String>> _resolveTopicIds(
-    String keyword,
-    TopicSuggestion? resolvedTopic,
-  ) async {
-    if (resolvedTopic != null) {
-      return [resolvedTopic.id.replaceAll('https://openalex.org/', '')];
-    }
+  void clearResolvedTopicIfQueryChanged(String query) {
+    final normalizedQuery = query.trim().toLowerCase();
+    final normalizedTopic = _currentTopic.trim().toLowerCase();
 
-    try {
-      return await _openAlexService.getTopicIdsFromKeyword(keyword);
-    } catch (_) {
-      return [];
+    if (normalizedQuery != normalizedTopic) {
+      _selectedTopic = null;
+      _currentTopicId = null;
+      _currentTopicIds = [];
+      notifyListeners();
     }
+  }
+
+  String _normalizeTopicId(String topicId) {
+    return topicId.replaceAll('https://openalex.org/', '');
+  }
+
+  void _applyResolvedTopicState(String keyword, TopicSuggestion? resolvedTopic) {
+    _selectedTopic = resolvedTopic;
+    _currentTopic = resolvedTopic?.displayName ?? keyword.trim();
+    _currentTopicId = resolvedTopic == null
+        ? null
+        : _normalizeTopicId(resolvedTopic.id);
+    _currentTopicIds = _currentTopicId == null ? [] : [_currentTopicId!];
+
+    _selectedTopicViewModel?.setTopic(
+      _currentTopic,
+      suggestion: resolvedTopic,
+    );
   }
 
   Future<void> searchPublications({
@@ -132,24 +149,11 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final resolvedTopic = await _resolveTopic(trimmedKeyword, topic);
-
-      _selectedTopic = resolvedTopic;
-
-      _currentTopic = resolvedTopic?.displayName ?? trimmedKeyword;
-      _currentTopicId = resolvedTopic?.id.replaceAll(
-        'https://openalex.org/',
-        '',
+      final resolvedTopic = await resolveTopicForSearch(
+        trimmedKeyword,
+        selectedTopic: topic,
       );
-      _currentTopicIds = await _resolveTopicIds(_currentTopic, resolvedTopic);
-      _currentTopicId ??= _currentTopicIds.length == 1
-          ? _currentTopicIds.single
-          : null;
-
-      _selectedTopicViewModel?.setTopic(
-        _currentTopic,
-        suggestion: resolvedTopic,
-      );
+      _applyResolvedTopicState(trimmedKeyword, resolvedTopic);
 
       final (total, result) = await _openAlexService.searchPublications(
         keyword: _currentTopic,
@@ -344,28 +348,14 @@ class HomeViewModel extends ChangeNotifier {
     try {
       // Khi user bấm filter hoặc chọn topic mới.
       // Khi loadMore() thì topic null và phải giữ topic đã resolve trước đó.
-      final resolvedTopic = topic ?? _selectedTopic;
-
-      // Chỉ resolve từ OpenAlex khi app chưa có topic đã chọn.
-      final effectiveTopic =
-          resolvedTopic ?? await _resolveTopic(keyword, null);
-
-      _selectedTopic = effectiveTopic;
-
-      _currentTopic = effectiveTopic?.displayName ?? keyword.trim();
-      _currentTopicId = effectiveTopic?.id.replaceAll(
-        'https://openalex.org/',
-        '',
-      );
-      _currentTopicIds = await _resolveTopicIds(_currentTopic, effectiveTopic);
-      _currentTopicId ??= _currentTopicIds.length == 1
-          ? _currentTopicIds.single
+      final cachedTopic = topic == null && keyword.trim() == _currentTopic
+          ? _selectedTopic
           : null;
-
-      _selectedTopicViewModel?.setTopic(
-        _currentTopic,
-        suggestion: effectiveTopic,
+      final effectiveTopic = await resolveTopicForSearch(
+        keyword,
+        selectedTopic: topic ?? cachedTopic,
       );
+      _applyResolvedTopicState(keyword, effectiveTopic);
 
       final params = _filter.toQueryParams(_currentTopic, _currentTopicIds);
       params['page'] = _currentPage.toString();
@@ -420,6 +410,8 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> onQueryChanged(String query) async {
+    clearResolvedTopicIfQueryChanged(query);
+
     if (query.trim().isEmpty) {
       _conceptSuggestions = [];
       _showSuggestions = true;
