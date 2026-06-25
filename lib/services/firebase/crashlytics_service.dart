@@ -14,6 +14,9 @@ abstract interface class AppCrashlyticsService {
     bool fatal,
   });
 
+  Future<void> recordDemoHandledException();
+  Future<void> triggerDemoCrash();
+
   bool get isInitialized;
 }
 
@@ -29,6 +32,8 @@ abstract interface class CrashlyticsClient {
   });
 
   Future<void> recordFlutterFatalError(FlutterErrorDetails details);
+
+  Future<void> crash();
 }
 
 class FirebaseCrashlyticsClient implements CrashlyticsClient {
@@ -62,6 +67,11 @@ class FirebaseCrashlyticsClient implements CrashlyticsClient {
   @override
   Future<void> recordFlutterFatalError(FlutterErrorDetails details) {
     return _crashlytics.recordFlutterFatalError(details);
+  }
+
+  @override
+  Future<void> crash() async {
+    _crashlytics.crash();
   }
 }
 
@@ -128,6 +138,37 @@ class FirebaseCrashlyticsService implements AppCrashlyticsService {
     );
   }
 
+  @override
+  Future<void> recordDemoHandledException() {
+    return recordError(
+      StateError('Crashlytics demo handled exception'),
+      StackTrace.current,
+      reason: 'Developer demo: handled exception button',
+      information: const [
+        'source=profile_developer_tools',
+        'action=record_handled_exception',
+      ],
+    );
+  }
+
+  @override
+  Future<void> triggerDemoCrash() async {
+    await recordError(
+      StateError('Crashlytics demo test crash requested'),
+      StackTrace.current,
+      reason: 'Developer demo: test crash button',
+      information: const [
+        'source=profile_developer_tools',
+        'action=test_crash',
+      ],
+      fatal: true,
+    );
+
+    if (!_isSupported) return;
+
+    await _client.crash();
+  }
+
   static bool get _defaultIsSupported {
     if (kIsWeb) return false;
 
@@ -159,4 +200,10 @@ class NoOpCrashlyticsService implements AppCrashlyticsService {
     Iterable<Object> information = const [],
     bool fatal = false,
   }) async {}
+
+  @override
+  Future<void> recordDemoHandledException() async {}
+
+  @override
+  Future<void> triggerDemoCrash() async {}
 }

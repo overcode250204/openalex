@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../models/auth/app_user.dart';
 import '../../models/firebase/app_push_notification.dart';
 import '../../services/firebase/cloud_messaging_service.dart';
+import '../../services/firebase/crashlytics_service.dart';
 import '../../utils/app_keys.dart';
 import '../../viewmodels/auth_view_model.dart';
 import '../../viewmodels/cloud_messaging_view_model.dart';
@@ -87,6 +88,11 @@ class ProfileScreen extends StatelessWidget {
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 980),
                   child: _RemoteConfigCard(viewModel: remoteConfig),
+                ),
+                const SizedBox(height: 16),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 980),
+                  child: const _CrashlyticsDemoCard(),
                 ),
               ],
             );
@@ -342,7 +348,10 @@ class _NotificationTile extends StatelessWidget {
                     const SizedBox(width: 6),
                     const Text(
                       '•',
-                      style: TextStyle(color: ProfileScreen._muted, fontSize: 11),
+                      style: TextStyle(
+                        color: ProfileScreen._muted,
+                        fontSize: 11,
+                      ),
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -783,9 +792,96 @@ class _RemoteConfigCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             OutlinedButton.icon(
-              onPressed: viewModel.isFetching ? null : viewModel.fetchAndActivate,
+              onPressed: viewModel.isFetching
+                  ? null
+                  : viewModel.fetchAndActivate,
               icon: const Icon(Icons.refresh),
-              label: Text(viewModel.isFetching ? 'Fetching...' : 'Fetch & Activate'),
+              label: Text(
+                viewModel.isFetching ? 'Fetching...' : 'Fetch & Activate',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CrashlyticsDemoCard extends StatelessWidget {
+  const _CrashlyticsDemoCard();
+
+  static const _handledExceptionButtonKey = Key(
+    'profile_demo_handled_exception_button',
+  );
+  static const _testCrashButtonKey = Key('profile_demo_test_crash_button');
+
+  Future<void> _recordHandledException(BuildContext context) async {
+    final crashlytics = context.read<AppCrashlyticsService>();
+    await crashlytics.recordDemoHandledException();
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Demo handled exception sent to Crashlytics'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<void> _triggerTestCrash(BuildContext context) async {
+    final crashlytics = context.read<AppCrashlyticsService>();
+    await crashlytics.triggerDemoCrash();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Developer demo tools',
+              style: TextStyle(
+                color: ProfileScreen._ink,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Crashlytics verification actions for development and demos only.',
+              style: TextStyle(color: ProfileScreen._muted, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              key: _handledExceptionButtonKey,
+              onPressed: () => _recordHandledException(context),
+              icon: const Icon(Icons.bug_report_outlined),
+              label: const Text('Demo: Record handled exception'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              key: _testCrashButtonKey,
+              onPressed: () => _triggerTestCrash(context),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: colorScheme.error,
+                side: BorderSide(
+                  color: colorScheme.error.withValues(alpha: 0.5),
+                ),
+              ),
+              icon: const Icon(Icons.warning_amber_outlined),
+              label: const Text('Demo: Test crash'),
             ),
           ],
         ),
