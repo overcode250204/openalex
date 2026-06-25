@@ -6,6 +6,7 @@ import '../../utils/formatters.dart';
 import '../../models/keyword/keyword_dashboard_result.dart';
 import '../../models/keyword/openalex_keyword.dart';
 import '../../viewmodels/keyword_dashboard_view_model.dart';
+import '../../viewmodels/remote_config_view_model.dart';
 import '../../routes/app_routes.dart';
 import '../../routes/route_arguments.dart';
 import '../../services/suggestion_service.dart';
@@ -88,6 +89,7 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<RemoteConfigViewModel?>();
     final provider = context.watch<KeywordDashboardViewModel>();
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FB),

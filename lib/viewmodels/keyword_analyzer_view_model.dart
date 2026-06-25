@@ -4,12 +4,22 @@ import 'package:flutter/material.dart';
 
 import '../models/keyword/keyword_analysis_result.dart';
 import '../models/keyword/openalex_keyword.dart';
+import '../services/analytics/app_analytics_service.dart';
+import '../services/analytics/no_op_analytics_service.dart';
+import '../services/firebase/remote_config_service.dart';
 import '../services/openalex_keyword_service.dart';
 
 class KeywordAnalyzerViewModel extends ChangeNotifier {
   final OpenAlexKeywordService _service;
+  final AppAnalyticsService _analyticsService;
+  final AppRemoteConfigService _remoteConfigService;
 
-  KeywordAnalyzerViewModel(this._service);
+  KeywordAnalyzerViewModel(
+    this._service, {
+    AppAnalyticsService analyticsService = const NoOpAnalyticsService(),
+    AppRemoteConfigService remoteConfigService = const NoOpRemoteConfigService(),
+  }) : _analyticsService = analyticsService,
+       _remoteConfigService = remoteConfigService;
 
   String _keyword = '';
   bool _isLoading = false;
@@ -117,11 +127,13 @@ class KeywordAnalyzerViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _result = await _service.analyzeKeyword(
+      final rawResult = await _service.analyzeKeyword(
         trimmedKeyword,
         fromYear: _selectedFromYear,
         toYear: _selectedToYear,
       );
+
+      _result = _applyLimits(rawResult);
     } on KeywordNotFoundException catch (e) {
       _result = null;
       _errorMessage = e.message;
@@ -145,12 +157,13 @@ class KeywordAnalyzerViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _result = await _service.analyzeResolvedKeyword(
+      final rawResult = await _service.analyzeResolvedKeyword(
         trimmedKeyword,
         resolvedKeyword,
         fromYear: _selectedFromYear,
         toYear: _selectedToYear,
       );
+      _result = _applyLimits(rawResult);
     } catch (_) {
       _result = null;
       _errorMessage = 'Unable to analyze keyword. Please try again.';
@@ -160,9 +173,38 @@ class KeywordAnalyzerViewModel extends ChangeNotifier {
     }
   }
 
+  KeywordAnalysisResult _applyLimits(KeywordAnalysisResult result) {
+    final limit = _remoteConfigService.maxKeywordsDisplayed;
+    return result.copyWith(
+      relevantPapers:
+          result.relevantPapers.length > limit
+              ? result.relevantPapers.sublist(0, limit)
+              : result.relevantPapers,
+      mostCitedPapers:
+          result.mostCitedPapers.length > limit
+              ? result.mostCitedPapers.sublist(0, limit)
+              : result.mostCitedPapers,
+      latestPapers:
+          result.latestPapers.length > limit
+              ? result.latestPapers.sublist(0, limit)
+              : result.latestPapers,
+      openAccessPapers:
+          result.openAccessPapers.length > limit
+              ? result.openAccessPapers.sublist(0, limit)
+              : result.openAccessPapers,
+    );
+  }
+
   Future<void> retry() async {
     if (_keyword.trim().isEmpty) return;
     await analyze(_keyword);
+  }
+
+  Future<void> logViewEvent(String keyword) async {
+    final cleanKeyword = keyword.trim();
+    if (cleanKeyword.isNotEmpty) {
+      await _analyticsService.logViewKeyword(keyword: cleanKeyword);
+    }
   }
 
   void clear() {

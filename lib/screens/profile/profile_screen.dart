@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/auth/app_user.dart';
+import '../../models/firebase/app_push_notification.dart';
+import '../../services/firebase/cloud_messaging_service.dart';
 import '../../utils/app_keys.dart';
 import '../../viewmodels/auth_view_model.dart';
+import '../../viewmodels/cloud_messaging_view_model.dart';
+import '../../viewmodels/remote_config_view_model.dart';
 import '../../viewmodels/selected_topic_view_model.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -19,6 +25,8 @@ class ProfileScreen extends StatelessWidget {
     final auth = context.watch<AuthViewModel>();
     final user = auth.currentUser;
     final selectedTopic = context.watch<SelectedTopicViewModel>();
+    final cloudMessaging = context.watch<CloudMessagingViewModel>();
+    final remoteConfig = context.watch<RemoteConfigViewModel>();
 
     return Scaffold(
       backgroundColor: _background,
@@ -70,9 +78,359 @@ class ProfileScreen extends StatelessWidget {
                   constraints: const BoxConstraints(maxWidth: 980),
                   child: _AccountActionsCard(auth: auth),
                 ),
+                const SizedBox(height: 16),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 980),
+                  child: _NotificationCenterCard(viewModel: cloudMessaging),
+                ),
+                const SizedBox(height: 16),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 980),
+                  child: _RemoteConfigCard(viewModel: remoteConfig),
+                ),
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationCenterCard extends StatelessWidget {
+  const _NotificationCenterCard({required this.viewModel});
+
+  final CloudMessagingViewModel viewModel;
+
+  @override
+  Widget build(BuildContext context) {
+    final notifications = viewModel.notifications;
+    final token = viewModel.token?.trim();
+
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Notification Center',
+                    style: TextStyle(
+                      color: ProfileScreen._ink,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                if (viewModel.isInitializing)
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Firebase Cloud Messaging status and received test pushes.',
+              style: TextStyle(color: ProfileScreen._muted, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            _InfoRow(
+              icon: Icons.notifications_active_outlined,
+              label: 'Permission',
+              value: _permissionLabel(viewModel.permissionStatus),
+            ),
+            const SizedBox(height: 12),
+            _InfoRow(
+              icon: Icons.vpn_key_outlined,
+              label: 'FCM token',
+              value: token == null || token.isEmpty
+                  ? 'No token available'
+                  : token,
+              trailing: token != null && token.isNotEmpty
+                  ? IconButton(
+                      tooltip: 'Copy FCM token',
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: token));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('FCM token copied to clipboard'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.copy_outlined, size: 20),
+                    )
+                  : null,
+            ),
+            if (viewModel.errorMessage != null) ...[
+              const SizedBox(height: 12),
+              _NotificationErrorBox(message: viewModel.errorMessage!),
+            ],
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: viewModel.isRequestingPermission
+                        ? null
+                        : viewModel.requestPermission,
+                    icon: viewModel.isRequestingPermission
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.notification_add_outlined),
+                    label: Text(
+                      viewModel.isRequestingPermission
+                          ? 'Requesting...'
+                          : 'Enable notifications',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                IconButton(
+                  tooltip: 'Clear notifications',
+                  onPressed: notifications.isEmpty
+                      ? null
+                      : viewModel.clearNotifications,
+                  icon: const Icon(Icons.delete_outline),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (notifications.isEmpty)
+              const _EmptyNotifications()
+            else
+              ...notifications
+                  .take(5)
+                  .map((notification) => _NotificationTile(notification)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _permissionLabel(CloudMessagingPermissionStatus status) {
+    return switch (status) {
+      CloudMessagingPermissionStatus.authorized => 'Authorized',
+      CloudMessagingPermissionStatus.provisional => 'Provisional',
+      CloudMessagingPermissionStatus.denied => 'Denied',
+      CloudMessagingPermissionStatus.notDetermined => 'Not determined',
+      CloudMessagingPermissionStatus.unsupported => 'Unsupported device',
+    };
+  }
+}
+
+class _EmptyNotifications extends StatelessWidget {
+  const _EmptyNotifications();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: const Text(
+        'No push notifications received yet.',
+        style: TextStyle(
+          color: ProfileScreen._muted,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationTile extends StatelessWidget {
+  const _NotificationTile(this.notification);
+
+  final AppPushNotification notification;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: _typeColor(notification.type).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              _typeIcon(notification.type),
+              color: _typeColor(notification.type),
+              size: 19,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        notification.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: ProfileScreen._ink,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      _formatTime(notification.receivedAt),
+                      style: const TextStyle(
+                        color: ProfileScreen._muted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  notification.body,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: ProfileScreen._muted,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Text(
+                      _typeLabel(notification.type),
+                      style: TextStyle(
+                        color: _typeColor(notification.type),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Text(
+                      '•',
+                      style: TextStyle(color: ProfileScreen._muted, fontSize: 11),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _sourceLabel(notification.source),
+                      style: const TextStyle(
+                        color: ProfileScreen._muted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static IconData _typeIcon(AppPushNotificationType type) {
+    return switch (type) {
+      AppPushNotificationType.trend => Icons.trending_up,
+      AppPushNotificationType.citation => Icons.format_quote,
+      AppPushNotificationType.researchUpdate => Icons.update,
+      AppPushNotificationType.generic => Icons.notifications_none_outlined,
+    };
+  }
+
+  static Color _typeColor(AppPushNotificationType type) {
+    return switch (type) {
+      AppPushNotificationType.trend => Colors.orange.shade700,
+      AppPushNotificationType.citation => Colors.blue.shade700,
+      AppPushNotificationType.researchUpdate => Colors.green.shade700,
+      AppPushNotificationType.generic => ProfileScreen._primary,
+    };
+  }
+
+  static String _typeLabel(AppPushNotificationType type) {
+    return switch (type) {
+      AppPushNotificationType.trend => 'Trend Alert',
+      AppPushNotificationType.citation => 'New Citation',
+      AppPushNotificationType.researchUpdate => 'Research Update',
+      AppPushNotificationType.generic => 'Notification',
+    };
+  }
+
+  static String _sourceLabel(PushNotificationSource source) {
+    return switch (source) {
+      PushNotificationSource.foreground => 'Live',
+      PushNotificationSource.background => 'Background',
+      PushNotificationSource.openedApp => 'Direct',
+      PushNotificationSource.initial => 'Initial',
+    };
+  }
+
+  static String _formatTime(DateTime time) {
+    final now = DateTime.now();
+    final difference = now.difference(time);
+
+    if (difference.inMinutes < 1) return 'now';
+    if (difference.inMinutes < 60) return '${difference.inMinutes}m';
+    if (difference.inHours < 24) return '${difference.inHours}h';
+    return DateFormat('MMM d').format(time);
+  }
+}
+
+class _NotificationErrorBox extends StatelessWidget {
+  const _NotificationErrorBox({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(
+          color: colorScheme.onErrorContainer,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -359,6 +717,75 @@ class _AccountActionsCard extends StatelessWidget {
                     )
                   : const Icon(Icons.logout),
               label: Text(auth.isLoading ? 'Signing out...' : 'Sign out'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RemoteConfigCard extends StatelessWidget {
+  const _RemoteConfigCard({required this.viewModel});
+
+  final RemoteConfigViewModel viewModel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Remote Configurations',
+                    style: TextStyle(
+                      color: ProfileScreen._ink,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                if (viewModel.isFetching)
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Dynamic application parameters from Firebase Remote Config.',
+              style: TextStyle(color: ProfileScreen._muted, fontSize: 13),
+            ),
+            const SizedBox(height: 18),
+            _InfoRow(
+              icon: Icons.auto_stories_outlined,
+              label: 'Max journals displayed',
+              value: viewModel.maxJournalsDisplayed.toString(),
+            ),
+            const SizedBox(height: 12),
+            _InfoRow(
+              icon: Icons.key_outlined,
+              label: 'Max keywords displayed',
+              value: viewModel.maxKeywordsDisplayed.toString(),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: viewModel.isFetching ? null : viewModel.fetchAndActivate,
+              icon: const Icon(Icons.refresh),
+              label: Text(viewModel.isFetching ? 'Fetching...' : 'Fetch & Activate'),
             ),
           ],
         ),
