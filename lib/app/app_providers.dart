@@ -23,6 +23,7 @@ import '../services/zotero_service.dart';
 import '../viewmodels/dashboard_view_model.dart';
 import '../viewmodels/auth_view_model.dart';
 import '../viewmodels/cloud_messaging_view_model.dart';
+import '../viewmodels/crashlytics_view_model.dart';
 import '../viewmodels/keyword_analyzer_view_model.dart';
 import '../viewmodels/remote_config_view_model.dart';
 import '../services/firebase/remote_config_service.dart';
@@ -88,6 +89,10 @@ abstract final class AppProviders {
         create: (context) =>
             CloudMessagingViewModel(context.read<CloudMessagingService>())
               ..initialize(),
+      ),
+      ChangeNotifierProvider(
+        create: (context) =>
+            CrashlyticsViewModel(context.read<AppCrashlyticsService>()),
       ),
       ChangeNotifierProvider(create: (_) => SelectedTopicViewModel()),
       ChangeNotifierProvider(

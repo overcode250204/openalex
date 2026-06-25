@@ -6,10 +6,10 @@ import 'package:provider/provider.dart';
 import '../../models/auth/app_user.dart';
 import '../../models/firebase/app_push_notification.dart';
 import '../../services/firebase/cloud_messaging_service.dart';
-import '../../services/firebase/crashlytics_service.dart';
 import '../../utils/app_keys.dart';
 import '../../viewmodels/auth_view_model.dart';
 import '../../viewmodels/cloud_messaging_view_model.dart';
+import '../../viewmodels/crashlytics_view_model.dart';
 import '../../viewmodels/remote_config_view_model.dart';
 import '../../viewmodels/selected_topic_view_model.dart';
 
@@ -816,10 +816,10 @@ class _CrashlyticsDemoCard extends StatelessWidget {
   static const _testCrashButtonKey = Key('profile_demo_test_crash_button');
 
   Future<void> _recordHandledException(BuildContext context) async {
-    final crashlytics = context.read<AppCrashlyticsService>();
-    await crashlytics.recordDemoHandledException();
+    final crashlytics = context.read<CrashlyticsViewModel>();
+    final didSend = await crashlytics.recordDemoHandledException();
 
-    if (!context.mounted) return;
+    if (!context.mounted || !didSend) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -830,13 +830,14 @@ class _CrashlyticsDemoCard extends StatelessWidget {
   }
 
   Future<void> _triggerTestCrash(BuildContext context) async {
-    final crashlytics = context.read<AppCrashlyticsService>();
+    final crashlytics = context.read<CrashlyticsViewModel>();
     await crashlytics.triggerDemoCrash();
   }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final viewModel = context.watch<CrashlyticsViewModel>();
 
     return Card(
       elevation: 0,
@@ -866,14 +867,22 @@ class _CrashlyticsDemoCard extends StatelessWidget {
             const SizedBox(height: 16),
             OutlinedButton.icon(
               key: _handledExceptionButtonKey,
-              onPressed: () => _recordHandledException(context),
+              onPressed: viewModel.isRecordingHandledException
+                  ? null
+                  : () => _recordHandledException(context),
               icon: const Icon(Icons.bug_report_outlined),
-              label: const Text('Demo: Record handled exception'),
+              label: Text(
+                viewModel.isRecordingHandledException
+                    ? 'Sending demo exception...'
+                    : 'Demo: Record handled exception',
+              ),
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
               key: _testCrashButtonKey,
-              onPressed: () => _triggerTestCrash(context),
+              onPressed: viewModel.isTriggeringCrash
+                  ? null
+                  : () => _triggerTestCrash(context),
               style: OutlinedButton.styleFrom(
                 foregroundColor: colorScheme.error,
                 side: BorderSide(
@@ -881,8 +890,16 @@ class _CrashlyticsDemoCard extends StatelessWidget {
                 ),
               ),
               icon: const Icon(Icons.warning_amber_outlined),
-              label: const Text('Demo: Test crash'),
+              label: Text(
+                viewModel.isTriggeringCrash
+                    ? 'Sending crash evidence...'
+                    : 'Demo: Test crash',
+              ),
             ),
+            if (viewModel.errorMessage != null) ...[
+              const SizedBox(height: 12),
+              _SignOutErrorBox(message: viewModel.errorMessage!),
+            ],
           ],
         ),
       ),

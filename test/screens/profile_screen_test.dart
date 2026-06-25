@@ -7,6 +7,7 @@ import 'package:openalex/services/firebase/remote_config_service.dart';
 import 'package:openalex/utils/app_keys.dart';
 import 'package:openalex/viewmodels/auth_view_model.dart';
 import 'package:openalex/viewmodels/cloud_messaging_view_model.dart';
+import 'package:openalex/viewmodels/crashlytics_view_model.dart';
 import 'package:openalex/viewmodels/remote_config_view_model.dart';
 import 'package:openalex/viewmodels/selected_topic_view_model.dart';
 import 'package:provider/provider.dart';
@@ -36,6 +37,10 @@ Widget _buildProfile({
       ),
       Provider<AppCrashlyticsService>(
         create: (_) => crashlyticsService ?? const NoOpCrashlyticsService(),
+      ),
+      ChangeNotifierProvider(
+        create: (context) =>
+            CrashlyticsViewModel(context.read<AppCrashlyticsService>()),
       ),
     ],
     child: const MaterialApp(home: ProfileScreen()),
