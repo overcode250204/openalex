@@ -6,10 +6,13 @@ import 'package:openalex/main.dart';
 import 'package:openalex/models/analytics/topic_analytics.dart';
 import 'package:openalex/models/publication/publication.dart';
 import 'package:openalex/models/search/search_filter.dart';
+import 'package:openalex/models/trend/trend_report_snapshot.dart';
 import 'package:openalex/routes/route_arguments.dart';
 import 'package:openalex/screens/dashboard/dashboard_screen.dart';
 import 'package:openalex/services/analytics/analytics_service.dart';
 import 'package:openalex/services/openalex_service.dart';
+import 'package:openalex/services/pdf_export_service.dart';
+import 'package:openalex/services/pdf_report_layout_service.dart';
 import 'package:openalex/services/trend_report_export_service.dart';
 import 'package:openalex/utils/app_keys.dart';
 import 'package:openalex/viewmodels/analytics_view_model.dart';
@@ -62,20 +65,22 @@ class _FakeOpenAlexService extends OpenAlexService {
   }
 }
 
-class _RecordingExportService extends TrendReportExportService {
-  _RecordingExportService();
+class _RecordingPdfExportService extends PdfExportService {
+  _RecordingPdfExportService()
+    : super(layoutService: const PdfReportLayoutService());
 
   var exportCount = 0;
 
   @override
-  Future<TrendReportExportResult> exportMarkdownReport(
-    report, {
+  Future<PdfExportResult> exportDashboardPdfReport(
+    TrendReportSnapshot report, {
     DateTime? generatedAt,
   }) async {
     exportCount++;
-    return TrendReportExportResult(
-      file: File('patrol-export-report.md'),
-      markdown: '# Patrol Export',
+    return PdfExportResult(
+      file: File('patrol-export-report.pdf'),
+      byteLength: 128,
+      generatedAt: generatedAt ?? DateTime(2026, 6, 25),
     );
   }
 }
@@ -137,7 +142,7 @@ class _RemoteConfigProbeState extends State<_RemoteConfigProbe> {
   }
 }
 
-Widget _dashboardHarness(_RecordingExportService exportService) {
+Widget _dashboardHarness(_RecordingPdfExportService exportService) {
   final openAlexService = _FakeOpenAlexService();
   return MultiProvider(
     providers: [
@@ -148,7 +153,10 @@ Widget _dashboardHarness(_RecordingExportService exportService) {
             AnalyticsViewModel(analyticsService: _FakeAnalyticsService()),
       ),
       ChangeNotifierProvider(
-        create: (_) => DashboardViewModel(exportService: exportService),
+        create: (_) => DashboardViewModel(
+          exportService: const TrendReportExportService(),
+          pdfExportService: exportService,
+        ),
       ),
     ],
     child: const MaterialApp(
@@ -197,7 +205,7 @@ void main() {
   );
 
   patrolWidgetTest('PDF export action creates an export result', ($) async {
-    final exportService = _RecordingExportService();
+    final exportService = _RecordingPdfExportService();
     $.tester.view.physicalSize = const Size(1200, 1800);
     $.tester.view.devicePixelRatio = 1;
     addTearDown($.tester.view.resetPhysicalSize);
@@ -224,7 +232,10 @@ void main() {
     await $.tester.pump(const Duration(milliseconds: 300));
 
     expect(exportService.exportCount, 1);
-    expect($('Trend report exported: patrol-export-report.md'), findsOneWidget);
+    expect(
+      $('Dashboard PDF exported: patrol-export-report.pdf'),
+      findsOneWidget,
+    );
   }, config: _patrolConfig);
 
   patrolWidgetTest('Logout redirects to Login Screen', ($) async {

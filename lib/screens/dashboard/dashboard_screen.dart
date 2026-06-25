@@ -190,20 +190,20 @@ class _ExportTrendReportButton extends StatefulWidget {
 class _ExportTrendReportButtonState extends State<_ExportTrendReportButton> {
   Future<void> _exportReport() async {
     try {
-      final result = await context.read<DashboardViewModel>().exportTrendReport(
-        widget.provider.trendReportSnapshot,
-      );
+      final result = await context
+          .read<DashboardViewModel>()
+          .exportDashboardPdfReport(widget.provider.trendReportSnapshot);
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Trend report exported: ${result.file.path}')),
+        SnackBar(content: Text('Dashboard PDF exported: ${result.file.path}')),
       );
     } catch (error) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Cannot export trend report: $error')),
+        SnackBar(content: Text('Cannot export dashboard PDF: $error')),
       );
     }
   }
@@ -220,8 +220,8 @@ class _ExportTrendReportButtonState extends State<_ExportTrendReportButton> {
               height: 18,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : const Icon(Icons.description),
-      label: Text(isExporting ? 'Exporting Report' : 'Export Trend Report'),
+          : const Icon(Icons.picture_as_pdf),
+      label: Text(isExporting ? 'Exporting PDF' : 'Export PDF Report'),
     );
   }
 }

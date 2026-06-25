@@ -18,6 +18,8 @@ import 'package:openalex/screens/trend/trend_analysis_screen.dart';
 import 'package:openalex/services/history_service.dart';
 import 'package:openalex/services/analytics/analytics_service.dart';
 import 'package:openalex/services/openalex_service.dart';
+import 'package:openalex/services/pdf_export_service.dart';
+import 'package:openalex/services/pdf_report_layout_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
 import 'package:openalex/services/trend_report_export_service.dart';
 import 'package:openalex/viewmodels/trend_analysis_view_model.dart';
@@ -254,8 +256,12 @@ Widget appWithProvider(Widget child, HomeViewModel provider) {
         create: (_) => TrendAnalysisViewModel(service: FakeTrendService()),
       ),
       ChangeNotifierProvider(
-        create: (_) =>
-            DashboardViewModel(exportService: const TrendReportExportService()),
+        create: (_) => DashboardViewModel(
+          exportService: const TrendReportExportService(),
+          pdfExportService: PdfExportService(
+            layoutService: const PdfReportLayoutService(),
+          ),
+        ),
       ),
     ],
     child: MaterialApp(home: child),

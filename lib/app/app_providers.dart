@@ -15,6 +15,7 @@ import '../services/firebase/firebase_auth_service.dart';
 import '../services/openalex_journal_service.dart';
 import '../services/openalex_keyword_service.dart';
 import '../services/openalex_service.dart';
+import '../services/pdf_export_service.dart';
 import '../services/pdf_report_layout_service.dart';
 import '../services/suggestion_service.dart';
 import '../services/trend_report_export_service.dart';
@@ -39,6 +40,11 @@ abstract final class AppProviders {
       Provider(create: (_) => KeywordDashboardService()),
       Provider(create: (_) => SuggestionService()),
       Provider(create: (_) => const PdfReportLayoutService()),
+      Provider(
+        create: (context) => PdfExportService(
+          layoutService: context.read<PdfReportLayoutService>(),
+        ),
+      ),
       Provider(create: (_) => const TrendReportExportService()),
       Provider(create: (_) => ZoteroService()),
       Provider<AuthService>(
@@ -78,6 +84,7 @@ abstract final class AppProviders {
       ChangeNotifierProvider(
         create: (context) => DashboardViewModel(
           exportService: context.read<TrendReportExportService>(),
+          pdfExportService: context.read<PdfExportService>(),
         ),
       ),
       ChangeNotifierProvider(
