@@ -13,6 +13,7 @@ import '../services/firebase/firebase_analytics_service.dart';
 import '../services/analytics/no_op_analytics_service.dart';
 import '../services/firebase/firebase_auth_service.dart';
 import '../services/firebase/cloud_messaging_service.dart';
+import '../services/firebase/crashlytics_service.dart';
 import '../services/openalex_journal_service.dart';
 import '../services/openalex_keyword_service.dart';
 import '../services/openalex_service.dart';
@@ -35,6 +36,7 @@ abstract final class AppProviders {
     AppAnalyticsService? analyticsService,
     CloudMessagingService? cloudMessagingService,
     AppRemoteConfigService? remoteConfigService,
+    AppCrashlyticsService? crashlyticsService,
   }) {
     return [
       Provider(create: (_) => OpenAlexService()),
@@ -68,6 +70,13 @@ abstract final class AppProviders {
             (authService == null
                 ? FirebaseRemoteConfigService()
                 : const NoOpRemoteConfigService()),
+      ),
+      Provider<AppCrashlyticsService>(
+        create: (_) =>
+            crashlyticsService ??
+            (authService == null
+                ? FirebaseCrashlyticsService(installGlobalHandlers: false)
+                : const NoOpCrashlyticsService()),
       ),
       ChangeNotifierProvider(
         create: (context) => AuthViewModel(
