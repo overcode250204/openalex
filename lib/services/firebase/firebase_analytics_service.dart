@@ -20,11 +20,9 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
 
   AppUser? get _activeUser {
     final firebaseUser = _auth.currentUser;
-
     if (firebaseUser != null) {
       return AppUser.fromFirebaseUser(firebaseUser);
     }
-
     return _currentUser;
   }
 
@@ -32,22 +30,16 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
   Future<void> logLogin({required AppUser user, required String method}) async {
     await _safely(() async {
       await _ensureCollectionEnabled();
-
       _currentUser = user;
-
-      // Firebase Analytics chỉ gắn UID, không gửi email/name.
       await _analytics.setUserId(id: user.uid);
-
-      await _analytics.logLogin(
-        loginMethod: method,
-        parameters: {'auth_provider': method},
+      await _analytics.logEvent(
+        name: 'login',
+        parameters: {'auth_provider': _analyticsString(method)},
       );
-
       debugPrint('''
-[Analytics] Login logged successfully
+[Analytics] login logged
   UID: ${user.uid}
   Name: ${user.displayName ?? 'Unknown'}
-  Email: ${user.email ?? 'No email'}
   Provider: $method
 ''');
     });
@@ -71,7 +63,6 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
   Future<void> clearUser() async {
     await _safely(() async {
       await _ensureCollectionEnabled();
-
       await _analytics.setUserId(id: null);
       _currentUser = null;
     });
@@ -117,10 +108,7 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
         parameters['sort_option'] = _analyticsString(sortOption);
       }
 
-      await _analytics.logEvent(
-        name: 'search_topic',
-        parameters: parameters,
-      );
+      await _analytics.logEvent(name: 'search_topic', parameters: parameters);
 
       debugPrint('''
 [Analytics] search_topic logged
@@ -183,6 +171,66 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
 [Analytics] view_keyword logged
   Viewer UID: ${user?.uid ?? 'anonymous'}
   Keyword: $cleanKeyword
+''');
+    });
+  }
+
+  @override
+  Future<void> logViewJournal({
+    required String journalName,
+    required String journalId,
+    int? worksCount,
+    int? citedByCount,
+  }) async {
+    final cleanName = journalName.trim();
+    if (cleanName.isEmpty) return;
+
+    await _safely(() async {
+      await _ensureCollectionEnabled();
+
+      final parameters = <String, Object>{
+        'journal_name': _analyticsString(cleanName),
+        'journal_id': _analyticsString(journalId),
+      };
+      if (worksCount != null) parameters['works_count'] = worksCount;
+      if (citedByCount != null) parameters['cited_by_count'] = citedByCount;
+
+      await _analytics.logEvent(name: 'view_journal', parameters: parameters);
+
+      debugPrint('''
+[Analytics] view_journal logged
+  User UID: ${_activeUser?.uid ?? 'anonymous'}
+  Journal: $cleanName
+  ID: $journalId
+''');
+    });
+  }
+
+  @override
+  Future<void> logExportPdf({
+    required String topic,
+    required int publicationCount,
+  }) async {
+    final cleanTopic = topic.trim();
+
+    await _safely(() async {
+      await _ensureCollectionEnabled();
+
+      await _analytics.logEvent(
+        name: 'export_pdf',
+        parameters: {
+          'topic': _analyticsString(
+            cleanTopic.isEmpty ? 'unknown' : cleanTopic,
+          ),
+          'publication_count': publicationCount,
+        },
+      );
+
+      debugPrint('''
+[Analytics] export_pdf logged
+  User UID: ${_activeUser?.uid ?? 'anonymous'}
+  Topic: $cleanTopic
+  Publications: $publicationCount
 ''');
     });
   }

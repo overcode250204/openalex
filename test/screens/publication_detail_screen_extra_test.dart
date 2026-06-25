@@ -81,6 +81,20 @@ class FakeFirebaseAnalyticsService implements AppAnalyticsService {
 
   @override
   Future<void> logViewKeyword({required String keyword}) async {}
+
+  @override
+  Future<void> logViewJournal({
+    required String journalName,
+    required String journalId,
+    int? worksCount,
+    int? citedByCount,
+  }) async {}
+
+  @override
+  Future<void> logExportPdf({
+    required String topic,
+    required int publicationCount,
+  }) async {}
 }
 
 Publication fakePublication({
@@ -137,9 +151,7 @@ Publication fakePublication({
   });
 }
 
-Widget buildScreen({
-  required FakePublicationDetailViewModel provider,
-}) {
+Widget buildScreen({required FakePublicationDetailViewModel provider}) {
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<PublicationDetailViewModel>.value(value: provider),
