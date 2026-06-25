@@ -28,13 +28,16 @@ abstract final class AppRouter {
       case AppRoutes.profile:
         return _page(const ProfileScreen(), settings);
       case AppRoutes.trendAnalysis:
-        final args = settings.arguments! as TopicAnalyticsRouteArgs;
+        final args = settings.arguments;
+        if (args is! TopicAnalyticsRouteArgs) return _fallbackHome(settings);
         return _page(TrendAnalysisScreen(arguments: args), settings);
       case AppRoutes.dashboard:
-        final args = settings.arguments! as TopicAnalyticsRouteArgs;
+        final args = settings.arguments;
+        if (args is! TopicAnalyticsRouteArgs) return _fallbackHome(settings);
         return _page(DashboardScreen(arguments: args), settings);
       case AppRoutes.publicationDetail:
-        final args = settings.arguments! as PublicationDetailRouteArgs;
+        final args = settings.arguments;
+        if (args is! PublicationDetailRouteArgs) return _fallbackHome(settings);
         return _page(
           ChangeNotifierProvider(
             create: (context) => PublicationDetailViewModel(
@@ -49,7 +52,8 @@ abstract final class AppRouter {
           settings,
         );
       case AppRoutes.publicationList:
-        final args = settings.arguments! as PublicationListRouteArgs;
+        final args = settings.arguments;
+        if (args is! PublicationListRouteArgs) return _fallbackHome(settings);
         return _page(
           ChangeNotifierProvider(
             create: (context) => PublicationListViewModel(
@@ -65,19 +69,20 @@ abstract final class AppRouter {
           settings,
         );
       case AppRoutes.journalDetail:
+        final args = settings.arguments;
+        if (args is! JournalPublication) return _fallbackHome(settings);
         return _page(
           ChangeNotifierProvider(
             create: (context) => JournalPublicationDetailViewModel(
               context.read<OpenAlexJournalService>(),
             ),
-            child: JournalPublicationDetailScreen(
-              publication: settings.arguments! as JournalPublication,
-            ),
+            child: JournalPublicationDetailScreen(publication: args),
           ),
           settings,
         );
       case AppRoutes.keywordDetail:
-        final args = settings.arguments! as KeywordDetailRouteArgs;
+        final args = settings.arguments;
+        if (args is! KeywordDetailRouteArgs) return _fallbackHome(settings);
         return _page(
           KeywordDetailScreen(
             selectedKeyword: args.keyword,
@@ -88,6 +93,16 @@ abstract final class AppRouter {
       default:
         return _page(const AppShell(), settings);
     }
+  }
+
+  // Routes that require arguments can't be deep-linked/reloaded directly on
+  // web (browser refresh restores the route name but not in-memory
+  // arguments), so fall back to Home instead of crashing.
+  static Route<dynamic> _fallbackHome(RouteSettings settings) {
+    return _page(
+      const AuthGateScreen(child: AppShell()),
+      const RouteSettings(name: AppRoutes.home),
+    );
   }
 
   static MaterialPageRoute<dynamic> _page(

@@ -1,6 +1,7 @@
 // Dùng chung cho Related / Cited By / References
 import 'package:flutter/foundation.dart';
 import 'package:openalex/services/openalex_service.dart';
+import '../models/publication/journal_group.dart';
 import '../models/publication/publication.dart';
 
 enum ListType { related, citedBy, references }
@@ -21,6 +22,7 @@ class PublicationListViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasMore => _hasMore;
+  List<JournalGroup> get journalGroups => JournalGroup.groupByJournal(_items);
 
   Future<void> load({
     required ListType type,
