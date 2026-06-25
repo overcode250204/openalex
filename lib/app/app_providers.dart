@@ -76,6 +76,7 @@ abstract final class AppProviders {
       ChangeNotifierProvider(
         create: (context) => DashboardViewModel(
           exportService: context.read<TrendReportExportService>(),
+          analyticsService: context.read<AppAnalyticsService>(),
         ),
       ),
       ChangeNotifierProvider(
@@ -83,13 +84,16 @@ abstract final class AppProviders {
             KeywordDashboardViewModel(context.read<KeywordDashboardService>()),
       ),
       ChangeNotifierProvider(
-        create: (context) =>
-            KeywordAnalyzerViewModel(context.read<OpenAlexKeywordService>()),
+        create: (context) => KeywordAnalyzerViewModel(
+          context.read<OpenAlexKeywordService>(),
+          analyticsService: context.read<AppAnalyticsService>(),
+        ),
       ),
       ChangeNotifierProvider(
         create: (context) => JournalViewModel(
           context.read<OpenAlexJournalService>(),
           suggestionService: context.read<SuggestionService>(),
+          analyticsService: context.read<AppAnalyticsService>(),
         ),
       ),
     ];
