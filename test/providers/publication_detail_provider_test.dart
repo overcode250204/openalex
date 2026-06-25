@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:openalex/models/auth/app_user.dart';
 import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/services/analytics/app_analytics_service.dart';
 import 'package:openalex/viewmodels/publication_detail_view_model.dart';
 import 'package:openalex/services/openalex_service.dart';
 
@@ -36,6 +38,66 @@ Publication _samplePublication() {
   );
 }
 
+class _RecordingAnalyticsService implements AppAnalyticsService {
+  final viewPublicationEvents = <({String title, int? year})>[];
+
+  @override
+  Future<void> clearUser() async {}
+
+  @override
+  Future<void> logLogin({
+    required AppUser user,
+    required String method,
+  }) async {}
+
+  @override
+  Future<void> logLogout({
+    required AppUser? user,
+    required String method,
+  }) async {}
+
+  @override
+  Future<void> logSearchTopic(
+    String keyword, {
+    int? resultCount,
+    String? searchSource,
+    String? topicId,
+    int? hasValidTopic,
+    int? filterYearFrom,
+    int? filterYearTo,
+    int? openAccessOnly,
+    String? sortOption,
+  }) async {}
+
+  @override
+  Future<void> logViewKeyword({required String keyword}) async {}
+
+  @override
+  Future<void> logViewPublication({
+    required String publicationTitle,
+    required int? publicationYear,
+  }) async {
+    viewPublicationEvents.add((
+      title: publicationTitle.trim(),
+      year: publicationYear,
+    ));
+  }
+
+  @override
+  Future<void> logViewJournal({
+    required String journalName,
+    required String journalId,
+    int? worksCount,
+    int? citedByCount,
+  }) async {}
+
+  @override
+  Future<void> logExportPdf({
+    required String topic,
+    required int publicationCount,
+  }) async {}
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -68,9 +130,27 @@ void main() {
       expect(provider.error, isNull);
     });
 
+    test('logs view_publication once after loading a publication', () async {
+      final analytics = _RecordingAnalyticsService();
+      final service = _FakeDetailService(result: _samplePublication());
+      final provider = PublicationDetailViewModel(
+        service: service,
+        analyticsService: analytics,
+      );
+
+      await provider.loadDetail('W1');
+      await provider.loadDetail('W1');
+
+      expect(analytics.viewPublicationEvents, hasLength(1));
+      expect(analytics.viewPublicationEvents.single.title, 'Detail Paper');
+      expect(analytics.viewPublicationEvents.single.year, 2024);
+    });
+
     test('transitions to error state when service returns null', () async {
+      final analytics = _RecordingAnalyticsService();
       final provider = PublicationDetailViewModel(
         service: _FakeDetailService(result: null),
+        analyticsService: analytics,
       );
 
       final states = <DetailState>[];
@@ -83,6 +163,7 @@ void main() {
       expect(provider.publication, isNull);
       expect(provider.error, isNotNull);
       expect(provider.error, isNotEmpty);
+      expect(analytics.viewPublicationEvents, isEmpty);
     });
 
     test('clears previous publication before loading new one', () async {

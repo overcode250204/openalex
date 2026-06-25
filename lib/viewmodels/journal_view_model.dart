@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import '../models/journal/journal_publication.dart';
 import '../models/journal/journal_source.dart';
 import '../models/journal/journal_suggestion.dart';
+import '../services/analytics/app_analytics_service.dart';
+import '../services/analytics/no_op_analytics_service.dart';
+import '../services/firebase/remote_config_service.dart';
 import '../services/openalex_journal_service.dart';
 import '../services/suggestion_service.dart';
 
@@ -13,9 +16,18 @@ class JournalViewModel extends ChangeNotifier {
 
   final OpenAlexJournalService _service;
   final SuggestionService _suggestionService;
+  final AppAnalyticsService _analyticsService;
+  final AppRemoteConfigService _remoteConfigService;
 
-  JournalViewModel(this._service, {SuggestionService? suggestionService})
-    : _suggestionService = suggestionService ?? SuggestionService();
+  JournalViewModel(
+    this._service, {
+    SuggestionService? suggestionService,
+    AppAnalyticsService analyticsService = const NoOpAnalyticsService(),
+    AppRemoteConfigService remoteConfigService =
+        const NoOpRemoteConfigService(),
+  }) : _suggestionService = suggestionService ?? SuggestionService(),
+       _analyticsService = analyticsService,
+       _remoteConfigService = remoteConfigService;
 
   String _searchQuery = '';
   List<JournalSource> _journals = [];
@@ -38,7 +50,8 @@ class JournalViewModel extends ChangeNotifier {
   bool _hasMorePublications = true;
 
   String get searchQuery => _searchQuery;
-  List<JournalSource> get journals => _journals;
+  List<JournalSource> get journals =>
+      _limitedList(_journals, _remoteConfigService.maxJournalsDisplayed);
   JournalSource? get selectedJournal => _selectedJournal;
   List<JournalPublication> get publications => _publications;
   JournalPublication? get highestCitedPaper => _highestCitedPaper;
@@ -78,6 +91,7 @@ class JournalViewModel extends ChangeNotifier {
 
     try {
       _journals = await _service.searchJournals(trimmedQuery);
+
       if (_journals.isEmpty) {
         _errorMessage = 'No matching journal found.';
       }
@@ -98,6 +112,16 @@ class JournalViewModel extends ChangeNotifier {
     _hasMorePublications = true;
     _errorMessage = null;
     notifyListeners();
+
+    // Fire analytics event when user views a journal
+    unawaited(
+      _analyticsService.logViewJournal(
+        journalName: journal.displayName,
+        journalId: journal.sourceId,
+        worksCount: journal.worksCount,
+        citedByCount: journal.citedByCount,
+      ),
+    );
 
     await Future.wait([
       loadPublications(journal.sourceId),
@@ -243,5 +267,10 @@ class JournalViewModel extends ChangeNotifier {
   void dispose() {
     _debounce?.cancel();
     super.dispose();
+  }
+
+  List<T> _limitedList<T>(List<T> items, int limit) {
+    if (items.length <= limit) return items;
+    return items.sublist(0, limit);
   }
 }
