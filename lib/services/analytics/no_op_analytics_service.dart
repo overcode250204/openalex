@@ -40,4 +40,18 @@ class NoOpAnalyticsService implements AppAnalyticsService {
     required String publicationTitle,
     required int? publicationYear,
   }) async {}
+
+  @override
+  Future<void> logViewJournal({
+    required String journalName,
+    required String journalId,
+    int? worksCount,
+    int? citedByCount,
+  }) async {}
+
+  @override
+  Future<void> logExportPdf({
+    required String topic,
+    required int publicationCount,
+  }) async {}
 }
