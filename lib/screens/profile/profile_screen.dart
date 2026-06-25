@@ -9,6 +9,7 @@ import '../../services/firebase/cloud_messaging_service.dart';
 import '../../utils/app_keys.dart';
 import '../../viewmodels/auth_view_model.dart';
 import '../../viewmodels/cloud_messaging_view_model.dart';
+import '../../viewmodels/remote_config_view_model.dart';
 import '../../viewmodels/selected_topic_view_model.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -25,6 +26,7 @@ class ProfileScreen extends StatelessWidget {
     final user = auth.currentUser;
     final selectedTopic = context.watch<SelectedTopicViewModel>();
     final cloudMessaging = context.watch<CloudMessagingViewModel>();
+    final remoteConfig = context.watch<RemoteConfigViewModel>();
 
     return Scaffold(
       backgroundColor: _background,
@@ -80,6 +82,11 @@ class ProfileScreen extends StatelessWidget {
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 980),
                   child: _NotificationCenterCard(viewModel: cloudMessaging),
+                ),
+                const SizedBox(height: 16),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 980),
+                  child: _RemoteConfigCard(viewModel: remoteConfig),
                 ),
               ],
             );
@@ -710,6 +717,75 @@ class _AccountActionsCard extends StatelessWidget {
                     )
                   : const Icon(Icons.logout),
               label: Text(auth.isLoading ? 'Signing out...' : 'Sign out'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RemoteConfigCard extends StatelessWidget {
+  const _RemoteConfigCard({required this.viewModel});
+
+  final RemoteConfigViewModel viewModel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Remote Configurations',
+                    style: TextStyle(
+                      color: ProfileScreen._ink,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                if (viewModel.isFetching)
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Dynamic application parameters from Firebase Remote Config.',
+              style: TextStyle(color: ProfileScreen._muted, fontSize: 13),
+            ),
+            const SizedBox(height: 18),
+            _InfoRow(
+              icon: Icons.auto_stories_outlined,
+              label: 'Max journals displayed',
+              value: viewModel.maxJournalsDisplayed.toString(),
+            ),
+            const SizedBox(height: 12),
+            _InfoRow(
+              icon: Icons.key_outlined,
+              label: 'Max keywords displayed',
+              value: viewModel.maxKeywordsDisplayed.toString(),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: viewModel.isFetching ? null : viewModel.fetchAndActivate,
+              icon: const Icon(Icons.refresh),
+              label: Text(viewModel.isFetching ? 'Fetching...' : 'Fetch & Activate'),
             ),
           ],
         ),

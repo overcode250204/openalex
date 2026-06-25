@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/journal/journal_publication.dart';
 import '../../models/journal/journal_source.dart';
 import '../../routes/app_routes.dart';
+import '../../viewmodels/remote_config_view_model.dart';
 import '../../viewmodels/journal_view_model.dart';
 import '../../widgets/journal/highest_cited_paper_card.dart';
 import '../../widgets/journal/journal_publication_card.dart';
@@ -71,6 +72,7 @@ class _JournalSearchScreenState extends State<JournalSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<RemoteConfigViewModel?>();
     final provider = context.watch<JournalViewModel>();
     final hasSelection = provider.selectedJournal != null;
 

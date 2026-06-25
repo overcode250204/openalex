@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/models/journal/journal_publication.dart';
 import 'package:openalex/models/journal/journal_source.dart';
 import 'package:openalex/viewmodels/journal_view_model.dart';
+import 'package:openalex/viewmodels/remote_config_view_model.dart';
 import 'package:openalex/screens/journal/journal_search_screen.dart';
+import 'package:openalex/services/firebase/remote_config_service.dart';
 import 'package:openalex/services/openalex_journal_service.dart';
 import 'package:provider/provider.dart';
 
@@ -21,6 +23,32 @@ class _FakeSuggestionService extends SuggestionService {
   Future<List<JournalSuggestion>> fetchJournalSuggestions(String query) async {
     return suggestions;
   }
+}
+
+class _MutableRemoteConfigService implements AppRemoteConfigService {
+  _MutableRemoteConfigService({this.maxJournals = 10, this.nextMaxJournals});
+
+  int maxJournals;
+  int? nextMaxJournals;
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Future<bool> fetchAndActivate() async {
+    final next = nextMaxJournals;
+    if (next != null) {
+      maxJournals = next;
+      nextMaxJournals = null;
+    }
+    return true;
+  }
+
+  @override
+  int get maxJournalsDisplayed => maxJournals;
+
+  @override
+  int get maxKeywordsDisplayed => 5;
 }
 
 class _FakeJournalService extends OpenAlexJournalService {
@@ -69,9 +97,16 @@ JournalSource _source({String id = 'S1', String name = 'IEEE Access'}) {
   );
 }
 
-Widget _buildScreen(JournalViewModel provider) {
-  return ChangeNotifierProvider.value(
-    value: provider,
+Widget _buildScreen(
+  JournalViewModel provider, {
+  RemoteConfigViewModel? remoteConfigViewModel,
+}) {
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider.value(value: provider),
+      if (remoteConfigViewModel != null)
+        ChangeNotifierProvider.value(value: remoteConfigViewModel),
+    ],
     child: const MaterialApp(home: JournalSearchScreen()),
   );
 }
@@ -154,6 +189,45 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Nature'), findsOneWidget);
       expect(find.text('Science', skipOffstage: false), findsOneWidget);
+    });
+
+    testWidgets('Remote Config fetch changes visible journal limit', (
+      tester,
+    ) async {
+      final remoteConfigService = _MutableRemoteConfigService(
+        maxJournals: 2,
+        nextMaxJournals: 1,
+      );
+      final remoteConfigViewModel = RemoteConfigViewModel(remoteConfigService);
+      final service = _FakeJournalService(
+        journalResults: [
+          _source(name: 'Nature'),
+          _source(id: 'S2', name: 'Science'),
+          _source(id: 'S3', name: 'Cell'),
+        ],
+      );
+      final provider = JournalViewModel(
+        service,
+        remoteConfigService: remoteConfigService,
+      );
+
+      await tester.pumpWidget(
+        _buildScreen(provider, remoteConfigViewModel: remoteConfigViewModel),
+      );
+
+      await tester.tap(find.byType(FilledButton));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nature'), findsOneWidget);
+      expect(find.text('Science', skipOffstage: false), findsOneWidget);
+      expect(find.text('Cell', skipOffstage: false), findsNothing);
+
+      await remoteConfigViewModel.fetchAndActivate();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nature'), findsOneWidget);
+      expect(find.text('Science', skipOffstage: false), findsNothing);
+      expect(find.text('Cell', skipOffstage: false), findsNothing);
     });
 
     testWidgets('shows error message when no journals found', (tester) async {
