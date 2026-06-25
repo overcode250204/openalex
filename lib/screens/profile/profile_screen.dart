@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/auth/app_user.dart';
@@ -271,12 +272,12 @@ class _NotificationTile extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: ProfileScreen._primary.withValues(alpha: 0.1),
+              color: _typeColor(notification.type).withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
-              _sourceIcon(notification.source),
-              color: ProfileScreen._primary,
+              _typeIcon(notification.type),
+              color: _typeColor(notification.type),
               size: 19,
             ),
           ),
@@ -285,15 +286,30 @@ class _NotificationTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  notification.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: ProfileScreen._ink,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        notification.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: ProfileScreen._ink,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      _formatTime(notification.receivedAt),
+                      style: const TextStyle(
+                        color: ProfileScreen._muted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -306,13 +322,31 @@ class _NotificationTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  notification.source.name,
-                  style: const TextStyle(
-                    color: ProfileScreen._muted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      _typeLabel(notification.type),
+                      style: TextStyle(
+                        color: _typeColor(notification.type),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Text(
+                      '•',
+                      style: TextStyle(color: ProfileScreen._muted, fontSize: 11),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _sourceLabel(notification.source),
+                      style: const TextStyle(
+                        color: ProfileScreen._muted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -322,13 +356,50 @@ class _NotificationTile extends StatelessWidget {
     );
   }
 
-  static IconData _sourceIcon(PushNotificationSource source) {
-    return switch (source) {
-      PushNotificationSource.foreground => Icons.mark_chat_unread_outlined,
-      PushNotificationSource.background => Icons.notifications_outlined,
-      PushNotificationSource.openedApp => Icons.open_in_new,
-      PushNotificationSource.initial => Icons.rocket_launch_outlined,
+  static IconData _typeIcon(AppPushNotificationType type) {
+    return switch (type) {
+      AppPushNotificationType.trend => Icons.trending_up,
+      AppPushNotificationType.citation => Icons.format_quote,
+      AppPushNotificationType.researchUpdate => Icons.update,
+      AppPushNotificationType.generic => Icons.notifications_none_outlined,
     };
+  }
+
+  static Color _typeColor(AppPushNotificationType type) {
+    return switch (type) {
+      AppPushNotificationType.trend => Colors.orange.shade700,
+      AppPushNotificationType.citation => Colors.blue.shade700,
+      AppPushNotificationType.researchUpdate => Colors.green.shade700,
+      AppPushNotificationType.generic => ProfileScreen._primary,
+    };
+  }
+
+  static String _typeLabel(AppPushNotificationType type) {
+    return switch (type) {
+      AppPushNotificationType.trend => 'Trend Alert',
+      AppPushNotificationType.citation => 'New Citation',
+      AppPushNotificationType.researchUpdate => 'Research Update',
+      AppPushNotificationType.generic => 'Notification',
+    };
+  }
+
+  static String _sourceLabel(PushNotificationSource source) {
+    return switch (source) {
+      PushNotificationSource.foreground => 'Live',
+      PushNotificationSource.background => 'Background',
+      PushNotificationSource.openedApp => 'Direct',
+      PushNotificationSource.initial => 'Initial',
+    };
+  }
+
+  static String _formatTime(DateTime time) {
+    final now = DateTime.now();
+    final difference = now.difference(time);
+
+    if (difference.inMinutes < 1) return 'now';
+    if (difference.inMinutes < 60) return '${difference.inMinutes}m';
+    if (difference.inHours < 24) return '${difference.inHours}h';
+    return DateFormat('MMM d').format(time);
   }
 }
 

@@ -26,6 +26,7 @@ void main() {
     expect(notification.data, {'topic': 'AI', 'count': '5'});
     expect(notification.source, PushNotificationSource.foreground);
     expect(notification.receivedAt, receivedAt);
+    expect(notification.type, AppPushNotificationType.citation);
   });
 
   test(
@@ -47,6 +48,7 @@ void main() {
       expect(notification.title, 'New trending research topic');
       expect(notification.body, 'Quantum AI is trending this week.');
       expect(notification.source, PushNotificationSource.background);
+      expect(notification.type, AppPushNotificationType.trend);
     },
   );
 
@@ -58,6 +60,7 @@ void main() {
       data: const {'topic': 'robotics'},
       source: PushNotificationSource.background,
       receivedAt: DateTime(2026, 6, 25, 11),
+      type: AppPushNotificationType.trend,
     );
 
     final restored = AppPushNotification.fromJson(notification.toJson());
@@ -68,5 +71,34 @@ void main() {
     expect(restored.data, notification.data);
     expect(restored.source, notification.source);
     expect(restored.receivedAt, notification.receivedAt);
+    expect(restored.type, notification.type);
+  });
+
+  test('infers type correctly from data and content', () {
+    final trendMsg = AppPushNotification.fromRemoteMessage(
+      const RemoteMessage(data: {'type': 'trend'}),
+      source: PushNotificationSource.foreground,
+    );
+    expect(trendMsg.type, AppPushNotificationType.trend);
+
+    final citationMsg = AppPushNotification.fromRemoteMessage(
+      const RemoteMessage(data: {'type': 'citation'}),
+      source: PushNotificationSource.foreground,
+    );
+    expect(citationMsg.type, AppPushNotificationType.citation);
+
+    final updateMsg = AppPushNotification.fromRemoteMessage(
+      const RemoteMessage(data: {'type': 'update'}),
+      source: PushNotificationSource.foreground,
+    );
+    expect(updateMsg.type, AppPushNotificationType.researchUpdate);
+
+    final contentTrendMsg = AppPushNotification.fromRemoteMessage(
+      RemoteMessage.fromMap({
+        'notification': {'title': 'What is trending?'},
+      }),
+      source: PushNotificationSource.foreground,
+    );
+    expect(contentTrendMsg.type, AppPushNotificationType.trend);
   });
 }
