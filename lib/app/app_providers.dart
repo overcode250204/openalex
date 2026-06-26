@@ -113,6 +113,7 @@ abstract final class AppProviders {
           pdfExportService: context.read<PdfExportService>(),
           reportStorageService: context.read<ReportStorageService>(),
           reportMetadataService: context.read<ReportMetadataService>(),
+          analyticsService: context.read<AppAnalyticsService>(),
           currentUserIdResolver: () =>
               context.read<AuthViewModel>().currentUser?.uid,
         ),

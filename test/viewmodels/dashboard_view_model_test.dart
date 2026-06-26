@@ -3,9 +3,11 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:openalex/models/auth/app_user.dart';
 import 'package:openalex/models/report/report_upload_result.dart';
 import 'package:openalex/models/report/uploaded_report.dart';
 import 'package:openalex/models/trend/trend_report_snapshot.dart';
+import 'package:openalex/services/analytics/app_analytics_service.dart';
 import 'package:openalex/services/pdf_export_service.dart';
 import 'package:openalex/services/pdf_report_layout_service.dart';
 import 'package:openalex/services/report/report_metadata_service.dart';
@@ -103,6 +105,87 @@ void main() {
 
       expect(viewModel.lastUploadedPdfReport, isNull);
     });
+
+    test('logs pdf export analytics after upload metadata is saved', () async {
+      final tempDirectory = await Directory.systemTemp.createTemp(
+        'dashboard-analytics-test',
+      );
+      addTearDown(() => tempDirectory.delete(recursive: true));
+      final reportFile = File('${tempDirectory.path}/dashboard.pdf');
+      await reportFile.writeAsBytes(Uint8List.fromList([1, 2, 3]));
+      final analytics = _RecordingPdfExportAnalyticsService();
+      final viewModel = DashboardViewModel(
+        exportService: const TrendReportExportService(),
+        pdfExportService: _ImmediatePdfExportService(reportFile),
+        reportStorageService: _RecordingReportStorageService(),
+        reportMetadataService: _RecordingReportMetadataService(),
+        analyticsService: analytics,
+      );
+
+      await viewModel.exportAndUploadDashboardPdfReport(_emptyReport());
+
+      expect(analytics.pdfExportEvents, hasLength(1));
+      expect(analytics.pdfExportEvents.single, {
+        'topic': 'AI',
+        'exportType': 'dashboard_pdf',
+        'provider': 'fake',
+        'bucket': 'reports',
+        'fileName': 'dashboard.pdf',
+        'sizeBytes': 3,
+        'hasUploadedLink': 1,
+      });
+    });
+
+    test(
+      'does not log pdf export analytics when metadata save fails',
+      () async {
+        final tempDirectory = await Directory.systemTemp.createTemp(
+          'dashboard-analytics-failure-test',
+        );
+        addTearDown(() => tempDirectory.delete(recursive: true));
+        final reportFile = File('${tempDirectory.path}/dashboard.pdf');
+        await reportFile.writeAsBytes(Uint8List.fromList([1, 2, 3]));
+        final analytics = _RecordingPdfExportAnalyticsService();
+        final viewModel = DashboardViewModel(
+          exportService: const TrendReportExportService(),
+          pdfExportService: _ImmediatePdfExportService(reportFile),
+          reportStorageService: _RecordingReportStorageService(),
+          reportMetadataService: _FailingReportMetadataService(),
+          analyticsService: analytics,
+        );
+
+        await expectLater(
+          viewModel.exportAndUploadDashboardPdfReport(_emptyReport()),
+          throwsException,
+        );
+
+        expect(analytics.pdfExportEvents, isEmpty);
+        expect(viewModel.isExporting, isFalse);
+      },
+    );
+
+    test('keeps export success when analytics logging fails', () async {
+      final tempDirectory = await Directory.systemTemp.createTemp(
+        'dashboard-analytics-throws-test',
+      );
+      addTearDown(() => tempDirectory.delete(recursive: true));
+      final reportFile = File('${tempDirectory.path}/dashboard.pdf');
+      await reportFile.writeAsBytes(Uint8List.fromList([1, 2, 3]));
+      final viewModel = DashboardViewModel(
+        exportService: const TrendReportExportService(),
+        pdfExportService: _ImmediatePdfExportService(reportFile),
+        reportStorageService: _RecordingReportStorageService(),
+        reportMetadataService: _RecordingReportMetadataService(),
+        analyticsService: _ThrowingAnalyticsService(),
+      );
+
+      final result = await viewModel.exportAndUploadDashboardPdfReport(
+        _emptyReport(),
+      );
+
+      expect(result.uploadResult.downloadUrl, 'https://cdn.test/dashboard.pdf');
+      expect(viewModel.isExporting, isFalse);
+    });
   });
 }
 
@@ -198,6 +281,102 @@ class _RecordingReportMetadataService implements ReportMetadataService {
     int limit = 20,
   }) async {
     return const [];
+  }
+}
+
+class _FailingReportMetadataService implements ReportMetadataService {
+  @override
+  Future<void> saveUploadedReport({
+    required ReportUploadResult uploadResult,
+    required String topic,
+    String? userId,
+  }) async {
+    throw Exception('metadata unavailable');
+  }
+
+  @override
+  Future<List<UploadedReport>> fetchUploadedReports({
+    required String userId,
+    int limit = 20,
+  }) async {
+    return const [];
+  }
+}
+
+class _RecordingPdfExportAnalyticsService implements AppAnalyticsService {
+  final pdfExportEvents = <Map<String, Object?>>[];
+
+  @override
+  Future<void> clearUser() async {}
+
+  @override
+  Future<void> logLogin({
+    required AppUser user,
+    required String method,
+  }) async {}
+
+  @override
+  Future<void> logLogout({
+    required AppUser? user,
+    required String method,
+  }) async {}
+
+  @override
+  Future<void> logSearchTopic(
+    String keyword, {
+    int? resultCount,
+    String? searchSource,
+    String? topicId,
+    int? hasValidTopic,
+    int? filterYearFrom,
+    int? filterYearTo,
+    int? openAccessOnly,
+    String? sortOption,
+  }) async {}
+
+  @override
+  Future<void> logViewKeyword({required String keyword}) async {}
+
+  @override
+  Future<void> logViewPublication({
+    required String publicationTitle,
+    required int? publicationYear,
+  }) async {}
+
+  @override
+  Future<void> logPdfExport({
+    required String topic,
+    required String exportType,
+    required String provider,
+    required String bucket,
+    required String fileName,
+    required int sizeBytes,
+    required int hasUploadedLink,
+  }) async {
+    pdfExportEvents.add({
+      'topic': topic,
+      'exportType': exportType,
+      'provider': provider,
+      'bucket': bucket,
+      'fileName': fileName,
+      'sizeBytes': sizeBytes,
+      'hasUploadedLink': hasUploadedLink,
+    });
+  }
+}
+
+class _ThrowingAnalyticsService extends _RecordingPdfExportAnalyticsService {
+  @override
+  Future<void> logPdfExport({
+    required String topic,
+    required String exportType,
+    required String provider,
+    required String bucket,
+    required String fileName,
+    required int sizeBytes,
+    required int hasUploadedLink,
+  }) async {
+    throw Exception('analytics unavailable');
   }
 }
 

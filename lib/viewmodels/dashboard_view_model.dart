@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 
 import '../models/report/report_upload_result.dart';
 import '../models/trend/trend_report_snapshot.dart';
+import '../services/analytics/app_analytics_service.dart';
+import '../services/analytics/no_op_analytics_service.dart';
 import '../services/pdf_export_service.dart';
 import '../services/report/report_metadata_service.dart';
 import '../services/report/report_storage_service.dart';
@@ -24,6 +26,7 @@ class DashboardViewModel extends ChangeNotifier {
   final PdfExportService _pdfExportService;
   final ReportStorageService _reportStorageService;
   final ReportMetadataService _reportMetadataService;
+  final AppAnalyticsService _analyticsService;
   final CurrentUserIdResolver _currentUserIdResolver;
 
   DashboardViewModel({
@@ -32,11 +35,13 @@ class DashboardViewModel extends ChangeNotifier {
     required ReportStorageService reportStorageService,
     ReportMetadataService reportMetadataService =
         const NoOpReportMetadataService(),
+    AppAnalyticsService analyticsService = const NoOpAnalyticsService(),
     CurrentUserIdResolver? currentUserIdResolver,
   }) : _exportService = exportService,
        _pdfExportService = pdfExportService,
        _reportStorageService = reportStorageService,
        _reportMetadataService = reportMetadataService,
+       _analyticsService = analyticsService,
        _currentUserIdResolver = currentUserIdResolver ?? (() => null);
 
   bool _isExporting = false;
@@ -102,6 +107,7 @@ class DashboardViewModel extends ChangeNotifier {
         topic: report.topic,
         userId: _currentUserIdResolver(),
       );
+      await _logPdfExport(report: report, uploadResult: uploadResult);
       _lastUploadedPdfReport = uploadResult;
 
       return DashboardPdfUploadResult(
@@ -111,6 +117,26 @@ class DashboardViewModel extends ChangeNotifier {
     } finally {
       _isExporting = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> _logPdfExport({
+    required TrendReportSnapshot report,
+    required ReportUploadResult uploadResult,
+  }) async {
+    try {
+      await _analyticsService.logPdfExport(
+        topic: report.topic,
+        exportType: 'dashboard_pdf',
+        provider: uploadResult.provider,
+        bucket: uploadResult.bucket,
+        fileName: uploadResult.fileName,
+        sizeBytes: uploadResult.sizeBytes,
+        hasUploadedLink: uploadResult.downloadUrl.trim().isEmpty ? 0 : 1,
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Unable to log PDF export analytics: $error');
+      debugPrintStack(stackTrace: stackTrace);
     }
   }
 }

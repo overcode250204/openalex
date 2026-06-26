@@ -119,10 +119,7 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
         parameters['sort_option'] = _analyticsString(sortOption);
       }
 
-      await _analytics.logEvent(
-        name: 'search_topic',
-        parameters: parameters,
-      );
+      await _analytics.logEvent(name: 'search_topic', parameters: parameters);
 
       debugPrint('''
 [Analytics] search_topic logged
@@ -185,6 +182,46 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
 [Analytics] view_keyword logged
   Viewer UID: ${user?.uid ?? 'anonymous'}
   Keyword: $cleanKeyword
+''');
+    });
+  }
+
+  @override
+  Future<void> logPdfExport({
+    required String topic,
+    required String exportType,
+    required String provider,
+    required String bucket,
+    required String fileName,
+    required int sizeBytes,
+    required int hasUploadedLink,
+  }) async {
+    final cleanTopic = topic.trim();
+    if (cleanTopic.isEmpty) return;
+
+    await _safely(() async {
+      await _ensureCollectionEnabled();
+
+      final parameters = <String, Object>{
+        'topic': _analyticsString(cleanTopic),
+        'export_type': _analyticsString(exportType),
+        'provider': _analyticsString(provider),
+        'bucket': _analyticsString(bucket),
+        'file_name': _analyticsString(fileName),
+        'size_bytes': sizeBytes,
+        'has_uploaded_link': hasUploadedLink,
+      };
+
+      await _analytics.logEvent(name: 'pdf_export', parameters: parameters);
+
+      debugPrint('''
+[Analytics] pdf_export logged
+  User UID: ${_activeUser?.uid ?? 'anonymous'}
+  Topic: $cleanTopic
+  Export type: $exportType
+  Provider: $provider
+  File: $fileName
+  Size bytes: $sizeBytes
 ''');
     });
   }
