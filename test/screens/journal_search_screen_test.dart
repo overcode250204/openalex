@@ -54,6 +54,25 @@ class _FakeJournalService extends OpenAlexJournalService {
   }
 }
 
+JournalPublication _publication({required String id, int? year}) {
+  return JournalPublication(
+    id: id,
+    workId: id,
+    title: id,
+    publicationYear: year,
+    publicationDate: null,
+    doi: null,
+    citedByCount: 0,
+    authors: const [],
+    journalName: null,
+    sourceId: null,
+    isOpenAccess: false,
+    landingPageUrl: null,
+    pdfUrl: null,
+    abstractText: null,
+  );
+}
+
 JournalSource _source({String id = 'S1', String name = 'IEEE Access'}) {
   return JournalSource(
     id: 'https://openalex.org/$id',
@@ -207,5 +226,47 @@ void main() {
       // Provider should have selected journal
       expect(provider.selectedJournal?.displayName, 'IEEE Access');
     });
+  });
+
+  group('JournalSearchScreen – group by year', () {
+    testWidgets(
+      'toggling shows year sections ranked by publication count',
+      (tester) async {
+        final source = _source(name: 'IEEE Access');
+        final service = _FakeJournalService(
+          journalResults: [source],
+          publications: [
+            _publication(id: 'P1', year: 2023),
+            _publication(id: 'P2', year: 2024),
+            _publication(id: 'P3', year: 2023),
+          ],
+        );
+        final provider = JournalViewModel(service);
+        await tester.pumpWidget(_buildScreen(provider));
+
+        await tester.tap(find.byType(FilledButton));
+        await tester.pumpAndSettle();
+
+        await tester.ensureVisible(find.text('Select'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Select'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.bar_chart));
+        await tester.pumpAndSettle();
+
+        // 2023 has 2 publications (the higher rank, shown first) and is
+        // visible without scrolling.
+        expect(find.text('2023'), findsOneWidget);
+        expect(find.text('2 works'), findsOneWidget);
+
+        // 2024 (1 publication, lower rank) is further down the list.
+        await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
+        await tester.pumpAndSettle();
+
+        expect(find.text('2024'), findsOneWidget);
+        expect(find.text('1 works'), findsOneWidget);
+      },
+    );
   });
 }

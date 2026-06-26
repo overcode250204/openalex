@@ -26,24 +26,6 @@ PublicationListViewModel _emptyListProvider() => PublicationListViewModel(
   service: _FakeOpenAlexService(Future.value(const [])),
 );
 
-Publication _publication({
-  required String title,
-  String? journal,
-}) {
-  return Publication(
-    id: title,
-    title: title,
-    publicationYear: null,
-    citedByCount: 0,
-    journalName: journal,
-    doi: null,
-    abstractText: null,
-    authors: const [],
-    referencedWorkIds: const [],
-    relatedWorkIds: const [],
-  );
-}
-
 Widget _buildScreen({
   required ListType type,
   required PublicationListViewModel listProvider,
@@ -140,38 +122,6 @@ void main() {
       // The screen shows empty state when citedBy returns empty list from fake
       expect(find.text('Không có dữ liệu.'), findsOneWidget);
     });
-  });
-
-  group('PublicationListScreen grouped by journal', () {
-    testWidgets(
-      'toggling shows journal sections ranked by publication count',
-      (tester) async {
-        final listProvider = PublicationListViewModel(
-          service: _FakeOpenAlexService(
-            Future.value([
-              _publication(title: 'A1', journal: 'Journal A'),
-              _publication(title: 'B1', journal: 'Journal B'),
-              _publication(title: 'A2', journal: 'Journal A'),
-            ]),
-          ),
-        );
-
-        await tester.pumpWidget(
-          _buildScreen(type: ListType.citedBy, listProvider: listProvider),
-        );
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.byIcon(Icons.bar_chart));
-        await tester.pumpAndSettle();
-
-        final journalATop = tester.getTopLeft(find.text('Journal A'));
-        final journalBTop = tester.getTopLeft(find.text('Journal B'));
-
-        expect(find.text('Journal A'), findsOneWidget);
-        expect(find.text('Journal B'), findsOneWidget);
-        expect(journalATop.dy, lessThan(journalBTop.dy));
-      },
-    );
   });
 
   group('ListType enum', () {
