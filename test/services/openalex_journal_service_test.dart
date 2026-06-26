@@ -161,5 +161,55 @@ void main() {
         expect(publication?.title, 'Impact Paper');
       },
     );
+
+    test('getSourcesByIds batches a single request by id', () async {
+      Uri? requestedUri;
+      final service = OpenAlexJournalService(
+        client: MockClient((request) async {
+          requestedUri = request.url;
+          return http.Response(
+            jsonEncode({
+              'results': [
+                {
+                  'id': 'https://openalex.org/S1',
+                  'display_name': 'Journal A',
+                  'type': 'journal',
+                },
+                {
+                  'id': 'https://openalex.org/S2',
+                  'display_name': 'Journal B',
+                  'type': 'journal',
+                },
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+
+      final sources = await service.getSourcesByIds(['S1', 'S2']);
+
+      expect(requestedUri?.path, '/sources');
+      expect(
+        requestedUri?.queryParameters['filter'],
+        'ids.openalex:S1|S2',
+      );
+      expect(sources.map((s) => s.displayName), ['Journal A', 'Journal B']);
+    });
+
+    test('getSourcesByIds returns empty without a request for no ids', () async {
+      var requested = false;
+      final service = OpenAlexJournalService(
+        client: MockClient((request) async {
+          requested = true;
+          return http.Response(jsonEncode({'results': []}), 200);
+        }),
+      );
+
+      final sources = await service.getSourcesByIds([]);
+
+      expect(sources, isEmpty);
+      expect(requested, isFalse);
+    });
   });
 }

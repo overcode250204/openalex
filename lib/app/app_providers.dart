@@ -4,6 +4,7 @@ import 'package:provider/single_child_widget.dart';
 
 import '../viewmodels/analytics_view_model.dart';
 import '../viewmodels/journal_view_model.dart';
+import '../viewmodels/journals_for_topic_view_model.dart';
 import '../viewmodels/keyword_dashboard_view_model.dart';
 import '../viewmodels/home_view_model.dart';
 import '../services/keyword_dashboard_service.dart';
@@ -91,6 +92,10 @@ abstract final class AppProviders {
           context.read<OpenAlexJournalService>(),
           suggestionService: context.read<SuggestionService>(),
         ),
+      ),
+      ChangeNotifierProvider(
+        create: (context) =>
+            JournalsForTopicViewModel(service: context.read<OpenAlexService>()),
       ),
     ];
   }

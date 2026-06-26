@@ -10,6 +10,7 @@ import 'package:openalex/models/publication/publication.dart';
 import 'package:openalex/models/topic/topic.dart';
 import 'package:openalex/viewmodels/auth_view_model.dart';
 import 'package:openalex/viewmodels/journal_view_model.dart';
+import 'package:openalex/viewmodels/journals_for_topic_view_model.dart';
 import 'package:openalex/viewmodels/publication_detail_view_model.dart';
 import 'package:openalex/viewmodels/home_view_model.dart';
 import 'package:openalex/screens/app/app_shell_screen.dart';
@@ -142,6 +143,9 @@ Widget _appShellWidget({List<TopicSuggestion> topicSuggestions = const []}) {
         create: (_) => JournalViewModel(_FakeJournalService()),
       ),
       ChangeNotifierProvider(
+        create: (_) => JournalsForTopicViewModel(service: openAlexService),
+      ),
+      ChangeNotifierProvider(
         create: (_) => PublicationDetailViewModel(service: openAlexService),
       ),
       ChangeNotifierProvider(
@@ -240,16 +244,40 @@ void main() {
       expect(find.text('Keyword Analyzer'), findsOneWidget);
     });
 
-    testWidgets('navigates to Journal Search via bottom nav', (tester) async {
-      await tester.pumpWidget(_appShellWidget());
-      await tester.pump();
+    testWidgets(
+      'navigates to Journals for topic via bottom nav, prompting to search first',
+      (tester) async {
+        await tester.pumpWidget(_appShellWidget());
+        await tester.pump();
 
-      await tester.tap(find.text('Journal'));
-      await tester.pump(const Duration(milliseconds: 300));
+        await tester.tap(find.text('Journal'));
+        await tester.pump(const Duration(milliseconds: 300));
 
-      // JournalSearchScreen renders a search field
-      expect(find.text('Journal Search'), findsOneWidget);
-    });
+        // No topic selected yet -> not-searched message, not the journal list.
+        expect(
+          find.text(
+            'Search a topic on the Home tab to see its top journals here.',
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'search-by-name icon on Journals tab opens Journal Search screen',
+      (tester) async {
+        await tester.pumpWidget(_appShellWidget());
+        await tester.pump();
+
+        await tester.tap(find.text('Journal'));
+        await tester.pump(const Duration(milliseconds: 300));
+
+        await tester.tap(find.byIcon(Icons.search));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Journal Search'), findsOneWidget);
+      },
+    );
   });
 
   group('AppShell – selectedPage enum coverage', () {
