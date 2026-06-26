@@ -50,3 +50,4 @@ macos/Flutter/GeneratedPluginRegistrant.swift
 windows/flutter/generated_*
 .vscode/
 .env
+.env.local
