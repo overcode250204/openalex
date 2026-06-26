@@ -163,6 +163,26 @@ Widget _dashboardHarness(_RecordingExportService exportService) {
 }
 
 void main() {
+  patrolWidgetTest('Test-mode Google Sign-In opens Home', ($) async {
+    final authService = FakeAuthService();
+
+    await $.tester.pumpWidget(MyApp(authService: authService));
+    await $.tester.pump();
+    await $.tester.pump(const Duration(milliseconds: 300));
+
+    expect($('Journal Trend Analyzer'), findsOneWidget);
+    expect($('Continue with Google'), findsOneWidget);
+
+    await $(find.byKey(AppKeys.googleSignInButton)).tap();
+    await $.tester.pump();
+    await $.tester.pump(const Duration(milliseconds: 300));
+
+    expect(authService.signInCount, 1);
+    expect($('Trend Analyzer'), findsOneWidget);
+    expect($('Research topic'), findsOneWidget);
+    expect($('Analyze Topic'), findsOneWidget);
+  }, config: _patrolConfig);
+
   patrolWidgetTest('Profile shows Firebase Auth user data', ($) async {
     await $.tester.pumpWidget(
       MyApp(authService: FakeAuthService(initialUser: fakeUser())),

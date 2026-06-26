@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/screens/profile/profile_screen.dart';
+import 'package:openalex/services/firebase/cloud_messaging_service.dart';
+import 'package:openalex/services/firebase/crashlytics_service.dart';
+import 'package:openalex/services/firebase/remote_config_service.dart';
 import 'package:openalex/utils/app_keys.dart';
 import 'package:openalex/viewmodels/auth_view_model.dart';
+import 'package:openalex/viewmodels/cloud_messaging_view_model.dart';
+import 'package:openalex/viewmodels/crashlytics_view_model.dart';
+import 'package:openalex/viewmodels/remote_config_view_model.dart';
 import 'package:openalex/viewmodels/selected_topic_view_model.dart';
 import 'package:provider/provider.dart';
 
@@ -11,6 +17,7 @@ import '../fakes/fake_auth_service.dart';
 Widget _buildProfile({
   required FakeAuthService authService,
   SelectedTopicViewModel? selectedTopic,
+  AppCrashlyticsService? crashlyticsService,
 }) {
   return MultiProvider(
     providers: [
@@ -20,9 +27,60 @@ Widget _buildProfile({
       ChangeNotifierProvider(
         create: (_) => selectedTopic ?? SelectedTopicViewModel(),
       ),
+      ChangeNotifierProvider(
+        create: (_) =>
+            CloudMessagingViewModel(const NoOpCloudMessagingService())
+              ..initialize(),
+      ),
+      ChangeNotifierProvider(
+        create: (_) => RemoteConfigViewModel(const NoOpRemoteConfigService()),
+      ),
+      Provider<AppCrashlyticsService>(
+        create: (_) => crashlyticsService ?? const NoOpCrashlyticsService(),
+      ),
+      ChangeNotifierProvider(
+        create: (context) =>
+            CrashlyticsViewModel(context.read<AppCrashlyticsService>()),
+      ),
     ],
     child: const MaterialApp(home: ProfileScreen()),
   );
+}
+
+class _FakeCrashlyticsService implements AppCrashlyticsService {
+  var initializeCount = 0;
+  var handledExceptionCount = 0;
+  var testCrashCount = 0;
+  final recordedErrors = <Object>[];
+
+  @override
+  bool get isInitialized => initializeCount > 0;
+
+  @override
+  Future<void> initialize() async {
+    initializeCount++;
+  }
+
+  @override
+  Future<void> recordDemoHandledException() async {
+    handledExceptionCount++;
+  }
+
+  @override
+  Future<void> triggerDemoCrash() async {
+    testCrashCount++;
+  }
+
+  @override
+  Future<void> recordError(
+    Object error,
+    StackTrace? stackTrace, {
+    String? reason,
+    Iterable<Object> information = const [],
+    bool fatal = false,
+  }) async {
+    recordedErrors.add(error);
+  }
 }
 
 void main() {
@@ -159,5 +217,62 @@ void main() {
     expect(find.text('Grace Hopper'), findsOneWidget);
     expect(find.text('grace@example.com'), findsOneWidget);
     expect(find.text('Research workspace'), findsOneWidget);
+  });
+
+  testWidgets('shows clearly marked Crashlytics developer demo buttons', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildProfile(authService: FakeAuthService(initialUser: fakeUser())),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text('Developer demo tools'),
+      300,
+      scrollable: find.byType(Scrollable),
+    );
+
+    expect(find.text('Developer demo tools'), findsOneWidget);
+    expect(
+      find.text(
+        'Crashlytics verification actions for development and demos only.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Demo: Record handled exception'), findsOneWidget);
+    expect(find.text('Demo: Test crash'), findsOneWidget);
+  });
+
+  testWidgets('Crashlytics demo buttons send evidence through service', (
+    tester,
+  ) async {
+    final crashlytics = _FakeCrashlyticsService();
+
+    await tester.pumpWidget(
+      _buildProfile(
+        authService: FakeAuthService(initialUser: fakeUser()),
+        crashlyticsService: crashlytics,
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text('Demo: Record handled exception'),
+      300,
+      scrollable: find.byType(Scrollable),
+    );
+
+    await tester.tap(find.text('Demo: Record handled exception'));
+    await tester.pump();
+
+    expect(crashlytics.handledExceptionCount, 1);
+    expect(
+      find.text('Demo handled exception sent to Crashlytics'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Demo: Test crash'));
+    await tester.pump();
+
+    expect(crashlytics.testCrashCount, 1);
   });
 }

@@ -14,6 +14,7 @@ import '../screens/trend/trend_analysis_screen.dart';
 import '../viewmodels/publication_detail_view_model.dart';
 import '../viewmodels/publication_list_view_model.dart';
 import '../viewmodels/journal_publication_detail_view_model.dart';
+import '../services/analytics/app_analytics_service.dart';
 import '../services/openalex_journal_service.dart';
 import '../services/openalex_service.dart';
 import '../services/zotero_service.dart';
@@ -40,6 +41,7 @@ abstract final class AppRouter {
             create: (context) => PublicationDetailViewModel(
               service: context.read<OpenAlexService>(),
               zoteroService: context.read<ZoteroService>(),
+              analyticsService: context.read<AppAnalyticsService>(),
             ),
             child: PublicationDetailScreen(
               workId: args.workId,
