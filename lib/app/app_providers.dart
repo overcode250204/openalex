@@ -1,7 +1,9 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
+import '../models/report/report_storage_config.dart';
 import '../viewmodels/analytics_view_model.dart';
 import '../viewmodels/journal_view_model.dart';
 import '../viewmodels/keyword_dashboard_view_model.dart';
@@ -17,6 +19,8 @@ import '../services/openalex_keyword_service.dart';
 import '../services/openalex_service.dart';
 import '../services/pdf_export_service.dart';
 import '../services/pdf_report_layout_service.dart';
+import '../services/report/report_storage_service.dart';
+import '../services/report/s3_report_storage_service.dart';
 import '../services/suggestion_service.dart';
 import '../services/trend_report_export_service.dart';
 import '../services/zotero_service.dart';
@@ -33,12 +37,23 @@ abstract final class AppProviders {
     AppAnalyticsService? analyticsService,
   }) {
     return [
+      Provider<http.Client>(
+        create: (_) => http.Client(),
+        dispose: (_, client) => client.close(),
+      ),
       Provider(create: (_) => OpenAlexService()),
       Provider(create: (_) => OpenAlexKeywordService()),
       Provider(create: (_) => OpenAlexJournalService()),
       Provider(create: (_) => AnalyticsService(apiKey: _openAlexApiKey())),
       Provider(create: (_) => KeywordDashboardService()),
       Provider(create: (_) => SuggestionService()),
+      Provider(create: (_) => _reportStorageConfig()),
+      Provider<ReportStorageService>(
+        create: (context) => S3ReportStorageService(
+          config: context.read<ReportStorageConfig>(),
+          client: context.read<http.Client>(),
+        ),
+      ),
       Provider(create: (_) => const PdfReportLayoutService()),
       Provider(
         create: (context) => PdfExportService(
@@ -109,6 +124,19 @@ abstract final class AppProviders {
       return dotenv.env['OPENALEX_API_KEY'];
     } catch (_) {
       return null;
+    }
+  }
+
+  static ReportStorageConfig _reportStorageConfig() {
+    try {
+      return ReportStorageConfig.fromEnv(dotenv.env);
+    } catch (_) {
+      return const ReportStorageConfig(
+        accessKeyId: '',
+        secretAccessKey: '',
+        region: '',
+        bucket: '',
+      );
     }
   }
 }
