@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:path_provider/path_provider.dart';
 
@@ -9,11 +10,13 @@ typedef ExportDirectoryResolver = Future<Directory> Function();
 
 class PdfExportResult {
   final File file;
+  final Uint8List bytes;
   final int byteLength;
   final DateTime generatedAt;
 
   const PdfExportResult({
     required this.file,
+    required this.bytes,
     required this.byteLength,
     required this.generatedAt,
   });
@@ -46,6 +49,7 @@ class PdfExportService {
 
     return PdfExportResult(
       file: file,
+      bytes: layout.bytes,
       byteLength: layout.bytes.length,
       generatedAt: layout.generatedAt,
     );

@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:openalex/models/report/report_upload_result.dart';
 import 'package:openalex/main.dart';
 import 'package:openalex/models/analytics/topic_analytics.dart';
 import 'package:openalex/models/publication/publication.dart';
@@ -20,6 +23,7 @@ import 'package:openalex/services/analytics/analytics_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:openalex/services/pdf_export_service.dart';
 import 'package:openalex/services/pdf_report_layout_service.dart';
+import 'package:openalex/services/report/report_storage_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
 import 'package:openalex/services/trend_report_export_service.dart';
 import 'package:openalex/viewmodels/trend_analysis_view_model.dart';
@@ -206,6 +210,27 @@ class FakeAnalyticsService extends AnalyticsService {
   }
 }
 
+class FakeReportStorageService implements ReportStorageService {
+  @override
+  Future<ReportUploadResult> uploadReport({
+    required Uint8List bytes,
+    required String fileName,
+    required String contentType,
+    required String topic,
+    DateTime? uploadedAt,
+  }) async {
+    return ReportUploadResult(
+      provider: 'fake',
+      bucket: 'reports',
+      objectKey: 'reports/$fileName',
+      fileName: fileName,
+      downloadUrl: 'https://cdn.test/$fileName',
+      sizeBytes: bytes.length,
+      uploadedAt: uploadedAt ?? DateTime.utc(2026, 6, 25),
+    );
+  }
+}
+
 HomeViewModel testProvider(OpenAlexService service) {
   return HomeViewModel(
     service,
@@ -261,6 +286,7 @@ Widget appWithProvider(Widget child, HomeViewModel provider) {
           pdfExportService: PdfExportService(
             layoutService: const PdfReportLayoutService(),
           ),
+          reportStorageService: FakeReportStorageService(),
         ),
       ),
     ],

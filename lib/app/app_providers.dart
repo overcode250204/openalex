@@ -100,6 +100,7 @@ abstract final class AppProviders {
         create: (context) => DashboardViewModel(
           exportService: context.read<TrendReportExportService>(),
           pdfExportService: context.read<PdfExportService>(),
+          reportStorageService: context.read<ReportStorageService>(),
         ),
       ),
       ChangeNotifierProvider(
