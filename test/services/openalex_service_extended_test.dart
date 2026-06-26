@@ -267,6 +267,176 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
+  // fetchTopResearchJournalRanks
+  // ---------------------------------------------------------------------------
+  group('OpenAlexService.fetchTopResearchJournalRanks', () {
+    test('parses group_by results with source id, name, and count', () async {
+      final service = OpenAlexService(
+        client: MockClient(
+          (request) async => http.Response(
+            jsonEncode({
+              'group_by': [
+                {
+                  'key': 'https://openalex.org/S1',
+                  'key_display_name': 'Nature',
+                  'count': 12,
+                },
+                {
+                  'key': 'https://openalex.org/S2',
+                  'key_display_name': 'IEEE Access',
+                  'count': 7,
+                },
+              ],
+            }),
+            200,
+          ),
+        ),
+      );
+
+      final ranks = await service.fetchTopResearchJournalRanks(keyword: 'AI');
+
+      expect(ranks, hasLength(2));
+      expect(ranks[0].sourceId, 'S1');
+      expect(ranks[0].displayName, 'Nature');
+      expect(ranks[0].count, 12);
+      expect(ranks[1].sourceId, 'S2');
+    });
+
+    test(
+      'falls back to per-work aggregation with source id when group_by is empty',
+      () async {
+        final service = OpenAlexService(
+          client: MockClient(
+            (request) async => http.Response(
+              jsonEncode({
+                'results': [
+                  {
+                    'primary_location': {
+                      'source': {
+                        'id': 'https://openalex.org/S1',
+                        'display_name': 'Nature',
+                      },
+                    },
+                  },
+                  {
+                    'primary_location': {
+                      'source': {
+                        'id': 'https://openalex.org/S1',
+                        'display_name': 'Nature',
+                      },
+                    },
+                  },
+                  {
+                    'primary_location': {
+                      'source': {
+                        'id': 'https://openalex.org/S2',
+                        'display_name': 'IEEE',
+                      },
+                    },
+                  },
+                ],
+              }),
+              200,
+            ),
+          ),
+        );
+
+        final ranks = await service.fetchTopResearchJournalRanks(
+          keyword: 'AI',
+        );
+
+        expect(ranks, hasLength(2));
+        expect(ranks[0].sourceId, 'S1');
+        expect(ranks[0].count, 2);
+        expect(ranks[1].sourceId, 'S2');
+        expect(ranks[1].count, 1);
+      },
+    );
+
+    test(
+      'uses Unknown Journal and empty sourceId for a missing source',
+      () async {
+        final service = OpenAlexService(
+          client: MockClient(
+            (request) async => http.Response(
+              jsonEncode({
+                'results': [
+                  {'primary_location': null},
+                ],
+              }),
+              200,
+            ),
+          ),
+        );
+
+        final ranks = await service.fetchTopResearchJournalRanks(
+          keyword: 'AI',
+        );
+
+        expect(ranks, hasLength(1));
+        expect(ranks.single.sourceId, isEmpty);
+        expect(ranks.single.displayName, 'Unknown Journal');
+      },
+    );
+
+    test('respects the limit parameter in the fallback path', () async {
+      final service = OpenAlexService(
+        client: MockClient(
+          (request) async => http.Response(
+            jsonEncode({
+              'results': [
+                {
+                  'primary_location': {
+                    'source': {
+                      'id': 'https://openalex.org/S1',
+                      'display_name': 'Journal A',
+                    },
+                  },
+                },
+                {
+                  'primary_location': {
+                    'source': {
+                      'id': 'https://openalex.org/S2',
+                      'display_name': 'Journal B',
+                    },
+                  },
+                },
+                {
+                  'primary_location': {
+                    'source': {
+                      'id': 'https://openalex.org/S3',
+                      'display_name': 'Journal C',
+                    },
+                  },
+                },
+              ],
+            }),
+            200,
+          ),
+        ),
+      );
+
+      final ranks = await service.fetchTopResearchJournalRanks(
+        keyword: 'AI',
+        limit: 2,
+      );
+
+      expect(ranks, hasLength(2));
+    });
+
+    test('throws when response is not 200', () {
+      final service = OpenAlexService(
+        client: MockClient((request) async => http.Response('error', 500)),
+      );
+
+      expect(
+        () => service.fetchTopResearchJournalRanks(keyword: 'AI'),
+        throwsA(isA<Exception>()),
+      );
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // fetchTopContributingAuthors
   // ---------------------------------------------------------------------------
   group('OpenAlexService.fetchTopContributingAuthors', () {

@@ -67,7 +67,11 @@ class _FakeSuggestionService extends SuggestionService {
   }
 }
 
-JournalSource _source({String id = 'S1', String name = 'IEEE Access'}) {
+JournalSource _source({
+  String id = 'S1',
+  String name = 'IEEE Access',
+  int worksCount = 1000,
+}) {
   return JournalSource(
     id: 'https://openalex.org/$id',
     sourceId: id,
@@ -75,7 +79,7 @@ JournalSource _source({String id = 'S1', String name = 'IEEE Access'}) {
     type: 'journal',
     issnL: null,
     issn: [],
-    worksCount: 1000,
+    worksCount: worksCount,
     citedByCount: 50000,
     hIndex: 80,
     hostOrganizationName: null,
@@ -181,6 +185,44 @@ void main() {
       expect(provider.errorMessage, contains('Cannot load data'));
       expect(provider.isSearchingJournals, isFalse);
     });
+
+    test('sorts journals from highest to lowest publication count', () async {
+      final service = _FakeJournalService(
+        journalResults: [
+          _source(id: 'S1', name: 'Low Count Journal', worksCount: 100),
+          _source(id: 'S2', name: 'High Count Journal', worksCount: 9000),
+          _source(id: 'S3', name: 'Mid Count Journal', worksCount: 4500),
+        ],
+      );
+      final provider = JournalViewModel(service);
+
+      await provider.searchJournals('Journal');
+
+      expect(
+        provider.journals.map((j) => j.displayName).toList(),
+        ['High Count Journal', 'Mid Count Journal', 'Low Count Journal'],
+      );
+    });
+
+    test(
+      'breaks ties alphabetically and keeps missing works count safe',
+      () async {
+        final service = _FakeJournalService(
+          journalResults: [
+            _source(id: 'S1', name: 'Zeta Journal', worksCount: 0),
+            _source(id: 'S2', name: 'Alpha Journal', worksCount: 0),
+          ],
+        );
+        final provider = JournalViewModel(service);
+
+        await provider.searchJournals('Journal');
+
+        expect(
+          provider.journals.map((j) => j.displayName).toList(),
+          ['Alpha Journal', 'Zeta Journal'],
+        );
+      },
+    );
 
     test('resets state before new search', () async {
       final service = _FakeJournalService(journalResults: [_source()]);

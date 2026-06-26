@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../utils/app_keys.dart';
 import '../../viewmodels/keyword_dashboard_view_model.dart';
-import '../journal/journal_search_screen.dart';
+import '../journal/journals_for_topic_screen.dart';
 import '../keyword/keyword_dashboard_screen.dart';
 import '../profile/profile_screen.dart';
 import '../trend/trend_analyzer_home_page_screen.dart';
@@ -24,7 +24,7 @@ class _AppShellState extends State<AppShell> {
   // Keep screens alive by building them once inside IndexedStack.
   static final List<Widget> _screens = [
     const TrendAnalyzerHomePage(),
-    const JournalSearchScreen(),
+    const JournalsForTopicScreen(),
     const KeywordDashboardScreen(),
     const ProfileScreen(),
   ];

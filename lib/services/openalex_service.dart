@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../models/journal/journal_topic_rank.dart';
 import '../models/publication/publication.dart';
 
 class OpenAlexService {
@@ -256,6 +257,38 @@ class OpenAlexService {
     ).ifEmpty(() => _parseJournalResults(body, limit: limit));
   }
 
+  /// Like [fetchTopResearchJournals], but also keeps each journal's OpenAlex
+  /// source id so callers can look up full journal metadata afterwards.
+  Future<List<JournalTopicRank>> fetchTopResearchJournalRanks({
+    required String keyword,
+    int? limit,
+    String? topicId,
+    int? fromYear,
+    int? toYear,
+  }) async {
+    final queryParams = {
+      if (topicId == null || topicId.trim().isEmpty) 'search': keyword,
+      if (topicId != null && topicId.trim().isNotEmpty)
+        'filter': _topicAnalyticsFilter(topicId, fromYear, toYear),
+      'group_by': 'primary_location.source.id',
+      'per-page': (limit ?? 20).clamp(1, 20).toString(),
+      'mailto': mailto,
+    };
+
+    final uri = Uri.https('api.openalex.org', '/works', queryParams);
+    final response = await _client.get(uri);
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load top research journals');
+    }
+
+    final Map<String, dynamic> body = jsonDecode(response.body);
+    final ranks = _parseGroupByJournalRanks(body);
+    return ranks.isNotEmpty
+        ? ranks
+        : _parseJournalResultRanks(body, limit: limit);
+  }
+
   Future<Map<String, int>> fetchTopContributingAuthors({
     required String keyword,
     int? limit,
@@ -379,6 +412,64 @@ class OpenAlexService {
       counts[journal] = (counts[journal] ?? 0) + 1;
     }
     return _sortAndLimit(counts, limit);
+  }
+
+  List<JournalTopicRank> _parseGroupByJournalRanks(Map<String, dynamic> body) {
+    final groups = body['group_by'] as List<dynamic>? ?? const [];
+    return groups.whereType<Map<String, dynamic>>().map((group) {
+      final key = group['key']?.toString() ?? '';
+      final name = group['key_display_name']?.toString().trim();
+      return JournalTopicRank(
+        sourceId: _normalizeId(key),
+        displayName: (name == null || name.isEmpty) ? 'Unknown Journal' : name,
+        count: (group['count'] as num? ?? 0).toInt(),
+      );
+    }).toList();
+  }
+
+  List<JournalTopicRank> _parseJournalResultRanks(
+    Map<String, dynamic> body, {
+    int? limit,
+  }) {
+    final counts = <String, ({String sourceId, String name, int count})>{};
+
+    for (final item in body['results'] as List<dynamic>? ?? const []) {
+      final work = item as Map<String, dynamic>;
+      final location = work['primary_location'] as Map<String, dynamic>?;
+      final source = location?['source'] as Map<String, dynamic>?;
+      final rawId = source?['id']?.toString();
+      final sourceId = (rawId == null || rawId.isEmpty)
+          ? ''
+          : _normalizeId(rawId);
+      final name = source?['display_name']?.toString().trim();
+      final journalName = (name == null || name.isEmpty)
+          ? 'Unknown Journal'
+          : name;
+      final key = sourceId.isNotEmpty ? sourceId : journalName;
+
+      final existing = counts[key];
+      counts[key] = (
+        sourceId: sourceId,
+        name: journalName,
+        count: (existing?.count ?? 0) + 1,
+      );
+    }
+
+    final ranks = counts.values
+        .map(
+          (r) => JournalTopicRank(
+            sourceId: r.sourceId,
+            displayName: r.name,
+            count: r.count,
+          ),
+        )
+        .toList()
+      ..sort((a, b) {
+        final byCount = b.count.compareTo(a.count);
+        return byCount != 0 ? byCount : a.displayName.compareTo(b.displayName);
+      });
+
+    return ranks.take(limit ?? ranks.length).toList();
   }
 
   Map<String, int> _parseAuthorResults(

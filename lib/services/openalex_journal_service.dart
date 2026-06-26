@@ -38,6 +38,30 @@ class OpenAlexJournalService {
         .toList();
   }
 
+  Future<List<JournalSource>> getSourcesByIds(List<String> sourceIds) async {
+    final ids = sourceIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toList();
+
+    if (ids.isEmpty) {
+      return [];
+    }
+
+    final body = await _get('/sources', {
+      'filter': 'ids.openalex:${ids.join('|')}',
+      'per-page': ids.length.toString(),
+      'mailto': mailto,
+    });
+
+    final results = body['results'] as List<dynamic>? ?? [];
+
+    return results
+        .whereType<Map<String, dynamic>>()
+        .map(JournalSource.fromJson)
+        .toList();
+  }
+
   Future<List<JournalPublication>> getJournalPublications(
     String sourceId, {
     int page = 1,

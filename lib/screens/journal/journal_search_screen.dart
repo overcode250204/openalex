@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/journal/journal_publication.dart';
+import '../../models/journal/journal_publication_year_group.dart';
 import '../../models/journal/journal_source.dart';
 import '../../routes/app_routes.dart';
 import '../../viewmodels/journal_view_model.dart';
@@ -26,6 +27,7 @@ class JournalSearchScreen extends StatefulWidget {
 class _JournalSearchScreenState extends State<JournalSearchScreen> {
   final TextEditingController _queryController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  bool _groupByYear = false;
 
   @override
   void initState() {
@@ -69,6 +71,10 @@ class _JournalSearchScreenState extends State<JournalSearchScreen> {
     context.read<JournalViewModel>().clearSelection();
   }
 
+  void _toggleGroupByYear() {
+    setState(() => _groupByYear = !_groupByYear);
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<JournalViewModel>();
@@ -98,6 +104,8 @@ class _JournalSearchScreenState extends State<JournalSearchScreen> {
                   provider: provider,
                   onBack: _clearSelection,
                   onOpenPublication: _openPublication,
+                  groupByYear: _groupByYear,
+                  onToggleGroupByYear: _toggleGroupByYear,
                 )
               : _JournalSearchView(
                   key: const ValueKey('search'),
@@ -218,6 +226,8 @@ class _JournalDetailView extends StatelessWidget {
   final JournalViewModel provider;
   final VoidCallback onBack;
   final ValueChanged<JournalPublication> onOpenPublication;
+  final bool groupByYear;
+  final VoidCallback onToggleGroupByYear;
 
   const _JournalDetailView({
     super.key,
@@ -225,6 +235,8 @@ class _JournalDetailView extends StatelessWidget {
     required this.provider,
     required this.onBack,
     required this.onOpenPublication,
+    required this.groupByYear,
+    required this.onToggleGroupByYear,
   });
 
   @override
@@ -260,12 +272,25 @@ class _JournalDetailView extends StatelessWidget {
                     : () => onOpenPublication(provider.highestCitedPaper!),
               ),
               const SizedBox(height: 20),
-              _SectionHeader(
-                title: 'Publications',
-                subtitle:
-                    '${_formatCount(journal.worksCount)} works in OpenAlex',
+              Row(
+                children: [
+                  Expanded(
+                    child: _SectionHeader(
+                      title: 'Publications',
+                      subtitle:
+                          '${_formatCount(journal.worksCount)} works in OpenAlex',
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: groupByYear
+                        ? 'Show flat list'
+                        : 'Group by year',
+                    icon: Icon(groupByYear ? Icons.view_list : Icons.bar_chart),
+                    onPressed: onToggleGroupByYear,
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 4),
             ]),
           ),
         ),
@@ -277,6 +302,30 @@ class _JournalDetailView extends StatelessWidget {
           const SliverFillRemaining(
             child: Center(
               child: Text('No publications found for this journal.'),
+            ),
+          )
+        else if (groupByYear)
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                for (final group in provider.publicationYearGroups) ...[
+                  _JournalYearGroupHeader(group: group),
+                  const SizedBox(height: 8),
+                  ...group.publications.map(
+                    (pub) => JournalPublicationCard(
+                      publication: pub,
+                      onViewDetail: () => onOpenPublication(pub),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                if (provider.isLoadingMorePublications)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 20),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+              ]),
             ),
           )
         else
@@ -300,6 +349,43 @@ class _JournalDetailView extends StatelessWidget {
               }, childCount: provider.publications.length + 1),
             ),
           ),
+      ],
+    );
+  }
+}
+
+class _JournalYearGroupHeader extends StatelessWidget {
+  final JournalPublicationYearGroup group;
+
+  const _JournalYearGroupHeader({required this.group});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            group.displayYear,
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            '${group.count} works',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Theme.of(context).colorScheme.onPrimaryContainer,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
       ],
     );
   }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/journal/journal_publication.dart';
+import '../models/journal/journal_publication_year_group.dart';
 import '../models/journal/journal_source.dart';
 import '../models/journal/journal_suggestion.dart';
 import '../services/openalex_journal_service.dart';
@@ -41,6 +42,8 @@ class JournalViewModel extends ChangeNotifier {
   List<JournalSource> get journals => _journals;
   JournalSource? get selectedJournal => _selectedJournal;
   List<JournalPublication> get publications => _publications;
+  List<JournalPublicationYearGroup> get publicationYearGroups =>
+      JournalPublicationYearGroup.groupByYear(_publications);
   JournalPublication? get highestCitedPaper => _highestCitedPaper;
   JournalPublication? get selectedPublication => _selectedPublication;
   bool get isSearchingJournals => _isSearchingJournals;
@@ -78,6 +81,10 @@ class JournalViewModel extends ChangeNotifier {
 
     try {
       _journals = await _service.searchJournals(trimmedQuery);
+      _journals.sort((a, b) {
+        final byCount = b.worksCount.compareTo(a.worksCount);
+        return byCount != 0 ? byCount : a.displayName.compareTo(b.displayName);
+      });
       if (_journals.isEmpty) {
         _errorMessage = 'No matching journal found.';
       }
