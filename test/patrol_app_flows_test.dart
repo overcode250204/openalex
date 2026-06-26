@@ -293,7 +293,19 @@ void main() {
     await $(find.byKey(AppKeys.profileTab)).tap();
     await $.tester.pump(const Duration(milliseconds: 300));
 
-    await $(find.byKey(AppKeys.logoutButton)).tap();
+    final listView = find.byType(ListView);
+    final logoutButton = find.byKey(AppKeys.logoutButton);
+    for (
+      var attempt = 0;
+      attempt < 8 && logoutButton.evaluate().isEmpty;
+      attempt++
+    ) {
+      await $.tester.drag(listView, const Offset(0, -500));
+      await $.tester.pump(const Duration(milliseconds: 100));
+    }
+
+    await $.tester.ensureVisible(logoutButton);
+    await $.tester.tap(logoutButton);
     await $.tester.pump();
     await $.tester.pump(const Duration(milliseconds: 300));
 

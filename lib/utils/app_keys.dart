@@ -13,10 +13,23 @@ abstract final class AppKeys {
   static const journalList = Key('journal_list');
   static const keywordList = Key('keyword_list');
   static const exportPdfButton = Key('export_pdf_button');
+  static const uploadedPdfLinkCard = Key('uploaded_pdf_link_card');
+  static const uploadedPdfOpenButton = Key('uploaded_pdf_open_button');
+  static const uploadedPdfCopyButton = Key('uploaded_pdf_copy_button');
+  static const uploadedPdfDismissButton = Key('uploaded_pdf_dismiss_button');
+  static const uploadedReportsCard = Key('uploaded_reports_card');
+  static const uploadedReportsRefreshButton = Key(
+    'uploaded_reports_refresh_button',
+  );
   static const logoutButton = Key('logout_button');
   static const googleSignInButton = Key('google_sign_in_button');
 
   static Key publicationItem(String id) => Key('publication_item_$id');
   static Key journalItem(String id) => Key('journal_item_$id');
   static Key keywordItem(String id) => Key('keyword_item_$id');
+  static Key uploadedReportItem(String id) => Key('uploaded_report_item_$id');
+  static Key uploadedReportCopyButton(String id) =>
+      Key('uploaded_report_copy_button_$id');
+  static Key uploadedReportOpenButton(String id) =>
+      Key('uploaded_report_open_button_$id');
 }

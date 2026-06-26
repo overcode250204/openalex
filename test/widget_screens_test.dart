@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:openalex/models/analytics/topic_analytics.dart';
 import 'package:openalex/models/publication/publication.dart';
 import 'package:openalex/models/search/search_filter.dart';
 import 'package:openalex/models/topic/topic.dart';
+import 'package:openalex/models/trend/trend_report_snapshot.dart';
 import 'package:openalex/routes/route_arguments.dart';
 import 'package:openalex/viewmodels/analytics_view_model.dart';
 import 'package:openalex/viewmodels/dashboard_view_model.dart';
@@ -26,6 +28,7 @@ import 'package:openalex/services/pdf_report_layout_service.dart';
 import 'package:openalex/services/report/report_storage_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
 import 'package:openalex/services/trend_report_export_service.dart';
+import 'package:openalex/utils/app_keys.dart';
 import 'package:openalex/viewmodels/trend_analysis_view_model.dart';
 import 'package:openalex/widgets/publication_card.dart';
 import 'package:openalex/widgets/publication_detail_screen.dart'
@@ -231,6 +234,28 @@ class FakeReportStorageService implements ReportStorageService {
   }
 }
 
+class FakePdfExportService extends PdfExportService {
+  FakePdfExportService() : super(layoutService: const PdfReportLayoutService());
+
+  @override
+  Future<PdfExportResult> exportDashboardPdfReport(
+    TrendReportSnapshot report, {
+    DateTime? generatedAt,
+  }) async {
+    final bytes = Uint8List.fromList([1, 2, 3]);
+    final directory = Directory.systemTemp.createTempSync('widget-pdf-export');
+    final file = File('${directory.path}/dashboard-report.pdf');
+    file.writeAsBytesSync(bytes, flush: true);
+
+    return PdfExportResult(
+      file: file,
+      bytes: bytes,
+      byteLength: bytes.length,
+      generatedAt: generatedAt ?? DateTime.utc(2026, 6, 25, 9),
+    );
+  }
+}
+
 HomeViewModel testProvider(OpenAlexService service) {
   return HomeViewModel(
     service,
@@ -269,7 +294,11 @@ Future<HomeViewModel> seededProvider(List<Publication> publications) async {
   return provider;
 }
 
-Widget appWithProvider(Widget child, HomeViewModel provider) {
+Widget appWithProvider(
+  Widget child,
+  HomeViewModel provider, {
+  DashboardViewModel? dashboardViewModel,
+}) {
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<HomeViewModel>.value(value: provider),
@@ -281,13 +310,15 @@ Widget appWithProvider(Widget child, HomeViewModel provider) {
         create: (_) => TrendAnalysisViewModel(service: FakeTrendService()),
       ),
       ChangeNotifierProvider(
-        create: (_) => DashboardViewModel(
-          exportService: const TrendReportExportService(),
-          pdfExportService: PdfExportService(
-            layoutService: const PdfReportLayoutService(),
-          ),
-          reportStorageService: FakeReportStorageService(),
-        ),
+        create: (_) =>
+            dashboardViewModel ??
+            DashboardViewModel(
+              exportService: const TrendReportExportService(),
+              pdfExportService: PdfExportService(
+                layoutService: const PdfReportLayoutService(),
+              ),
+              reportStorageService: FakeReportStorageService(),
+            ),
       ),
     ],
     child: MaterialApp(home: child),
@@ -413,6 +444,58 @@ void main() {
     );
     expect(find.text('Most Influential Paper'), findsOneWidget);
     expect(find.text('Top Paper'), findsOneWidget);
+  });
+
+  testWidgets('DashboardScreen shows uploaded PDF link after upload', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final provider = await seededProvider([
+      publication(title: 'Top Paper', citations: 20, year: 2024),
+    ]);
+    final dashboardViewModel = DashboardViewModel(
+      exportService: const TrendReportExportService(),
+      pdfExportService: FakePdfExportService(),
+      reportStorageService: FakeReportStorageService(),
+    );
+
+    await tester.pumpWidget(
+      appWithProvider(
+        const DashboardScreen(arguments: topicArgs),
+        provider,
+        dashboardViewModel: dashboardViewModel,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final listView = find.byType(ListView);
+    final uploadButton = find.byKey(AppKeys.exportPdfButton);
+    for (
+      var attempt = 0;
+      attempt < 8 && uploadButton.evaluate().isEmpty;
+      attempt++
+    ) {
+      await tester.drag(listView, const Offset(0, -800));
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    await tester.tap(uploadButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(AppKeys.uploadedPdfLinkCard), findsOneWidget);
+    expect(find.text('Uploaded PDF report'), findsOneWidget);
+    expect(find.text('https://cdn.test/dashboard-report.pdf'), findsOneWidget);
+    expect(find.byKey(AppKeys.uploadedPdfCopyButton), findsOneWidget);
+    expect(find.byKey(AppKeys.uploadedPdfOpenButton), findsOneWidget);
+
+    await tester.tap(find.byKey(AppKeys.uploadedPdfDismissButton));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(AppKeys.uploadedPdfLinkCard), findsNothing);
   });
 
   testWidgets('TrendAnalysisScreen shows lists', (tester) async {

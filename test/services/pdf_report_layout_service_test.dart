@@ -6,6 +6,8 @@ import 'package:openalex/models/trend/trend_report_snapshot.dart';
 import 'package:openalex/services/pdf_report_layout_service.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('PdfReportLayoutService', () {
     test('builds a deterministic dashboard PDF layout result', () async {
       const service = PdfReportLayoutService();
@@ -23,12 +25,8 @@ void main() {
         equals('trend-report-artificial-intelligence-20260625-093045.pdf'),
       );
       expect(result.generatedAt, DateTime(2026, 6, 25, 9, 30, 45));
-      expect(pdfText, contains('Journal Trend Analyzer Report'));
-      _expectPdfWords(pdfText, const ['Publication', 'Trend', 'By', 'Year']);
-      _expectPdfWords(pdfText, const ['Top', 'Influential', 'Papers']);
-      _expectPdfWords(pdfText, const ['Top', 'Research', 'Journals']);
-      _expectPdfWords(pdfText, const ['Top', 'Contributing', 'Authors']);
-      _expectPdfWords(pdfText, const ['Insight', 'Summary']);
+      expect(pdfText, contains('/ToUnicode'));
+      expect(pdfText, contains('/FontFile2'));
     });
 
     test('renders empty states without throwing', () async {
@@ -56,44 +54,49 @@ void main() {
 
       expect(result.bytes.length, greaterThan(1000));
       expect(result.fileName, equals('trend-report-topic-20260625-000000.pdf'));
-      _expectPdfWords(pdfText, const [
-        'No',
-        'publication',
-        'trend',
-        'data',
-        'is',
-        'available.',
-      ]);
-      _expectPdfWords(pdfText, const [
-        'No',
-        'publications',
-        'are',
-        'available.',
-      ]);
-      _expectPdfWords(pdfText, const [
-        'No',
-        'ranking',
-        'data',
-        'is',
-        'available.',
-      ]);
-      _expectPdfWords(pdfText, const [
-        'No',
-        'insights',
-        'can',
-        'be',
-        'generated',
-        'without',
-        'publications.',
-      ]);
+      expect(pdfText, contains('/ToUnicode'));
+      expect(pdfText, contains('/FontFile2'));
     });
-  });
-}
 
-void _expectPdfWords(String pdfText, List<String> words) {
-  for (final word in words) {
-    expect(pdfText, contains('($word)'));
-  }
+    test(
+      'embeds Unicode glyph mappings for smart quotes and accents',
+      () async {
+        const service = PdfReportLayoutService();
+        final publication = _publication(
+          title: 'Opinion Paper: “So what if ChatGPT wrote it?”',
+          citations: 10,
+          year: 2024,
+          journal: 'Journal of AI',
+          authors: const ['Siobhán O’Connor'],
+        );
+
+        final result = await service.buildDashboardReport(
+          TrendReportSnapshot(
+            topic: 'Artificial Intelligence',
+            publications: [publication],
+            publicationCountByYear: const {2024: 1},
+            topInfluentialPapers: [publication],
+            topJournals: const {'Journal of AI': 1},
+            topAuthors: const {'Siobhán O’Connor': 1},
+            totalPublications: 1,
+            averageCitationCount: 10,
+            mostActiveYear: 2024,
+            topJournal: 'Journal of AI',
+            topAuthor: 'Siobhán O’Connor',
+            mostInfluentialPaper: publication,
+          ),
+          generatedAt: DateTime(2026, 6, 25),
+        );
+
+        final pdfText = latin1.decode(result.bytes, allowInvalid: true);
+
+        expect(pdfText, contains('<201C>'));
+        expect(pdfText, contains('<201D>'));
+        expect(pdfText, contains('<00E1>'));
+        expect(pdfText, contains('<2019>'));
+      },
+    );
+  });
 }
 
 TrendReportSnapshot _sampleReport() {

@@ -3,8 +3,11 @@ import 'package:flutter/foundation.dart';
 import '../models/report/report_upload_result.dart';
 import '../models/trend/trend_report_snapshot.dart';
 import '../services/pdf_export_service.dart';
+import '../services/report/report_metadata_service.dart';
 import '../services/report/report_storage_service.dart';
 import '../services/trend_report_export_service.dart';
+
+typedef CurrentUserIdResolver = String? Function();
 
 class DashboardPdfUploadResult {
   final PdfExportResult exportResult;
@@ -20,17 +23,34 @@ class DashboardViewModel extends ChangeNotifier {
   final TrendReportExportService _exportService;
   final PdfExportService _pdfExportService;
   final ReportStorageService _reportStorageService;
+  final ReportMetadataService _reportMetadataService;
+  final CurrentUserIdResolver _currentUserIdResolver;
 
   DashboardViewModel({
     required TrendReportExportService exportService,
     required PdfExportService pdfExportService,
     required ReportStorageService reportStorageService,
+    ReportMetadataService reportMetadataService =
+        const NoOpReportMetadataService(),
+    CurrentUserIdResolver? currentUserIdResolver,
   }) : _exportService = exportService,
        _pdfExportService = pdfExportService,
-       _reportStorageService = reportStorageService;
+       _reportStorageService = reportStorageService,
+       _reportMetadataService = reportMetadataService,
+       _currentUserIdResolver = currentUserIdResolver ?? (() => null);
 
   bool _isExporting = false;
   bool get isExporting => _isExporting;
+
+  ReportUploadResult? _lastUploadedPdfReport;
+  ReportUploadResult? get lastUploadedPdfReport => _lastUploadedPdfReport;
+
+  void clearUploadedPdfReport() {
+    if (_lastUploadedPdfReport == null) return;
+
+    _lastUploadedPdfReport = null;
+    notifyListeners();
+  }
 
   Future<TrendReportExportResult> exportTrendReport(
     TrendReportSnapshot report,
@@ -77,6 +97,12 @@ class DashboardViewModel extends ChangeNotifier {
         topic: report.topic,
         uploadedAt: exportResult.generatedAt,
       );
+      await _reportMetadataService.saveUploadedReport(
+        uploadResult: uploadResult,
+        topic: report.topic,
+        userId: _currentUserIdResolver(),
+      );
+      _lastUploadedPdfReport = uploadResult;
 
       return DashboardPdfUploadResult(
         exportResult: exportResult,

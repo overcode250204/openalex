@@ -4,9 +4,11 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/models/report/report_upload_result.dart';
+import 'package:openalex/models/report/uploaded_report.dart';
 import 'package:openalex/models/trend/trend_report_snapshot.dart';
 import 'package:openalex/services/pdf_export_service.dart';
 import 'package:openalex/services/pdf_report_layout_service.dart';
+import 'package:openalex/services/report/report_metadata_service.dart';
 import 'package:openalex/services/report/report_storage_service.dart';
 import 'package:openalex/services/trend_report_export_service.dart';
 import 'package:openalex/viewmodels/dashboard_view_model.dart';
@@ -66,10 +68,13 @@ void main() {
       final reportBytes = Uint8List.fromList([1, 2, 3]);
       await reportFile.writeAsBytes(reportBytes);
       final storageService = _RecordingReportStorageService();
+      final metadataService = _RecordingReportMetadataService();
       final viewModel = DashboardViewModel(
         exportService: const TrendReportExportService(),
         pdfExportService: _ImmediatePdfExportService(reportFile),
         reportStorageService: storageService,
+        reportMetadataService: metadataService,
+        currentUserIdResolver: () => 'user-1',
       );
 
       final result = await viewModel.exportAndUploadDashboardPdfReport(
@@ -80,8 +85,23 @@ void main() {
       expect(storageService.lastFileName, 'dashboard.pdf');
       expect(storageService.lastContentType, 'application/pdf');
       expect(storageService.lastTopic, 'AI');
+      expect(metadataService.saveCount, 1);
+      expect(metadataService.lastTopic, 'AI');
+      expect(metadataService.lastUserId, 'user-1');
+      expect(
+        metadataService.lastUploadResult?.downloadUrl,
+        'https://cdn.test/dashboard.pdf',
+      );
       expect(result.uploadResult.downloadUrl, 'https://cdn.test/dashboard.pdf');
+      expect(
+        viewModel.lastUploadedPdfReport?.downloadUrl,
+        'https://cdn.test/dashboard.pdf',
+      );
       expect(viewModel.isExporting, isFalse);
+
+      viewModel.clearUploadedPdfReport();
+
+      expect(viewModel.lastUploadedPdfReport, isNull);
     });
   });
 }
@@ -151,6 +171,33 @@ class _RecordingReportStorageService implements ReportStorageService {
       sizeBytes: bytes.length,
       uploadedAt: uploadedAt ?? DateTime.utc(2026, 6, 25),
     );
+  }
+}
+
+class _RecordingReportMetadataService implements ReportMetadataService {
+  int saveCount = 0;
+  ReportUploadResult? lastUploadResult;
+  String? lastTopic;
+  String? lastUserId;
+
+  @override
+  Future<void> saveUploadedReport({
+    required ReportUploadResult uploadResult,
+    required String topic,
+    String? userId,
+  }) async {
+    saveCount++;
+    lastUploadResult = uploadResult;
+    lastTopic = topic;
+    lastUserId = userId;
+  }
+
+  @override
+  Future<List<UploadedReport>> fetchUploadedReports({
+    required String userId,
+    int limit = 20,
+  }) async {
+    return const [];
   }
 }
 

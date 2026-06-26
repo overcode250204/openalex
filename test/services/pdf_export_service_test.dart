@@ -7,6 +7,8 @@ import 'package:openalex/services/pdf_export_service.dart';
 import 'package:openalex/services/pdf_report_layout_service.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('PdfExportService', () {
     late Directory tempDirectory;
 

@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -26,7 +25,12 @@ class PdfReportLayoutService {
     DateTime? generatedAt,
   }) async {
     final timestamp = generatedAt ?? DateTime.now();
-    final document = _buildDocument(report, generatedAt: timestamp);
+    final fonts = await _loadFonts();
+    final document = _buildDocument(
+      report,
+      generatedAt: timestamp,
+      fonts: fonts,
+    );
     final bytes = await document.save();
 
     return PdfReportLayoutResult(
@@ -39,6 +43,7 @@ class PdfReportLayoutService {
   pw.Document _buildDocument(
     TrendReportSnapshot report, {
     required DateTime generatedAt,
+    required _PdfReportFonts fonts,
   }) {
     final document = pw.Document(
       title: 'Journal Trend Analyzer Report',
@@ -50,7 +55,7 @@ class PdfReportLayoutService {
 
     document.addPage(
       pw.MultiPage(
-        pageTheme: _pageTheme(),
+        pageTheme: _pageTheme(fonts),
         header: (context) => _pageHeader(report),
         footer: (context) => _pageFooter(context),
         build: (context) => [
@@ -79,15 +84,25 @@ class PdfReportLayoutService {
     return document;
   }
 
-  pw.PageTheme _pageTheme() {
+  pw.PageTheme _pageTheme(_PdfReportFonts fonts) {
     return pw.PageTheme(
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.fromLTRB(36, 42, 36, 42),
-      theme: pw.ThemeData.withFont(
-        base: pw.Font.helvetica(),
-        bold: pw.Font.helveticaBold(),
-        italic: pw.Font.helveticaOblique(),
-      ),
+      theme: _theme(fonts),
+    );
+  }
+
+  pw.ThemeData _theme(_PdfReportFonts fonts) {
+    return pw.ThemeData.withFont(base: fonts.regular, bold: fonts.bold);
+  }
+
+  Future<_PdfReportFonts> _loadFonts() async {
+    final regularData = await rootBundle.load('assets/fonts/DroidSans.ttf');
+    final boldData = await rootBundle.load('assets/fonts/DroidSans-Bold.ttf');
+
+    return _PdfReportFonts(
+      regular: pw.Font.ttf(regularData),
+      bold: pw.Font.ttf(boldData),
     );
   }
 
@@ -505,4 +520,11 @@ class _SummaryItem {
   final String value;
 
   const _SummaryItem(this.label, this.value);
+}
+
+class _PdfReportFonts {
+  final pw.Font regular;
+  final pw.Font bold;
+
+  const _PdfReportFonts({required this.regular, required this.bold});
 }

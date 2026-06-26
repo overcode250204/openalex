@@ -49,3 +49,4 @@ linux/flutter/generated_*
 macos/Flutter/GeneratedPluginRegistrant.swift
 windows/flutter/generated_*
 .vscode/
+.env
