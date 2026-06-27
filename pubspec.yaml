@@ -37,6 +37,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   http: ^1.2.2
+  crypto: ^3.0.7
   fl_chart: ^0.68.0
   url_launcher: ^6.3.0
   provider: ^6.1.5+1
@@ -48,6 +49,7 @@ dependencies:
   google_sign_in: ^7.2.0
   firebase_analytics: ^12.4.3
   cloud_firestore: ^6.6.0
+  pdf: ^3.12.0
 
 dev_dependencies:
   flutter_test:
@@ -72,6 +74,8 @@ dev_dependencies:
 flutter:
   assets:
     - .env
+    - assets/fonts/DroidSans.ttf
+    - assets/fonts/DroidSans-Bold.ttf
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/auth/app_user.dart';
+import '../../models/report/uploaded_report.dart';
 import '../../utils/app_keys.dart';
 import '../../viewmodels/auth_view_model.dart';
 import '../../viewmodels/selected_topic_view_model.dart';
+import '../../viewmodels/uploaded_reports_view_model.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   static const _background = Color(0xFFF5F7FB);
@@ -15,16 +19,37 @@ class ProfileScreen extends StatelessWidget {
   static const _muted = Color(0xFF6B7280);
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  String? _lastUserId;
+
+  void _syncUploadedReports(AppUser? user) {
+    final userId = user?.uid;
+    if (userId == _lastUserId) return;
+
+    _lastUserId = userId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<UploadedReportsViewModel>().load(force: true);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthViewModel>();
     final user = auth.currentUser;
     final selectedTopic = context.watch<SelectedTopicViewModel>();
+    final uploadedReports = context.watch<UploadedReportsViewModel>();
+
+    _syncUploadedReports(user);
 
     return Scaffold(
-      backgroundColor: _background,
+      backgroundColor: ProfileScreen._background,
       appBar: AppBar(
         title: const Text('Profile'),
-        backgroundColor: _background,
+        backgroundColor: ProfileScreen._background,
         surfaceTintColor: Colors.transparent,
       ),
       body: SafeArea(
@@ -68,12 +93,232 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 980),
+                  child: _UploadedReportsCard(viewModel: uploadedReports),
+                ),
+                const SizedBox(height: 16),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 980),
                   child: _AccountActionsCard(auth: auth),
                 ),
               ],
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _UploadedReportsCard extends StatelessWidget {
+  const _UploadedReportsCard({required this.viewModel});
+
+  final UploadedReportsViewModel viewModel;
+
+  Future<void> _copyLink(BuildContext context, String url) async {
+    await Clipboard.setData(ClipboardData(text: url));
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('PDF link copied')));
+  }
+
+  Future<void> _openLink(BuildContext context, String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Invalid PDF link')));
+      return;
+    }
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!context.mounted || opened) return;
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Cannot open PDF link')));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      key: AppKeys.uploadedReportsCard,
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Uploaded PDF reports',
+                    style: TextStyle(
+                      color: ProfileScreen._ink,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  key: AppKeys.uploadedReportsRefreshButton,
+                  tooltip: 'Refresh uploaded reports',
+                  onPressed: viewModel.isLoading ? null : viewModel.refresh,
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Reports saved in Firestore after a successful S3 upload.',
+              style: TextStyle(color: ProfileScreen._muted, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            if (viewModel.isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else if (viewModel.errorMessage != null)
+              _InlineStateBox(
+                icon: Icons.error_outline,
+                message: viewModel.errorMessage!,
+              )
+            else if (!viewModel.hasReports)
+              const _InlineStateBox(
+                icon: Icons.picture_as_pdf_outlined,
+                message: 'No uploaded PDF reports yet.',
+              )
+            else
+              ...viewModel.reports.map(
+                (report) => _UploadedReportTile(
+                  report: report,
+                  onCopy: () => _copyLink(context, report.downloadUrl),
+                  onOpen: () => _openLink(context, report.downloadUrl),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _UploadedReportTile extends StatelessWidget {
+  const _UploadedReportTile({
+    required this.report,
+    required this.onCopy,
+    required this.onOpen,
+  });
+
+  final UploadedReport report;
+  final VoidCallback onCopy;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: AppKeys.uploadedReportItem(report.id),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            report.topic,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: ProfileScreen._ink,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${report.fileName} - ${_formatBytes(report.sizeBytes)} - ${_formatDateTime(report.uploadedAt)}',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: ProfileScreen._muted, fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          SelectableText(
+            report.downloadUrl,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.primary,
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                key: AppKeys.uploadedReportCopyButton(report.id),
+                onPressed: onCopy,
+                icon: const Icon(Icons.copy, size: 18),
+                label: const Text('Copy link'),
+              ),
+              FilledButton.icon(
+                key: AppKeys.uploadedReportOpenButton(report.id),
+                onPressed: onOpen,
+                icon: const Icon(Icons.open_in_new, size: 18),
+                label: const Text('Open PDF'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InlineStateBox extends StatelessWidget {
+  const _InlineStateBox({required this.icon, required this.message});
+
+  final IconData icon;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: ProfileScreen._muted, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: ProfileScreen._muted,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -465,3 +710,25 @@ class _InfoRow extends StatelessWidget {
     );
   }
 }
+
+String _formatBytes(int bytes) {
+  if (bytes >= 1024 * 1024) {
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+  if (bytes >= 1024) {
+    return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  }
+
+  return '$bytes B';
+}
+
+String _formatDateTime(DateTime value) {
+  final local = value.toLocal();
+  return '${local.year}-'
+      '${_twoDigits(local.month)}-'
+      '${_twoDigits(local.day)} '
+      '${_twoDigits(local.hour)}:'
+      '${_twoDigits(local.minute)}';
+}
+
+String _twoDigits(int number) => number.toString().padLeft(2, '0');

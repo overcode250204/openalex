@@ -1,6 +1,9 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../models/report/report_upload_result.dart';
 import '../../models/search/search_filter.dart';
 import '../../routes/app_routes.dart';
 import '../../routes/route_arguments.dart';
@@ -171,6 +174,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const CountryOutputChart(),
           const SizedBox(height: 24),
           _ExportTrendReportButton(provider: provider),
+          const SizedBox(height: 12),
+          const _UploadedPdfLinkCard(),
         ],
       ),
     );
@@ -190,20 +195,26 @@ class _ExportTrendReportButton extends StatefulWidget {
 class _ExportTrendReportButtonState extends State<_ExportTrendReportButton> {
   Future<void> _exportReport() async {
     try {
-      final result = await context.read<DashboardViewModel>().exportTrendReport(
-        widget.provider.trendReportSnapshot,
-      );
+      final result = await context
+          .read<DashboardViewModel>()
+          .exportAndUploadDashboardPdfReport(
+            widget.provider.trendReportSnapshot,
+          );
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Trend report exported: ${result.file.path}')),
+        SnackBar(
+          content: Text(
+            'Dashboard PDF uploaded: ${result.uploadResult.downloadUrl}',
+          ),
+        ),
       );
     } catch (error) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Cannot export trend report: $error')),
+        SnackBar(content: Text('Cannot upload dashboard PDF: $error')),
       );
     }
   }
@@ -220,8 +231,130 @@ class _ExportTrendReportButtonState extends State<_ExportTrendReportButton> {
               height: 18,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : const Icon(Icons.description),
-      label: Text(isExporting ? 'Exporting Report' : 'Export Trend Report'),
+          : const Icon(Icons.cloud_upload_outlined),
+      label: Text(isExporting ? 'Uploading PDF' : 'Upload PDF Report'),
+    );
+  }
+}
+
+class _UploadedPdfLinkCard extends StatelessWidget {
+  const _UploadedPdfLinkCard();
+
+  Future<void> _copyLink(BuildContext context, String url) async {
+    await Clipboard.setData(ClipboardData(text: url));
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('PDF link copied')));
+  }
+
+  Future<void> _openLink(BuildContext context, String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Invalid PDF link')));
+      return;
+    }
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!context.mounted || opened) return;
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Cannot open PDF link')));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final report = context.select<DashboardViewModel, ReportUploadResult?>(
+      (viewModel) => viewModel.lastUploadedPdfReport,
+    );
+    if (report == null) return const SizedBox.shrink();
+
+    final uploadedAt = report.uploadedAt.toLocal();
+    final uploadedAtText =
+        '${uploadedAt.year}-'
+        '${_twoDigits(uploadedAt.month)}-'
+        '${_twoDigits(uploadedAt.day)} '
+        '${_twoDigits(uploadedAt.hour)}:'
+        '${_twoDigits(uploadedAt.minute)}';
+
+    return Card(
+      key: AppKeys.uploadedPdfLinkCard,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.picture_as_pdf_outlined,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Uploaded PDF report',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${report.fileName} - ${_formatBytes(report.sizeBytes)} - $uploadedAtText',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  key: AppKeys.uploadedPdfDismissButton,
+                  tooltip: 'Hide PDF link',
+                  onPressed: () => context
+                      .read<DashboardViewModel>()
+                      .clearUploadedPdfReport(),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            SelectableText(
+              report.downloadUrl,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  key: AppKeys.uploadedPdfCopyButton,
+                  onPressed: () => _copyLink(context, report.downloadUrl),
+                  icon: const Icon(Icons.copy, size: 18),
+                  label: const Text('Copy link'),
+                ),
+                FilledButton.icon(
+                  key: AppKeys.uploadedPdfOpenButton,
+                  onPressed: () => _openLink(context, report.downloadUrl),
+                  icon: const Icon(Icons.open_in_new, size: 18),
+                  label: const Text('Open PDF'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -231,6 +364,19 @@ String _compactNumber(int n) {
   if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
   return n.toString();
 }
+
+String _formatBytes(int bytes) {
+  if (bytes >= 1024 * 1024) {
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+  if (bytes >= 1024) {
+    return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  }
+
+  return '$bytes B';
+}
+
+String _twoDigits(int number) => number.toString().padLeft(2, '0');
 
 String? _influentialPaperDetails(AnalyticsViewModel analytics) {
   final paper = analytics.mostInfluentialPaper;

@@ -71,7 +71,10 @@ class RecordingAnalyticsService implements AppAnalyticsService {
   final searchTopicEvents = <Map<String, Object?>>[];
 
   @override
-  Future<void> logLogin({required AppUser user, required String method}) async {}
+  Future<void> logLogin({
+    required AppUser user,
+    required String method,
+  }) async {}
 
   @override
   Future<void> logLogout({
@@ -114,6 +117,17 @@ class RecordingAnalyticsService implements AppAnalyticsService {
   Future<void> logViewPublication({
     required String publicationTitle,
     required int? publicationYear,
+  }) async {}
+
+  @override
+  Future<void> logPdfExport({
+    required String topic,
+    required String exportType,
+    required String provider,
+    required String bucket,
+    required String fileName,
+    required int sizeBytes,
+    required int hasUploadedLink,
   }) async {}
 }
 

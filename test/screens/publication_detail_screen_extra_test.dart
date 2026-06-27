@@ -81,6 +81,17 @@ class FakeFirebaseAnalyticsService implements AppAnalyticsService {
 
   @override
   Future<void> logViewKeyword({required String keyword}) async {}
+
+  @override
+  Future<void> logPdfExport({
+    required String topic,
+    required String exportType,
+    required String provider,
+    required String bucket,
+    required String fileName,
+    required int sizeBytes,
+    required int hasUploadedLink,
+  }) async {}
 }
 
 Publication fakePublication({
