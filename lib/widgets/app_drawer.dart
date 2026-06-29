@@ -47,7 +47,7 @@ class AppDrawer extends StatelessWidget {
                     Icon(Icons.analytics, color: primaryColor, size: 28),
                     const SizedBox(width: 12),
                     Text(
-                      'openalex',
+                      'ScholarTrend',
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
