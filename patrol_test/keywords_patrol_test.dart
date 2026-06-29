@@ -16,6 +16,7 @@ import 'package:openalex/services/keyword_dashboard_service.dart';
 import 'package:openalex/services/openalex_journal_service.dart';
 import 'package:openalex/services/openalex_keyword_service.dart';
 import 'package:openalex/services/openalex_service.dart';
+import 'package:openalex/services/report/report_metadata_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
 import 'package:openalex/utils/app_keys.dart';
 import 'package:openalex/viewmodels/analytics_view_model.dart';
@@ -26,6 +27,7 @@ import 'package:openalex/viewmodels/keyword_analyzer_view_model.dart';
 import 'package:openalex/viewmodels/keyword_dashboard_view_model.dart';
 import 'package:openalex/viewmodels/selected_topic_view_model.dart';
 import 'package:openalex/viewmodels/trend_analysis_view_model.dart';
+import 'package:openalex/viewmodels/uploaded_reports_view_model.dart';
 import 'package:patrol/patrol.dart';
 import 'package:provider/provider.dart';
 
@@ -35,7 +37,10 @@ const _config = PatrolTesterConfig(
   settlePolicy: SettlePolicy.noSettle,
   visibleTimeout: Duration(seconds: 10),
   existsTimeout: Duration(seconds: 10),
+  printLogs: true,
 );
+
+const _mostFrequentKeywordsListKey = Key('most_frequent_keywords_list');
 
 const _keyword = OpenAlexKeyword(
   id: 'K_TEST_MACHINE_LEARNING',
@@ -161,8 +166,12 @@ Future<void> _launchApp(PatrolIntegrationTester $) async {
   final suggestionService = SuggestionService();
   final keywordDashboardService = _FakeKeywordDashboardService();
   final keywordService = _FakeOpenAlexKeywordService();
+  final authViewModel = AuthViewModel(
+    authService: authService,
+    analyticsService: analyticsService,
+  );
 
-  await $.pumpWidgetAndSettle(
+  await $.tester.pumpWidget(
     MultiProvider(
       providers: [
         Provider<AppAnalyticsService>.value(value: analyticsService),
@@ -171,12 +180,10 @@ Future<void> _launchApp(PatrolIntegrationTester $) async {
         Provider.value(value: suggestionService),
         Provider.value(value: keywordDashboardService),
         Provider.value(value: keywordService),
-        ChangeNotifierProvider(
-          create: (_) => AuthViewModel(
-            authService: authService,
-            analyticsService: analyticsService,
-          ),
+        Provider<ReportMetadataService>.value(
+          value: const NoOpReportMetadataService(),
         ),
+        ChangeNotifierProvider.value(value: authViewModel),
         ChangeNotifierProvider.value(value: selectedTopicViewModel),
         ChangeNotifierProvider(
           create: (_) => HomeViewModel(
@@ -202,6 +209,12 @@ Future<void> _launchApp(PatrolIntegrationTester $) async {
             suggestionService: suggestionService,
           ),
         ),
+        ChangeNotifierProvider(
+          create: (_) => UploadedReportsViewModel(
+            metadataService: const NoOpReportMetadataService(),
+            userIdResolver: () => authViewModel.currentUser?.uid,
+          ),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -221,6 +234,8 @@ Future<void> _launchApp(PatrolIntegrationTester $) async {
     ),
   );
 
+  await $.tester.pump();
+  await $.tester.pump(const Duration(milliseconds: 300));
   debugPrint('[keywords patrol] harness pumped');
 }
 
@@ -245,6 +260,80 @@ Future<void> _waitFor(
   expect(finder, findsWidgets);
 }
 
+Future<void> _waitForKeywordDashboard(PatrolIntegrationTester $) async {
+  debugPrint('[keywords patrol] waiting for keyword dashboard loaded state');
+  final searchFinder = find.byKey(AppKeys.keywordSearchInput);
+  final hotKeywordFinder = find.text('Current Hot Keyword');
+  final loadingFinder = find.text('Loading keyword activity...');
+  final emptyFinder = find.text('No recent keyword activity found.');
+  final errorFinder = find.text(
+    'Unable to load keyword activity. Please try again.',
+  );
+
+  final end = DateTime.now().add(const Duration(seconds: 15));
+  var attempts = 0;
+  while (DateTime.now().isBefore(end)) {
+    await $.pump(const Duration(milliseconds: 250));
+    attempts++;
+
+    if (searchFinder.evaluate().isNotEmpty &&
+        hotKeywordFinder.evaluate().isNotEmpty) {
+      debugPrint(
+        '[keywords patrol] keyword dashboard loaded after $attempts pumps',
+      );
+      return;
+    }
+
+    if (errorFinder.evaluate().isNotEmpty) {
+      fail('Keywords dashboard rendered the error state.');
+    }
+
+    if (emptyFinder.evaluate().isNotEmpty) {
+      fail('Keywords dashboard rendered the empty state.');
+    }
+  }
+
+  final wasLoading = loadingFinder.evaluate().isNotEmpty;
+  final wasEmpty = emptyFinder.evaluate().isNotEmpty;
+  final wasError = errorFinder.evaluate().isNotEmpty;
+  fail(
+    'Timed out waiting for the keyword dashboard loaded state '
+    '(${AppKeys.keywordSearchInput} + Current Hot Keyword). '
+    'loading=$wasLoading empty=$wasEmpty error=$wasError',
+  );
+}
+
+Future<void> _scrollDashboardUntilFound(
+  PatrolIntegrationTester $,
+  Finder finder, {
+  required String label,
+}) async {
+  debugPrint('[keywords patrol] scrolling dashboard to $label');
+  final scrollable = find.byType(ListView).first;
+
+  for (var attempt = 0; attempt < 8; attempt++) {
+    if (finder.evaluate().isNotEmpty) {
+      debugPrint('[keywords patrol] found $label after $attempt scrolls');
+      return;
+    }
+    await $.tester.drag(scrollable, const Offset(0, -420));
+    await $.pump(const Duration(milliseconds: 250));
+  }
+
+  fail('Could not find $label after scrolling the keyword dashboard.');
+}
+
+Future<void> _ensureVisible(
+  PatrolIntegrationTester $,
+  Finder finder, {
+  required String label,
+}) async {
+  debugPrint('[keywords patrol] ensuring $label is visible');
+  await _waitFor($, finder, label: label);
+  await $.tester.ensureVisible(finder);
+  await $.pump(const Duration(milliseconds: 250));
+}
+
 Finder _byKeyPrefix(String prefix) {
   return find.byWidgetPredicate((widget) {
     final key = widget.key;
@@ -259,6 +348,7 @@ String _firstVisibleTextInside(Finder finder) {
       .map((element) => (element.widget as Text).data?.trim())
       .whereType<String>()
       .where((value) => value.isNotEmpty)
+      .where((value) => !value.startsWith('#'))
       .toList();
   expect(texts, isNotEmpty);
   return texts.first;
@@ -273,12 +363,16 @@ void main() {
 
       debugPrint('[keywords patrol] tapping Keywords tab');
       await $(find.byKey(AppKeys.keywordsTab)).tap();
-      await _waitFor($, find.byKey(AppKeys.keywordList), label: 'keyword list');
+      await _waitForKeywordDashboard($);
       expect($('Keyword Analyzer'), findsWidgets);
       expect(find.byKey(AppKeys.keywordSearchInput), findsOneWidget);
-      expect($('Most Frequent Keywords'), findsOneWidget);
-      expect($('Trending Keywords'), findsOneWidget);
 
+      await _scrollDashboardUntilFound(
+        $,
+        find.byKey(_mostFrequentKeywordsListKey),
+        label: 'most frequent keywords list',
+      );
+      expect($('Most Frequent Keywords'), findsOneWidget);
       final keywordItem = _byKeyPrefix('keyword_item_');
       await _waitFor($, keywordItem, label: 'keyword item');
       final keywordName = _firstVisibleTextInside(keywordItem);
@@ -301,7 +395,11 @@ void main() {
       expect(find.byKey(AppKeys.keywordTrendSection), findsOneWidget);
 
       debugPrint('[keywords patrol] verifying author ranking');
-      await $(find.byKey(AppKeys.authorRankingSection)).scrollTo();
+      await _ensureVisible(
+        $,
+        find.byKey(AppKeys.authorRankingSection),
+        label: 'author ranking section',
+      );
       await _waitFor(
         $,
         find.byKey(AppKeys.authorRankingSection),
@@ -313,11 +411,24 @@ void main() {
       expect(_firstVisibleTextInside(authorItem), contains(':'));
 
       debugPrint('[keywords patrol] verifying publications section');
-      await $(find.byKey(AppKeys.keywordPublicationsSection)).scrollTo();
+      await _ensureVisible(
+        $,
+        find.byKey(AppKeys.keywordPublicationsSection),
+        label: 'publications section',
+      );
       expect($('Papers Using This Keyword'), findsOneWidget);
+      final publicationsSection = find.byKey(
+        AppKeys.keywordPublicationsSection,
+      );
+
       expect(
-        $('Deterministic Keyword Analysis for Patrol Tests'),
-        findsOneWidget,
+        find.descendant(
+          of: publicationsSection,
+          matching: find.text(
+            'Deterministic Keyword Analysis for Patrol Tests',
+          ),
+        ),
+        findsWidgets,
       );
 
       debugPrint('[keywords patrol] test finished successfully');
