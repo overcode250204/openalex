@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../utils/app_keys.dart';
+
 class TopContributingAuthorsColumnChart extends StatelessWidget {
   final Map<String, int> authorsData;
 
@@ -34,13 +36,34 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
     final yInterval = maxCount > 5 ? (maxCount / 5).ceilToDouble() : 1.0;
 
     return SizedBox(
-      height: 260,
+      height: 320,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Number of Papers',
             style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              for (final entry in topEntries.take(5))
+                Semantics(
+                  label: '${entry.key}, ${entry.value} papers',
+                  child: Chip(
+                    key: AppKeys.authorRankingItem(
+                      entry.key.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_'),
+                    ),
+                    label: Text(
+                      '${entry.key}: ${entry.value}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 24),
           Expanded(
@@ -63,8 +86,7 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
                         barTouchData: BarTouchData(
                           enabled: true,
                           touchTooltipData: BarTouchTooltipData(
-                            getTooltipColor: (group) =>
-                                const Color(0xFF546A76),
+                            getTooltipColor: (group) => const Color(0xFF546A76),
                             tooltipRoundedRadius: 6,
                             tooltipPadding: const EdgeInsets.symmetric(
                               horizontal: 10,
@@ -96,10 +118,7 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
                             sideTitles: SideTitles(
                               showTitles: true,
                               reservedSize: 62,
-                              getTitlesWidget: (
-                                double value,
-                                TitleMeta meta,
-                              ) {
+                              getTitlesWidget: (double value, TitleMeta meta) {
                                 final index = value.toInt();
                                 if (index < 0 || index >= topEntries.length) {
                                   return const SizedBox.shrink();
@@ -133,10 +152,7 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
                               showTitles: true,
                               reservedSize: 42,
                               interval: yInterval,
-                              getTitlesWidget: (
-                                double value,
-                                TitleMeta meta,
-                              ) {
+                              getTitlesWidget: (double value, TitleMeta meta) {
                                 return SideTitleWidget(
                                   axisSide: meta.axisSide,
                                   child: Text(

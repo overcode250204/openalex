@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/keyword/openalex_keyword.dart';
 import '../../services/suggestion_service.dart';
+import '../../utils/app_keys.dart';
 
 class KeywordAutocompleteSearch extends StatefulWidget {
   final TextEditingController controller;
@@ -12,6 +13,8 @@ class KeywordAutocompleteSearch extends StatefulWidget {
   final String hintText;
   final bool showAnalyzeButton;
   final SuggestionService suggestionService;
+  final Key? inputKey;
+  final Key? analyzeButtonKey;
 
   const KeywordAutocompleteSearch({
     super.key,
@@ -21,6 +24,8 @@ class KeywordAutocompleteSearch extends StatefulWidget {
     this.hintText = 'Enter an academic keyword...',
     this.showAnalyzeButton = true,
     required this.suggestionService,
+    this.inputKey,
+    this.analyzeButtonKey,
   });
 
   @override
@@ -247,6 +252,7 @@ class _KeywordAutocompleteSearchState extends State<KeywordAutocompleteSearch> {
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
+            key: widget.inputKey ?? AppKeys.keywordSearchInput,
             controller: widget.controller,
             focusNode: _focusNode,
             decoration: InputDecoration(
@@ -282,6 +288,7 @@ class _KeywordAutocompleteSearchState extends State<KeywordAutocompleteSearch> {
           if (widget.showAnalyzeButton) const SizedBox(height: 12),
           if (widget.showAnalyzeButton)
             FilledButton.icon(
+              key: widget.analyzeButtonKey ?? AppKeys.keywordSearchButton,
               onPressed: () {
                 final query = widget.controller.text.trim();
                 if (query.isNotEmpty && widget.onAnalyzePressed != null) {
