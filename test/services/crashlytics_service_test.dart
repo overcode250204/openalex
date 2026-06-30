@@ -20,6 +20,7 @@ class _RecordedError {
 
 class _FakeCrashlyticsClient implements CrashlyticsClient {
   bool? collectionEnabled;
+  var crashCount = 0;
   final recordedErrors = <_RecordedError>[];
   final recordedFlutterErrors = <FlutterErrorDetails>[];
 
@@ -50,6 +51,11 @@ class _FakeCrashlyticsClient implements CrashlyticsClient {
   @override
   Future<void> recordFlutterFatalError(FlutterErrorDetails details) async {
     recordedFlutterErrors.add(details);
+  }
+
+  @override
+  Future<void> crash() async {
+    crashCount++;
   }
 }
 
@@ -94,6 +100,59 @@ void main() {
       expect(client.recordedErrors.single.information, ['topic=AI']);
       expect(client.recordedErrors.single.fatal, isFalse);
     });
+
+    test(
+      'demo handled exception records a non-fatal Crashlytics event',
+      () async {
+        final client = _FakeCrashlyticsClient();
+        final service = FirebaseCrashlyticsService(
+          client: client,
+          isSupported: true,
+          installGlobalHandlers: false,
+        );
+
+        await service.recordDemoHandledException();
+
+        expect(client.recordedErrors, hasLength(1));
+        expect(client.recordedErrors.single.error, isA<StateError>());
+        expect(
+          client.recordedErrors.single.reason,
+          'Developer demo: handled exception button',
+        );
+        expect(
+          client.recordedErrors.single.information,
+          contains('action=record_handled_exception'),
+        );
+        expect(client.recordedErrors.single.fatal, isFalse);
+      },
+    );
+
+    test(
+      'demo test crash records fatal evidence then triggers crash',
+      () async {
+        final client = _FakeCrashlyticsClient();
+        final service = FirebaseCrashlyticsService(
+          client: client,
+          isSupported: true,
+          installGlobalHandlers: false,
+        );
+
+        await service.triggerDemoCrash();
+
+        expect(client.recordedErrors, hasLength(1));
+        expect(client.recordedErrors.single.error, isA<StateError>());
+        expect(
+          client.recordedErrors.single.reason,
+          'Developer demo: test crash button',
+        );
+        expect(
+          client.recordedErrors.single.information,
+          contains('action=test_crash'),
+        );
+        expect(client.recordedErrors.single.fatal, isTrue);
+        expect(client.crashCount, 1);
+      },
+    );
 
     test('unsupported platforms initialize as a safe no-op', () async {
       final client = _FakeCrashlyticsClient();
