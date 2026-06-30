@@ -59,6 +59,12 @@ class _RecordingAnalyticsService implements AppAnalyticsService {
   }) async {}
 
   @override
+  Future<void> logExportPdf({
+    required String topic,
+    required int publicationCount,
+  }) async {}
+
+  @override
   Future<void> logPdfExport({
     required String topic,
     required String exportType,
@@ -79,6 +85,7 @@ class _FakeJournalService extends OpenAlexJournalService {
   Future<List<Publication>> fetchPublicationsForJournal(
     String journalId, {
     int perPage = 10,
+    int page = 1,
   }) => onFetchPubs();
 }
 

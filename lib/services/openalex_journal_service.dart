@@ -40,12 +40,14 @@ class OpenAlexJournalService {
   Future<List<Publication>> fetchPublicationsForJournal(
     String journalId, {
     int perPage = 10,
+    int page = 1,
   }) async {
     final id = journalId.replaceAll('https://openalex.org/', '');
     final uri = Uri.https('api.openalex.org', '/works', {
       'filter': 'primary_location.source.id:$id',
       'sort': 'cited_by_count:desc',
       'per-page': perPage.toString(),
+      'page': page.toString(),
       'mailto': _mailto,
     });
     final response = await _client.get(uri);

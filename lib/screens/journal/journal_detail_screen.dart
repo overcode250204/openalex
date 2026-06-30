@@ -25,19 +25,41 @@ class JournalDetailScreen extends StatefulWidget {
 }
 
 class _JournalDetailScreenState extends State<JournalDetailScreen> {
+  static const _perPage = 10;
+
   bool _hasLoggedViewJournal = false;
   List<Publication> _publications = [];
   bool _isLoadingPubs = false;
+  bool _isLoadingMore = false;
   String? _pubsError;
   bool _isFromTopic = false;
+  int _currentPage = 1;
+  bool _hasMore = true;
+
+  late final ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController()..addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _logViewJournal();
       _initPublications();
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_isFromTopic || !_hasMore || _isLoadingMore || _isLoadingPubs) return;
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 200) {
+      _fetchNextPage();
+    }
   }
 
   Future<void> _logViewJournal() async {
@@ -80,7 +102,7 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
     }
   }
 
-  Future<void> _fetchFromApi() async {
+  Future<void> _fetchFromApi({int page = 1}) async {
     if (!mounted) return;
     setState(() {
       _isLoadingPubs = true;
@@ -90,14 +112,48 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
       final service = context.read<OpenAlexJournalService>();
       final pubs = await service.fetchPublicationsForJournal(
         widget.journal.id,
+        page: page,
+        perPage: _perPage,
       );
-      if (mounted) setState(() => _publications = pubs);
+      if (mounted) {
+        setState(() {
+          _publications = pubs;
+          _currentPage = 1;
+          _hasMore = pubs.length >= _perPage;
+        });
+      }
     } on ProviderNotFoundException {
       // Service not in tree (some test environments).
     } catch (_) {
-      if (mounted) _pubsError = 'Could not load publications.';
+      if (mounted) setState(() => _pubsError = 'Could not load publications.');
     } finally {
       if (mounted) setState(() => _isLoadingPubs = false);
+    }
+  }
+
+  Future<void> _fetchNextPage() async {
+    if (!mounted || _isLoadingMore || !_hasMore) return;
+    setState(() => _isLoadingMore = true);
+    try {
+      final service = context.read<OpenAlexJournalService>();
+      final nextPage = _currentPage + 1;
+      final pubs = await service.fetchPublicationsForJournal(
+        widget.journal.id,
+        page: nextPage,
+        perPage: _perPage,
+      );
+      if (mounted) {
+        setState(() {
+          _publications = [..._publications, ...pubs];
+          _currentPage = nextPage;
+          _hasMore = pubs.length >= _perPage;
+        });
+      }
+    } on ProviderNotFoundException {
+    } catch (_) {
+      // silently ignore load-more errors; user can scroll again to retry
+    } finally {
+      if (mounted) setState(() => _isLoadingMore = false);
     }
   }
 
@@ -126,6 +182,7 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
       body: SafeArea(
         top: false,
         child: ListView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(16),
           children: [
             KeyedSubtree(
@@ -139,6 +196,11 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
               key: AppKeys.journalPublicationsSection,
               child: _publicationsBody(),
             ),
+            if (_isLoadingMore)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(child: CircularProgressIndicator()),
+              ),
           ],
         ),
       ),

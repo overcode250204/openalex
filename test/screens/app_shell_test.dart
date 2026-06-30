@@ -98,6 +98,7 @@ class _FakeJournalService extends OpenAlexJournalService {
   Future<List<Publication>> fetchPublicationsForJournal(
     String journalId, {
     int perPage = 10,
+    int page = 1,
   }) async => [];
 }
 
