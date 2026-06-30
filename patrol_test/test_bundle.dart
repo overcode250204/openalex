@@ -9,7 +9,9 @@ import 'package:patrol/src/platform/contracts/contracts.dart';
 import 'package:test_api/src/backend/invoker.dart';
 
 // START: GENERATED TEST IMPORTS
-import 'keywords_patrol_test.dart' as __keywords_patrol_test;
+import 'keywords_patrol_test.dart' as keywords_patrol_test;
+import 'publication_detail_patrol_test.dart' as publication_detail_patrol_test;
+import 'topic_search_patrol_test.dart' as topic_search_patrol_test;
 // END: GENERATED TEST IMPORTS
 
 Future<void> main() async {
@@ -72,7 +74,9 @@ Future<void> main() async {
   });
 
 // START: GENERATED TEST GROUPS
-  group('.keywords_patrol_test', __keywords_patrol_test.main);
+  group('keywords_patrol_test', keywords_patrol_test.main);
+  group('publication_detail_patrol_test', publication_detail_patrol_test.main);
+  group('topic_search_patrol_test', topic_search_patrol_test.main);
 // END: GENERATED TEST GROUPS
 
   final dartTestGroup = await testExplorationCompleter.future;
