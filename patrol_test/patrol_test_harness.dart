@@ -287,10 +287,7 @@ Future<void> launchPatrolApp(PatrolIntegrationTester $) async {
           create: (_) => KeywordAnalyzerViewModel(keywordService),
         ),
         ChangeNotifierProvider(
-          create: (_) => JournalViewModel(
-            OpenAlexJournalService(),
-            suggestionService: suggestionService,
-          ),
+          create: (_) => JournalViewModel(OpenAlexJournalService()),
         ),
         ChangeNotifierProvider(
           create: (_) => UploadedReportsViewModel(

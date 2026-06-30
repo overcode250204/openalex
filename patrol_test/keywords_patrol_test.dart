@@ -13,7 +13,6 @@ import 'package:openalex/screens/app/app_shell_screen.dart';
 import 'package:openalex/services/analytics/app_analytics_service.dart';
 import 'package:openalex/services/analytics/no_op_analytics_service.dart';
 import 'package:openalex/services/keyword_dashboard_service.dart';
-import 'package:openalex/services/openalex_journal_service.dart';
 import 'package:openalex/services/openalex_keyword_service.dart';
 import 'package:openalex/services/openalex_service.dart';
 import 'package:openalex/services/report/report_metadata_service.dart';
@@ -22,7 +21,6 @@ import 'package:openalex/utils/app_keys.dart';
 import 'package:openalex/viewmodels/analytics_view_model.dart';
 import 'package:openalex/viewmodels/auth_view_model.dart';
 import 'package:openalex/viewmodels/home_view_model.dart';
-import 'package:openalex/viewmodels/journal_view_model.dart';
 import 'package:openalex/viewmodels/keyword_analyzer_view_model.dart';
 import 'package:openalex/viewmodels/keyword_dashboard_view_model.dart';
 import 'package:openalex/viewmodels/selected_topic_view_model.dart';
@@ -175,7 +173,6 @@ Future<void> _launchApp(PatrolIntegrationTester $) async {
       providers: [
         Provider<AppAnalyticsService>.value(value: analyticsService),
         Provider.value(value: openAlexService),
-        Provider.value(value: OpenAlexJournalService()),
         Provider.value(value: suggestionService),
         Provider.value(value: keywordDashboardService),
         Provider.value(value: keywordService),
@@ -198,12 +195,6 @@ Future<void> _launchApp(PatrolIntegrationTester $) async {
         ),
         ChangeNotifierProvider(
           create: (_) => KeywordAnalyzerViewModel(keywordService),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => JournalViewModel(
-            OpenAlexJournalService(),
-            suggestionService: suggestionService,
-          ),
         ),
         ChangeNotifierProvider(
           create: (_) => UploadedReportsViewModel(

@@ -4,6 +4,7 @@ import 'package:openalex/viewmodels/publication_detail_view_model.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/publication/publication.dart';
+import '../../services/analytics/app_analytics_service.dart';
 import '../../routes/app_routes.dart';
 import '../../routes/route_arguments.dart';
 import '../../utils/app_keys.dart';
@@ -26,6 +27,8 @@ class PublicationDetailScreen extends StatefulWidget {
 }
 
 class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
+  bool _hasLoggedViewEvent = false;
+
   @override
   void initState() {
     super.initState();
@@ -34,6 +37,25 @@ class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
 
       final viewModel = context.read<PublicationDetailViewModel>();
       await viewModel.loadDetail(widget.workId);
+
+      if (!mounted || _hasLoggedViewEvent) return;
+      final publication = viewModel.publication;
+      if (viewModel.state != DetailState.success ||
+          publication == null ||
+          publication.title.trim().isEmpty ||
+          publication.publicationYear == null) {
+        return;
+      }
+
+      _hasLoggedViewEvent = true;
+      try {
+        await context.read<AppAnalyticsService>().logViewPublication(
+          publicationTitle: publication.title,
+          publicationYear: publication.publicationYear,
+        );
+      } on ProviderNotFoundException {
+        // safe in widget tests without AppAnalyticsService provider
+      }
     });
   }
 

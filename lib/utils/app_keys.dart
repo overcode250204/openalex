@@ -16,6 +16,7 @@ abstract final class AppKeys {
   static const publicationResultsList = publicationList;
   static const journalList = Key('journal_list');
   static const keywordList = Key('keyword_list');
+  static const journalSearchInput = Key('journal_search_input');
   static const keywordSearchInput = Key('keyword_search_input');
   static const keywordSearchButton = Key('keyword_search_button');
   static const keywordDetailScreen = Key('keyword_detail_screen');
@@ -23,6 +24,10 @@ abstract final class AppKeys {
   static const keywordTrendSection = Key('keyword_trend_section');
   static const authorRankingSection = Key('author_ranking_section');
   static const keywordPublicationsSection = Key('keyword_publications_section');
+  static const journalDetailScreen = Key('journal_detail_screen');
+  static const journalStatsSection = Key('journal_stats_section');
+  static const journalChartSection = Key('journal_chart_section');
+  static const journalPublicationsSection = Key('journal_publications_section');
   static const publicationDetailScreen = Key('publication_detail_screen');
   static const publicationDetailTitle = Key('publication_detail_title');
   static const publicationDetailAuthors = Key('publication_detail_authors');

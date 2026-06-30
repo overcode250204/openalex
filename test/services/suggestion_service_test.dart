@@ -122,61 +122,6 @@ void main() {
     });
   });
 
-  group('SuggestionService journal suggestions', () {
-    test('returns empty for short query without calling HTTP', () async {
-      var called = false;
-      final service = SuggestionService(
-        client: MockClient((request) async {
-          called = true;
-          return http.Response('{}', 200);
-        }),
-      );
-
-      final result = await service.fetchJournalSuggestions('a');
-
-      expect(result, isEmpty);
-      expect(called, isFalse);
-    });
-
-    test('calls OpenAlex sources endpoint and parses results', () async {
-      Uri? requestedUri;
-      final service = SuggestionService(
-        client: MockClient((request) async {
-          requestedUri = request.url;
-          return http.Response(
-            jsonEncode({
-              'results': [
-                {
-                  'id': 'S123',
-                  'display_name': 'Nature',
-                  'works_count': 100,
-                  'issn_l': '1234',
-                  'host_organization_name': 'Publisher',
-                },
-              ],
-            }),
-            200,
-          );
-        }),
-      );
-
-      final result = await service.fetchJournalSuggestions('nature');
-
-      expect(requestedUri?.path, '/sources');
-      expect(requestedUri?.queryParameters['search'], 'nature');
-      expect(requestedUri?.queryParameters['filter'], 'type:journal');
-      expect(result.length, 1);
-      expect(result[0].displayName, 'Nature');
-    });
-
-    test('returns empty on error', () async {
-      final service = SuggestionService(
-        client: MockClient((request) async => http.Response('Error', 500)),
-      );
-      expect(await service.fetchJournalSuggestions('nature'), isEmpty);
-    });
-  });
-
   group('SuggestionService related keywords', () {
     test('fetches works and extracts top concepts over threshold', () async {
       Uri? requestedUri;

@@ -83,12 +83,7 @@ class FakeFirebaseAnalyticsService implements AppAnalyticsService {
   Future<void> logViewKeyword({required String keyword}) async {}
 
   @override
-  Future<void> logViewJournal({
-    required String journalName,
-    required String journalId,
-    int? worksCount,
-    int? citedByCount,
-  }) async {}
+  Future<void> logViewJournal({required String journalName}) async {}
 
   @override
   Future<void> logExportPdf({
@@ -162,10 +157,16 @@ Publication fakePublication({
   });
 }
 
-Widget buildScreen({required FakePublicationDetailViewModel provider}) {
+Widget buildScreen({
+  required FakePublicationDetailViewModel provider,
+  FakeFirebaseAnalyticsService? analytics,
+}) {
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<PublicationDetailViewModel>.value(value: provider),
+      Provider<AppAnalyticsService>.value(
+        value: analytics ?? FakeFirebaseAnalyticsService(),
+      ),
     ],
     child: const MaterialApp(
       home: PublicationDetailScreen(
@@ -178,17 +179,65 @@ Widget buildScreen({required FakePublicationDetailViewModel provider}) {
 
 void main() {
   group('PublicationDetailScreen extra coverage', () {
-    testWidgets('loads detail when the screen is mounted', (tester) async {
+    testWidgets(
+      'logs one view event with title and year after successful load',
+      (tester) async {
+        final analytics = FakeFirebaseAnalyticsService();
+        final provider = FakePublicationDetailViewModel(
+          fakeState: DetailState.success,
+          fakePublication: fakePublication(title: 'Tracked Paper', year: 2023),
+        );
+
+        await tester.pumpWidget(
+          buildScreen(provider: provider, analytics: analytics),
+        );
+        await tester.pumpAndSettle();
+
+        expect(analytics.viewEvents, hasLength(1));
+        expect(analytics.viewEvents.single.title, 'Tracked Paper');
+        expect(analytics.viewEvents.single.year, 2023);
+
+        provider.notifyListeners();
+        await tester.pump();
+        await tester.pumpWidget(
+          buildScreen(provider: provider, analytics: analytics),
+        );
+        await tester.pump();
+        expect(analytics.viewEvents, hasLength(1));
+      },
+    );
+
+    testWidgets('does not log when title or year is missing', (tester) async {
+      for (final publication in [
+        fakePublication(title: '', year: 2024),
+        fakePublication(title: 'Missing Year', year: null),
+      ]) {
+        final analytics = FakeFirebaseAnalyticsService();
+        final provider = FakePublicationDetailViewModel(
+          fakeState: DetailState.success,
+          fakePublication: publication,
+        );
+        await tester.pumpWidget(
+          buildScreen(provider: provider, analytics: analytics),
+        );
+        await tester.pumpAndSettle();
+        expect(analytics.viewEvents, isEmpty);
+      }
+    });
+
+    testWidgets('does not log when detail loading fails', (tester) async {
+      final analytics = FakeFirebaseAnalyticsService();
       final provider = FakePublicationDetailViewModel(
-        fakeState: DetailState.success,
-        fakePublication: fakePublication(title: 'Tracked Paper', year: 2023),
+        fakeState: DetailState.error,
+        fakeError: 'Failed',
       );
 
-      await tester.pumpWidget(buildScreen(provider: provider));
+      await tester.pumpWidget(
+        buildScreen(provider: provider, analytics: analytics),
+      );
       await tester.pumpAndSettle();
 
-      expect(provider.loadDetailCalled, isTrue);
-      expect(provider.requestedWorkId, 'W1');
+      expect(analytics.viewEvents, isEmpty);
     });
 
     testWidgets('shows loading state with initial title', (tester) async {

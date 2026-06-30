@@ -89,12 +89,7 @@ void main() {
       publicationTitle: 'Reliable Research',
       publicationYear: 2024,
     );
-    await service.logViewJournal(
-      journalName: 'Journal of Tests',
-      journalId: 'S123',
-      worksCount: 12,
-      citedByCount: 300,
-    );
+    await service.logViewJournal(journalName: 'Journal of Tests');
     await service.logViewKeyword(keyword: 'machine learning');
     await service.logExportPdf(
       topic: 'Artificial Intelligence',
@@ -131,12 +126,7 @@ void main() {
       'publication_title': 'Reliable Research',
       'publication_year': 2024,
     });
-    expect(loggedEvents[4].parameters, {
-      'journal_name': 'Journal of Tests',
-      'journal_id': 'S123',
-      'works_count': 12,
-      'cited_by_count': 300,
-    });
+    expect(loggedEvents[4].parameters, {'journal_name': 'Journal of Tests'});
     expect(loggedEvents[5].parameters, {'keyword': 'machine learning'});
     expect(loggedEvents[6].parameters, {
       'topic': 'Artificial Intelligence',
@@ -152,7 +142,7 @@ void main() {
       publicationTitle: '   ',
       publicationYear: 2024,
     );
-    await service.logViewJournal(journalName: '   ', journalId: 'S123');
+    await service.logViewJournal(journalName: '   ');
     await service.logViewKeyword(keyword: '   ');
 
     expect(loggedEvents, isEmpty);

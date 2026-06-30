@@ -20,21 +20,16 @@ abstract interface class AppAnalyticsService {
     int? openAccessOnly,
     String? sortOption,
   });
+
   Future<void> logViewKeyword({required String keyword});
+
+  Future<void> logViewJournal({required String journalName});
+
   Future<void> logViewPublication({
     required String publicationTitle,
     required int? publicationYear,
   });
 
-  /// Fires when a user selects and views a journal.
-  Future<void> logViewJournal({
-    required String journalName,
-    required String journalId,
-    int? worksCount,
-    int? citedByCount,
-  });
-
-  /// Fires when a user successfully exports a PDF / Markdown trend report.
   Future<void> logExportPdf({
     required String topic,
     required int publicationCount,

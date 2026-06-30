@@ -237,12 +237,14 @@ class HomeViewModel extends ChangeNotifier {
       keyword,
       selectedTopic: selectedTopic,
     );
-    
+
     TopicResolutionResult result;
     if (resolvedTopic != null) {
       result = _resolutionFrom(keyword, resolvedTopic);
     } else {
-      final topicIds = await _openAlexService.getTopicIdsFromKeyword(keyword.trim());
+      final topicIds = await _openAlexService.getTopicIdsFromKeyword(
+        keyword.trim(),
+      );
       result = TopicResolutionResult(
         topicName: keyword.trim(),
         topicIds: topicIds,
@@ -509,7 +511,9 @@ class HomeViewModel extends ChangeNotifier {
         final result = _resolutionFrom(keyword, topic);
         _commitAnalyzedTopic(result);
       } else if (_currentTopic.trim().isEmpty) {
-        final topicIds = await _openAlexService.getTopicIdsFromKeyword(keyword.trim());
+        final topicIds = await _openAlexService.getTopicIdsFromKeyword(
+          keyword.trim(),
+        );
         _commitAnalyzedTopic(
           TopicResolutionResult(
             topicName: keyword.trim(),
