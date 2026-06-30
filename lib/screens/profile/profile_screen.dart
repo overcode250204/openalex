@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/auth/app_user.dart';
-import '../../models/report/uploaded_report.dart';
+import '../../models/firebase/app_push_notification.dart';
+import '../../services/firebase/cloud_messaging_service.dart';
 import '../../utils/app_keys.dart';
 import '../../viewmodels/auth_view_model.dart';
+import '../../viewmodels/cloud_messaging_view_model.dart';
 import '../../viewmodels/selected_topic_view_model.dart';
 import '../../viewmodels/uploaded_reports_view_model.dart';
 
@@ -41,9 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final auth = context.watch<AuthViewModel>();
     final user = auth.currentUser;
     final selectedTopic = context.watch<SelectedTopicViewModel>();
-    final uploadedReports = context.watch<UploadedReportsViewModel>();
-
-    _syncUploadedReports(user);
+    final cloudMessaging = context.watch<CloudMessagingViewModel>();
 
     return Scaffold(
       backgroundColor: ProfileScreen._background,
@@ -100,6 +100,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   constraints: const BoxConstraints(maxWidth: 980),
                   child: _AccountActionsCard(auth: auth),
                 ),
+                const SizedBox(height: 16),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 980),
+                  child: _NotificationCenterCard(viewModel: cloudMessaging),
+                ),
               ],
             );
           },
@@ -109,41 +114,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class _UploadedReportsCard extends StatelessWidget {
-  const _UploadedReportsCard({required this.viewModel});
+class _NotificationCenterCard extends StatelessWidget {
+  const _NotificationCenterCard({required this.viewModel});
 
-  final UploadedReportsViewModel viewModel;
-
-  Future<void> _copyLink(BuildContext context, String url) async {
-    await Clipboard.setData(ClipboardData(text: url));
-    if (!context.mounted) return;
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('PDF link copied')));
-  }
-
-  Future<void> _openLink(BuildContext context, String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Invalid PDF link')));
-      return;
-    }
-
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!context.mounted || opened) return;
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Cannot open PDF link')));
-  }
+  final CloudMessagingViewModel viewModel;
 
   @override
   Widget build(BuildContext context) {
+    final notifications = viewModel.notifications;
+    final token = viewModel.token?.trim();
+
     return Card(
-      key: AppKeys.uploadedReportsCard,
       elevation: 0,
       color: Colors.white,
       shape: RoundedRectangleBorder(
@@ -153,13 +134,13 @@ class _UploadedReportsCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
                 const Expanded(
                   child: Text(
-                    'Uploaded PDF reports',
+                    'Notification Center',
                     style: TextStyle(
                       color: ProfileScreen._ink,
                       fontSize: 18,
@@ -167,137 +148,141 @@ class _UploadedReportsCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                IconButton(
-                  key: AppKeys.uploadedReportsRefreshButton,
-                  tooltip: 'Refresh uploaded reports',
-                  onPressed: viewModel.isLoading ? null : viewModel.refresh,
-                  icon: const Icon(Icons.refresh),
-                ),
+                if (viewModel.isInitializing)
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
               ],
             ),
             const SizedBox(height: 4),
             const Text(
-              'Reports saved in Firestore after a successful S3 upload.',
+              'Firebase Cloud Messaging status and received test pushes.',
               style: TextStyle(color: ProfileScreen._muted, fontSize: 13),
             ),
             const SizedBox(height: 16),
-            if (viewModel.isLoading)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: CircularProgressIndicator(),
+            _InfoRow(
+              icon: Icons.notifications_active_outlined,
+              label: 'Permission',
+              value: _permissionLabel(viewModel.permissionStatus),
+            ),
+            const SizedBox(height: 12),
+            _InfoRow(
+              icon: Icons.vpn_key_outlined,
+              label: 'FCM token',
+              value: token == null || token.isEmpty
+                  ? 'No token available'
+                  : token,
+              trailing: token != null && token.isNotEmpty
+                  ? IconButton(
+                      tooltip: 'Copy FCM token',
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: token));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('FCM token copied to clipboard'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.copy_outlined, size: 20),
+                    )
+                  : null,
+            ),
+            if (viewModel.errorMessage != null) ...[
+              const SizedBox(height: 12),
+              _NotificationErrorBox(message: viewModel.errorMessage!),
+            ],
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: viewModel.isRequestingPermission
+                        ? null
+                        : viewModel.requestPermission,
+                    icon: viewModel.isRequestingPermission
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.notification_add_outlined),
+                    label: Text(
+                      viewModel.isRequestingPermission
+                          ? 'Requesting...'
+                          : 'Enable notifications',
+                    ),
+                  ),
                 ),
-              )
-            else if (viewModel.errorMessage != null)
-              _InlineStateBox(
-                icon: Icons.error_outline,
-                message: viewModel.errorMessage!,
-              )
-            else if (!viewModel.hasReports)
-              const _InlineStateBox(
-                icon: Icons.picture_as_pdf_outlined,
-                message: 'No uploaded PDF reports yet.',
-              )
+                const SizedBox(width: 12),
+                IconButton(
+                  tooltip: 'Clear notifications',
+                  onPressed: notifications.isEmpty
+                      ? null
+                      : viewModel.clearNotifications,
+                  icon: const Icon(Icons.delete_outline),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (notifications.isEmpty)
+              const _EmptyNotifications()
             else
-              ...viewModel.reports.map(
-                (report) => _UploadedReportTile(
-                  report: report,
-                  onCopy: () => _copyLink(context, report.downloadUrl),
-                  onOpen: () => _openLink(context, report.downloadUrl),
-                ),
-              ),
+              ...notifications
+                  .take(5)
+                  .map((notification) => _NotificationTile(notification)),
           ],
+        ),
+      ),
+    );
+  }
+
+  static String _permissionLabel(CloudMessagingPermissionStatus status) {
+    return switch (status) {
+      CloudMessagingPermissionStatus.authorized => 'Authorized',
+      CloudMessagingPermissionStatus.provisional => 'Provisional',
+      CloudMessagingPermissionStatus.denied => 'Denied',
+      CloudMessagingPermissionStatus.notDetermined => 'Not determined',
+      CloudMessagingPermissionStatus.unsupported => 'Unsupported device',
+    };
+  }
+}
+
+class _EmptyNotifications extends StatelessWidget {
+  const _EmptyNotifications();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: const Text(
+        'No push notifications received yet.',
+        style: TextStyle(
+          color: ProfileScreen._muted,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
   }
 }
 
-class _UploadedReportTile extends StatelessWidget {
-  const _UploadedReportTile({
-    required this.report,
-    required this.onCopy,
-    required this.onOpen,
-  });
+class _NotificationTile extends StatelessWidget {
+  const _NotificationTile(this.notification);
 
-  final UploadedReport report;
-  final VoidCallback onCopy;
-  final VoidCallback onOpen;
+  final AppPushNotification notification;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      key: AppKeys.uploadedReportItem(report.id),
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            report.topic,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: ProfileScreen._ink,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${report.fileName} - ${_formatBytes(report.sizeBytes)} - ${_formatDateTime(report.uploadedAt)}',
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: ProfileScreen._muted, fontSize: 12),
-          ),
-          const SizedBox(height: 8),
-          SelectableText(
-            report.downloadUrl,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.primary,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton.icon(
-                key: AppKeys.uploadedReportCopyButton(report.id),
-                onPressed: onCopy,
-                icon: const Icon(Icons.copy, size: 18),
-                label: const Text('Copy link'),
-              ),
-              FilledButton.icon(
-                key: AppKeys.uploadedReportOpenButton(report.id),
-                onPressed: onOpen,
-                icon: const Icon(Icons.open_in_new, size: 18),
-                label: const Text('Open PDF'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InlineStateBox extends StatelessWidget {
-  const _InlineStateBox({required this.icon, required this.message});
-
-  final IconData icon;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFFF9FAFB),
@@ -305,20 +290,95 @@ class _InlineStateBox extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: ProfileScreen._muted, size: 20),
-          const SizedBox(width: 10),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: ProfileScreen._primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              _sourceIcon(notification.source),
+              color: ProfileScreen._primary,
+              size: 19,
+            ),
+          ),
+          const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(
-                color: ProfileScreen._muted,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  notification.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: ProfileScreen._ink,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  notification.body,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: ProfileScreen._muted,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  notification.source.name,
+                  style: const TextStyle(
+                    color: ProfileScreen._muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  static IconData _sourceIcon(PushNotificationSource source) {
+    return switch (source) {
+      PushNotificationSource.foreground => Icons.mark_chat_unread_outlined,
+      PushNotificationSource.background => Icons.notifications_outlined,
+      PushNotificationSource.openedApp => Icons.open_in_new,
+      PushNotificationSource.initial => Icons.rocket_launch_outlined,
+    };
+  }
+}
+
+class _NotificationErrorBox extends StatelessWidget {
+  const _NotificationErrorBox({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(
+          color: colorScheme.onErrorContainer,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

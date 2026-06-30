@@ -3,9 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/models/report/report_upload_result.dart';
 import 'package:openalex/models/report/uploaded_report.dart';
 import 'package:openalex/screens/profile/profile_screen.dart';
-import 'package:openalex/services/report/report_metadata_service.dart';
+import 'package:openalex/services/firebase/cloud_messaging_service.dart';
 import 'package:openalex/utils/app_keys.dart';
 import 'package:openalex/viewmodels/auth_view_model.dart';
+import 'package:openalex/viewmodels/cloud_messaging_view_model.dart';
 import 'package:openalex/viewmodels/selected_topic_view_model.dart';
 import 'package:openalex/viewmodels/uploaded_reports_view_model.dart';
 import 'package:provider/provider.dart';
@@ -26,11 +27,9 @@ Widget _buildProfile({
         create: (_) => selectedTopic ?? SelectedTopicViewModel(),
       ),
       ChangeNotifierProvider(
-        create: (context) => UploadedReportsViewModel(
-          metadataService:
-              reportMetadataService ?? _FakeReportMetadataService(),
-          userIdResolver: () => context.read<AuthViewModel>().currentUser?.uid,
-        ),
+        create: (_) =>
+            CloudMessagingViewModel(const NoOpCloudMessagingService())
+              ..initialize(),
       ),
     ],
     child: const MaterialApp(home: ProfileScreen()),
