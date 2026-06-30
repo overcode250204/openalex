@@ -12,8 +12,6 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
   }) : _analytics = analytics ?? FirebaseAnalytics.instance,
        _auth = firebaseAuth ?? FirebaseAuth.instance;
 
-  static const String googleMethod = 'google';
-
   final FirebaseAnalytics _analytics;
   final FirebaseAuth _auth;
 

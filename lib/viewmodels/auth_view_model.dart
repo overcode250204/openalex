@@ -7,7 +7,6 @@ import 'package:openalex/services/firebase/firebase_auth_service.dart';
 
 import '../models/auth/app_user.dart';
 import '../services/analytics/app_analytics_service.dart';
-import '../services/firebase/firebase_analytics_service.dart';
 import '../services/analytics/no_op_analytics_service.dart';
 
 enum AuthStatus { checking, authenticated, unauthenticated }
@@ -59,7 +58,7 @@ class AuthViewModel extends ChangeNotifier {
       final user = await _authService.signInWithGoogle();
       await _analyticsService.logLogin(
         user: user,
-        method: FirebaseAnalyticsService.googleMethod,
+        method: AppAnalyticsService.googleAuthMethod,
       );
     } catch (error) {
       _errorMessage = _mapAuthError(error);
@@ -81,7 +80,7 @@ class AuthViewModel extends ChangeNotifier {
       final user = _currentUser;
       await _analyticsService.logLogout(
         user: user,
-        method: FirebaseAnalyticsService.googleMethod,
+        method: AppAnalyticsService.googleAuthMethod,
       );
       await _authService.signOut();
       await _analyticsService.clearUser();

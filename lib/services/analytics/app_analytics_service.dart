@@ -1,6 +1,8 @@
 import '../../models/auth/app_user.dart';
 
 abstract interface class AppAnalyticsService {
+  static const String googleAuthMethod = 'google';
+
   Future<void> logLogin({required AppUser user, required String method});
 
   Future<void> logLogout({required AppUser? user, required String method});
