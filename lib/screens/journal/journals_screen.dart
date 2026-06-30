@@ -154,23 +154,25 @@ class _JournalListState extends State<_JournalList> {
   bool _byCitations = true;
   int _topN = 5;
 
-  static const List<int?> _topNOptions = [3, 5, 7, 10];
+  static const List<int?> _topNOptions = [5, 10, 15, 20];
 
   List<JournalSource> get _displayJournals {
-    final sorted = [...widget.journals]..sort(
-      (a, b) => _byCitations
-          ? b.citedByCount.compareTo(a.citedByCount)
-          : b.worksCount.compareTo(a.worksCount),
-    );
+    final sorted = [...widget.journals]
+      ..sort(
+        (a, b) => _byCitations
+            ? b.citedByCount.compareTo(a.citedByCount)
+            : b.worksCount.compareTo(a.worksCount),
+      );
     return sorted.take(_topN).toList();
   }
 
   Map<String, int> _buildChartData() {
-    final sorted = [...widget.journals]..sort(
-      (a, b) => _byCitations
-          ? b.citedByCount.compareTo(a.citedByCount)
-          : b.worksCount.compareTo(a.worksCount),
-    );
+    final sorted = [...widget.journals]
+      ..sort(
+        (a, b) => _byCitations
+            ? b.citedByCount.compareTo(a.citedByCount)
+            : b.worksCount.compareTo(a.worksCount),
+      );
 
     final top = sorted.take(_topN).toList();
     final rest = sorted.skip(_topN).toList();
@@ -199,7 +201,9 @@ class _JournalListState extends State<_JournalList> {
       padding: const EdgeInsets.all(16),
       children: [
         Text(
-          widget.query.isEmpty ? 'Top Journals' : 'Results for "${widget.query}"',
+          widget.query.isEmpty
+              ? 'Top Journals'
+              : 'Results for "${widget.query}"',
           style: Theme.of(
             context,
           ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),

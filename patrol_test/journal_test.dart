@@ -26,7 +26,6 @@ import 'package:openalex/viewmodels/journal_view_model.dart';
 import 'package:openalex/viewmodels/keyword_analyzer_view_model.dart';
 import 'package:openalex/viewmodels/keyword_dashboard_view_model.dart';
 import 'package:openalex/viewmodels/selected_topic_view_model.dart';
-import 'package:openalex/viewmodels/trend_analysis_view_model.dart';
 import 'package:openalex/viewmodels/uploaded_reports_view_model.dart';
 import 'package:patrol/patrol.dart';
 import 'package:provider/provider.dart';
@@ -153,6 +152,7 @@ class _FakeOpenAlexJournalService extends OpenAlexJournalService {
   Future<List<Publication>> fetchPublicationsForJournal(
     String journalId, {
     int perPage = 10,
+    int page = 1,
   }) async {
     debugPrint('[journal patrol] fake fetchPublicationsForJournal($journalId)');
     return _publications
@@ -243,9 +243,6 @@ Future<void> _launchApp(PatrolIntegrationTester $) async {
             selectedTopicViewModel: selectedTopicViewModel,
             analyticsService: analyticsService,
           ),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => TrendAnalysisViewModel(service: openAlexService),
         ),
         ChangeNotifierProvider(create: (_) => AnalyticsViewModel()),
         ChangeNotifierProvider(

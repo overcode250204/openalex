@@ -112,7 +112,7 @@ class _TopResearchJournalsDonutChartState
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '${donutEntries.length}',
+                    '${donutEntries.length - 1}',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -162,13 +162,13 @@ class _TopResearchJournalsDonutChartState
                     ),
                     const SizedBox(width: 8),
                     Text(
-                        '${Formatters.formatCompactNumber(entry.value)} ${widget.valueLabel}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
+                      '${Formatters.formatCompactNumber(entry.value)} ${widget.valueLabel}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
                     ),
                   ],
                 ),
