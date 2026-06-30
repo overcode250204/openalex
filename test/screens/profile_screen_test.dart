@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:openalex/models/report/report_upload_result.dart';
+import 'package:openalex/models/report/uploaded_report.dart';
 import 'package:openalex/screens/profile/profile_screen.dart';
 import 'package:openalex/services/firebase/cloud_messaging_service.dart';
 import 'package:openalex/services/firebase/crashlytics_service.dart';
@@ -9,6 +11,7 @@ import 'package:openalex/viewmodels/auth_view_model.dart';
 import 'package:openalex/viewmodels/cloud_messaging_view_model.dart';
 import 'package:openalex/viewmodels/remote_config_view_model.dart';
 import 'package:openalex/viewmodels/selected_topic_view_model.dart';
+import 'package:openalex/viewmodels/uploaded_reports_view_model.dart';
 import 'package:provider/provider.dart';
 
 import '../fakes/fake_auth_service.dart';
@@ -17,6 +20,7 @@ Widget _buildProfile({
   required FakeAuthService authService,
   SelectedTopicViewModel? selectedTopic,
   AppCrashlyticsService? crashlyticsService,
+  ReportMetadataService? reportMetadataService,
 }) {
   return MultiProvider(
     providers: [
@@ -127,6 +131,8 @@ void main() {
     expect(find.text('Artificial Intelligence'), findsOneWidget);
     expect(find.byKey(AppKeys.logoutButton), findsOneWidget);
 
+    await tester.ensureVisible(find.byKey(AppKeys.logoutButton));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(AppKeys.logoutButton));
     await tester.pumpAndSettle();
 
@@ -140,6 +146,42 @@ void main() {
     expect(authService.signOutCount, 0);
   });
 
+  testWidgets('shows uploaded PDF reports from metadata history', (
+    tester,
+  ) async {
+    final reportMetadataService = _FakeReportMetadataService(
+      reports: [
+        UploadedReport(
+          id: 'report-1',
+          userId: 'user-1',
+          topic: 'Artificial Intelligence',
+          provider: 's3',
+          bucket: 'reports',
+          objectKey: 'reports/ai/report.pdf',
+          fileName: 'trend-report-ai.pdf',
+          downloadUrl: 'https://cdn.test/trend-report-ai.pdf',
+          sizeBytes: 2048,
+          uploadedAt: DateTime.utc(2026, 6, 27, 10, 30),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _buildProfile(
+        authService: FakeAuthService(initialUser: fakeUser(uid: 'user-1')),
+        reportMetadataService: reportMetadataService,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(AppKeys.uploadedReportsCard), findsOneWidget);
+    expect(find.text('Uploaded PDF reports'), findsOneWidget);
+    expect(find.text('Artificial Intelligence'), findsOneWidget);
+    expect(find.text('https://cdn.test/trend-report-ai.pdf'), findsOneWidget);
+    expect(find.byKey(AppKeys.uploadedReportItem('report-1')), findsOneWidget);
+    expect(reportMetadataService.lastUserId, 'user-1');
+  });
+
   testWidgets('does not sign out when confirmation is cancelled', (
     tester,
   ) async {
@@ -147,6 +189,8 @@ void main() {
 
     await tester.pumpWidget(_buildProfile(authService: authService));
 
+    await tester.ensureVisible(find.byKey(AppKeys.logoutButton));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(AppKeys.logoutButton));
     await tester.pumpAndSettle();
 
@@ -162,6 +206,8 @@ void main() {
 
     await tester.pumpWidget(_buildProfile(authService: authService));
 
+    await tester.ensureVisible(find.byKey(AppKeys.logoutButton));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(AppKeys.logoutButton));
     await tester.pumpAndSettle();
 
@@ -188,6 +234,8 @@ void main() {
     );
 
     expect(find.text('Research workspace'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Account'), 240);
+    await tester.pumpAndSettle();
     expect(find.text('Account'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -270,4 +318,27 @@ void main() {
 
     expect(crashlytics.testCrashCount, 1);
   });
+}
+
+class _FakeReportMetadataService implements ReportMetadataService {
+  final List<UploadedReport> reports;
+  String? lastUserId;
+
+  _FakeReportMetadataService({this.reports = const []});
+
+  @override
+  Future<void> saveUploadedReport({
+    required ReportUploadResult uploadResult,
+    required String topic,
+    String? userId,
+  }) async {}
+
+  @override
+  Future<List<UploadedReport>> fetchUploadedReports({
+    required String userId,
+    int limit = 20,
+  }) async {
+    lastUserId = userId;
+    return reports.take(limit).toList();
+  }
 }

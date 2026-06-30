@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
 
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Journal Trend Analyzer',
+        title: 'ScholarTrend',
         theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
         initialRoute: AppRoutes.home,
         onGenerateRoute: AppRouter.onGenerateRoute,
