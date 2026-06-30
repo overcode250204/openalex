@@ -6,7 +6,6 @@ import 'package:provider/single_child_widget.dart';
 
 import '../models/report/report_storage_config.dart';
 import '../viewmodels/analytics_view_model.dart';
-import '../viewmodels/journal_view_model.dart';
 import '../viewmodels/keyword_dashboard_view_model.dart';
 import '../viewmodels/home_view_model.dart';
 import '../services/keyword_dashboard_service.dart';
@@ -33,6 +32,7 @@ import '../viewmodels/dashboard_view_model.dart';
 import '../viewmodels/auth_view_model.dart';
 import '../viewmodels/cloud_messaging_view_model.dart';
 import '../viewmodels/crashlytics_view_model.dart';
+import '../viewmodels/journal_view_model.dart';
 import '../viewmodels/keyword_analyzer_view_model.dart';
 import '../viewmodels/remote_config_view_model.dart';
 import '../services/firebase/remote_config_service.dart';
@@ -172,12 +172,8 @@ abstract final class AppProviders {
         ),
       ),
       ChangeNotifierProvider(
-        create: (context) => JournalViewModel(
-          context.read<OpenAlexJournalService>(),
-          suggestionService: context.read<SuggestionService>(),
-          analyticsService: context.read<AppAnalyticsService>(),
-          remoteConfigService: context.read<AppRemoteConfigService>(),
-        ),
+        create: (context) =>
+            JournalViewModel(context.read<OpenAlexJournalService>()),
       ),
       ChangeNotifierProvider(
         create: (context) =>

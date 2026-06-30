@@ -1,20 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/journal/journal_publication.dart';
 import '../screens/auth/auth_gate_screen.dart';
 import '../screens/app/app_shell_screen.dart';
 import '../screens/dashboard/dashboard_screen.dart';
-import '../screens/journal/journal_publication_detail_screen.dart';
+import '../screens/journal/journal_detail_screen.dart';
 import '../screens/keyword/keyword_detail_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/publication/publication_detail_screen.dart';
 import '../screens/publication/publication_list_screen.dart';
 import '../viewmodels/publication_detail_view_model.dart';
 import '../viewmodels/publication_list_view_model.dart';
-import '../viewmodels/journal_publication_detail_view_model.dart';
 import '../services/analytics/app_analytics_service.dart';
-import '../services/openalex_journal_service.dart';
 import '../services/openalex_service.dart';
 import '../services/zotero_service.dart';
 import 'app_routes.dart';
@@ -63,17 +60,8 @@ abstract final class AppRouter {
           settings,
         );
       case AppRoutes.journalDetail:
-        return _page(
-          ChangeNotifierProvider(
-            create: (context) => JournalPublicationDetailViewModel(
-              context.read<OpenAlexJournalService>(),
-            ),
-            child: JournalPublicationDetailScreen(
-              publication: settings.arguments! as JournalPublication,
-            ),
-          ),
-          settings,
-        );
+        final args = settings.arguments! as JournalDetailRouteArgs;
+        return _page(JournalDetailScreen(journal: args.journal), settings);
       case AppRoutes.keywordDetail:
         final args = settings.arguments! as KeywordDetailRouteArgs;
         return _page(
