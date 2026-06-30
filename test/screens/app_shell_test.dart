@@ -16,6 +16,7 @@ import 'package:openalex/screens/app/app_shell_screen.dart';
 import 'package:openalex/services/openalex_journal_service.dart';
 import 'package:openalex/services/openalex_keyword_service.dart';
 import 'package:openalex/services/openalex_service.dart';
+import 'package:openalex/services/report/report_metadata_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
 import 'package:openalex/services/firebase/cloud_messaging_service.dart';
 import 'package:openalex/services/firebase/remote_config_service.dart';
@@ -162,6 +163,12 @@ Widget _appShellWidget({List<TopicSuggestion> topicSuggestions = const []}) {
       ChangeNotifierProvider(
         create: (_) =>
             KeywordDashboardViewModel(_FakeKeywordDashboardService()),
+      ),
+      ChangeNotifierProvider(
+        create: (_) => UploadedReportsViewModel(
+          metadataService: const NoOpReportMetadataService(),
+          userIdResolver: () => fakeUser().uid,
+        ),
       ),
     ],
     child: const MaterialApp(home: AppShell()),
