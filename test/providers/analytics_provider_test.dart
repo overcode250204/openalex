@@ -89,7 +89,7 @@ void main() {
     expect(provider.hasData, false);
   });
 
-  test('loads summary-only analytics for Trend Analysis', () async {
+  test('loads summary-only analytics when requested', () async {
     when(
       () => mockService.fetchSummary(
         any(),

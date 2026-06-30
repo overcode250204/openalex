@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../utils/formatters.dart';
+import '../../utils/app_keys.dart';
 
 import '../../models/keyword/keyword_dashboard_result.dart';
 import '../../models/keyword/openalex_keyword.dart';
@@ -277,13 +278,16 @@ class _KeywordDashboardScreenState extends State<KeywordDashboardScreen> {
             },
           ),
           const SizedBox(height: 16),
-          MostFrequentKeywordsChart(
-            keywords: result.mostFrequentKeywords,
-            selectedTopN: _mostFrequentTopN,
-            onTopNChanged: (value) {
-              setState(() => _mostFrequentTopN = value);
-            },
-            onSelected: (keyword) => _openDetail(keyword.name),
+          KeyedSubtree(
+            key: AppKeys.keywordList,
+            child: MostFrequentKeywordsChart(
+              keywords: result.mostFrequentKeywords,
+              selectedTopN: _mostFrequentTopN,
+              onTopNChanged: (value) {
+                setState(() => _mostFrequentTopN = value);
+              },
+              onSelected: (keyword) => _openDetail(keyword.name),
+            ),
           ),
           const SizedBox(height: 16),
           TrendingKeywordsChart(

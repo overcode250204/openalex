@@ -6,6 +6,7 @@ import '../../models/keyword/keyword_analysis_result.dart';
 import '../../models/keyword/openalex_keyword.dart';
 import '../../routes/app_routes.dart';
 import '../../routes/route_arguments.dart';
+import '../../utils/app_keys.dart';
 import '../../viewmodels/keyword_analyzer_view_model.dart';
 import '../../widgets/analytics/analytics_chart_card.dart';
 import '../../widgets/keyword/charts/keyword_publication_trend_chart.dart';
@@ -104,6 +105,7 @@ class _KeywordAnalyzerPageState extends State<KeywordAnalyzerPage> {
     final viewModel = context.watch<KeywordAnalyzerViewModel>();
 
     return Scaffold(
+      key: AppKeys.keywordDetailScreen,
       backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
         title: const Text('Keyword Analyzer', overflow: TextOverflow.ellipsis),
@@ -261,24 +263,34 @@ class _KeywordDashboardState extends State<_KeywordDashboard> {
               ),
               const SizedBox(height: 16),
             ],
-            KeywordAnalysisSummary(result: result),
+            KeyedSubtree(
+              key: AppKeys.keywordAnalysisSection,
+              child: KeywordAnalysisSummary(result: result),
+            ),
             const SizedBox(height: 16),
-            KeywordPublicationTrendChart(
-              viewModel: context.read<KeywordAnalyzerViewModel>(),
-              trend: result.trend,
+            KeyedSubtree(
+              key: AppKeys.keywordTrendSection,
+              child: KeywordPublicationTrendChart(
+                viewModel: context.read<KeywordAnalyzerViewModel>(),
+                trend: result.trend,
+              ),
             ),
             if (result.topAuthors.isNotEmpty) ...[
               const SizedBox(height: 16),
-              AnalyticsChartCard(
-                title: 'Top Contributing Authors',
-                subtitle: 'Authors with the most publications on this keyword.',
-                customDropdown: TopSelectorDropdown(
-                  value: _topAuthors,
-                  options: _topOptions,
-                  onChanged: (v) => setState(() => _topAuthors = v),
-                ),
-                child: TopContributingAuthorsColumnChart(
-                  authorsData: _take(result.topAuthors, _topAuthors),
+              KeyedSubtree(
+                key: AppKeys.authorRankingSection,
+                child: AnalyticsChartCard(
+                  title: 'Top Contributing Authors',
+                  subtitle:
+                      'Authors with the most publications on this keyword.',
+                  customDropdown: TopSelectorDropdown(
+                    value: _topAuthors,
+                    options: _topOptions,
+                    onChanged: (v) => setState(() => _topAuthors = v),
+                  ),
+                  child: TopContributingAuthorsColumnChart(
+                    authorsData: _take(result.topAuthors, _topAuthors),
+                  ),
                 ),
               ),
             ],
@@ -298,14 +310,17 @@ class _KeywordDashboardState extends State<_KeywordDashboard> {
               ),
             ],
             const SizedBox(height: 16),
-            KeywordPaperListCard(
-              title: 'Papers Using This Keyword',
-              subtitle:
-                  'Papers ranked by how strongly OpenAlex associates them with this keyword.',
-              emptyMessage: 'No relevant papers found.',
-              papers: result.relevantPapers,
-              showKeywordScore: true,
-              onPaperTap: widget.onPaperTap,
+            KeyedSubtree(
+              key: AppKeys.keywordPublicationsSection,
+              child: KeywordPaperListCard(
+                title: 'Papers Using This Keyword',
+                subtitle:
+                    'Papers ranked by how strongly OpenAlex associates them with this keyword.',
+                emptyMessage: 'No relevant papers found.',
+                papers: result.relevantPapers,
+                showKeywordScore: true,
+                onPaperTap: widget.onPaperTap,
+              ),
             ),
             const SizedBox(height: 16),
             MostCitedPapersCard(
