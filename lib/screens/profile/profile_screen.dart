@@ -73,59 +73,193 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 24,
               ),
               children: [
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 980),
-                  child: isWide
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(flex: 5, child: _ProfileCard(user: user)),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              flex: 4,
-                              child: _WorkspaceCard(
-                                selectedTopic: selectedTopic,
-                              ),
-                            ),
-                          ],
-                        )
-                      : Column(
-                          children: [
-                            _ProfileCard(user: user),
-                            const SizedBox(height: 16),
-                            _WorkspaceCard(selectedTopic: selectedTopic),
-                          ],
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1120),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _ProfileSummaryStrip(
+                          selectedTopic: selectedTopic,
+                          uploadedReports: uploadedReports,
+                          cloudMessaging: cloudMessaging,
                         ),
-                ),
-                const SizedBox(height: 16),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 980),
-                  child: _UploadedReportsCard(viewModel: uploadedReports),
-                ),
-                const SizedBox(height: 16),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 980),
-                  child: _AccountActionsCard(auth: auth),
-                ),
-                const SizedBox(height: 16),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 980),
-                  child: _NotificationCenterCard(viewModel: cloudMessaging),
-                ),
-                const SizedBox(height: 16),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 980),
-                  child: _RemoteConfigCard(viewModel: remoteConfig),
-                ),
-                const SizedBox(height: 16),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 980),
-                  child: const _CrashlyticsDemoCard(),
+                        const SizedBox(height: 16),
+                        if (isWide)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 4,
+                                child: Column(
+                                  children: [
+                                    _ProfileCard(user: user),
+                                    const SizedBox(height: 16),
+                                    _WorkspaceCard(
+                                      selectedTopic: selectedTopic,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    _AccountActionsCard(auth: auth),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                flex: 5,
+                                child: Column(
+                                  children: [
+                                    _UploadedReportsCard(
+                                      viewModel: uploadedReports,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    _NotificationCenterCard(
+                                      viewModel: cloudMessaging,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    _RemoteConfigCard(viewModel: remoteConfig),
+                                    const SizedBox(height: 16),
+                                    const _CrashlyticsDemoCard(),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          )
+                        else ...[
+                          _ProfileCard(user: user),
+                          const SizedBox(height: 16),
+                          _WorkspaceCard(selectedTopic: selectedTopic),
+                          const SizedBox(height: 16),
+                          _UploadedReportsCard(viewModel: uploadedReports),
+                          const SizedBox(height: 16),
+                          _NotificationCenterCard(viewModel: cloudMessaging),
+                          const SizedBox(height: 16),
+                          _RemoteConfigCard(viewModel: remoteConfig),
+                          const SizedBox(height: 16),
+                          _AccountActionsCard(auth: auth),
+                          const SizedBox(height: 16),
+                          const _CrashlyticsDemoCard(),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ],
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _ProfileSummaryStrip extends StatelessWidget {
+  const _ProfileSummaryStrip({
+    required this.selectedTopic,
+    required this.uploadedReports,
+    required this.cloudMessaging,
+  });
+
+  final SelectedTopicViewModel selectedTopic;
+  final UploadedReportsViewModel uploadedReports;
+  final CloudMessagingViewModel cloudMessaging;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        _SummaryPill(
+          icon: Icons.topic_outlined,
+          label: 'Topic',
+          value: selectedTopic.selectedTopic ?? 'None selected',
+        ),
+        _SummaryPill(
+          icon: Icons.picture_as_pdf_outlined,
+          label: 'PDF reports',
+          value: uploadedReports.isLoading
+              ? 'Loading'
+              : uploadedReports.reports.length.toString(),
+        ),
+        _SummaryPill(
+          icon: Icons.notifications_active_outlined,
+          label: 'Notifications',
+          value: cloudMessaging.canReceiveNotifications ? 'Enabled' : 'Off',
+          tone: cloudMessaging.canReceiveNotifications
+              ? _SummaryPillTone.success
+              : _SummaryPillTone.neutral,
+        ),
+      ],
+    );
+  }
+}
+
+enum _SummaryPillTone { neutral, success }
+
+class _SummaryPill extends StatelessWidget {
+  const _SummaryPill({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.tone = _SummaryPillTone.neutral,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final _SummaryPillTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final isSuccess = tone == _SummaryPillTone.success;
+    final color = isSuccess ? Colors.green.shade700 : ProfileScreen._primary;
+    final background = isSuccess ? Colors.green.shade50 : Colors.white;
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 56, minWidth: 168),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isSuccess ? Colors.green.shade100 : Colors.grey.shade200,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 19),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: ProfileScreen._muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: ProfileScreen._ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -272,6 +406,27 @@ class _EmptyNotifications extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return const _EmptyStateBox(
+      icon: Icons.notifications_none_outlined,
+      title: 'No push notifications received yet.',
+      message: 'Test pushes and opened notification events will appear here.',
+    );
+  }
+}
+
+class _EmptyStateBox extends StatelessWidget {
+  const _EmptyStateBox({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -279,13 +434,44 @@ class _EmptyNotifications extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.grey.shade200),
       ),
-      child: const Text(
-        'No push notifications received yet.',
-        style: TextStyle(
-          color: ProfileScreen._muted,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: ProfileScreen._primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: ProfileScreen._primary, size: 19),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: ProfileScreen._ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    color: ProfileScreen._muted,
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -847,13 +1033,10 @@ class _UploadedReportsCard extends StatelessWidget {
             ],
             const SizedBox(height: 16),
             if (!viewModel.isLoading && viewModel.reports.isEmpty)
-              const Text(
-                'No uploaded PDF reports yet.',
-                style: TextStyle(
-                  color: ProfileScreen._muted,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
+              const _EmptyStateBox(
+                icon: Icons.picture_as_pdf_outlined,
+                title: 'No uploaded PDF reports yet.',
+                message: 'Export a dashboard PDF to keep the share link here.',
               )
             else
               ...viewModel.reports.map(

@@ -141,7 +141,7 @@ void main() {
       _buildProfile(authService: authService, selectedTopic: selectedTopic),
     );
 
-    expect(find.text('Artificial Intelligence'), findsOneWidget);
+    expect(find.text('Artificial Intelligence'), findsWidgets);
     expect(find.byKey(AppKeys.logoutButton), findsOneWidget);
 
     await tester.ensureVisible(find.byKey(AppKeys.logoutButton));

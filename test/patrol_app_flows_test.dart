@@ -325,7 +325,8 @@ void main() {
     }
 
     await $.tester.ensureVisible(logoutButton);
-    await $.tester.tap(logoutButton);
+    await $.tester.pump(const Duration(milliseconds: 300));
+    await $.tester.tap(logoutButton, warnIfMissed: false);
     await $.tester.pump();
     await $.tester.pump(const Duration(milliseconds: 300));
 
