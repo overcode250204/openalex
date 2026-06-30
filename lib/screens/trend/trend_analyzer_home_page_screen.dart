@@ -75,7 +75,6 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
       debugPrint('[Search UI] Analytics skipped because search failed.');
       return;
     }
-
   }
 
   void _onQueryChanged(String value) {
@@ -170,22 +169,13 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
           ),
 
           IconButton(
-            tooltip: 'Trend Analysis',
-            onPressed: () => _openTopicAnalytics(
-              routeName: AppRoutes.trendAnalysis,
-              provider: provider,
-            ),
-            icon: const Icon(Icons.show_chart),
-          ),
-
-          IconButton(
             tooltip: 'My Zotero Library',
             onPressed: _openZoteroLibrary,
             icon: const Icon(Icons.library_books),
           ),
 
           IconButton(
-            tooltip: 'Dashboard',
+            tooltip: 'Research Dashboard',
             onPressed: () => _openTopicAnalytics(
               routeName: AppRoutes.dashboard,
               provider: provider,
@@ -313,11 +303,17 @@ class _SearchResultView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (provider.isLoading) {
-      return const LoadingWidget();
+      return const KeyedSubtree(
+        key: AppKeys.topicSearchLoading,
+        child: LoadingWidget(),
+      );
     }
 
     if (provider.errorMessage != null) {
-      return AppErrorWidget(message: provider.errorMessage!);
+      return KeyedSubtree(
+        key: AppKeys.searchErrorState,
+        child: AppErrorWidget(message: provider.errorMessage!),
+      );
     }
 
     if (provider.publications.isEmpty) {
@@ -326,6 +322,7 @@ class _SearchResultView extends StatelessWidget {
           child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: constraints.maxHeight),
             child: const EmptyStateWidget(
+              key: AppKeys.emptySearchState,
               message: 'Enter a research topic and tap Analyze Topic.',
               icon: Icons.manage_search,
             ),
@@ -354,16 +351,22 @@ class _SearchResultView extends StatelessWidget {
             );
           }
           final publication = provider.publications[index];
-          return PublicationCard(
-            key: AppKeys.publicationItem(publication.id),
-            publication: publication,
-            onTap: () {
-              Navigator.pushNamed(
-                context,
-                AppRoutes.publicationDetail,
-                arguments: PublicationDetailRouteArgs(workId: publication.id),
-              );
-            },
+          return KeyedSubtree(
+            key: AppKeys.publicationResultItem(publication.id),
+            child: PublicationCard(
+              key: AppKeys.publicationCard(publication.id),
+              publication: publication,
+              onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.publicationDetail,
+                  arguments: PublicationDetailRouteArgs(
+                    workId: publication.id,
+                    initialTitle: publication.title,
+                  ),
+                );
+              },
+            ),
           );
         },
       ),

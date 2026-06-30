@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../utils/formatters.dart';
+import '../../utils/app_keys.dart';
 import '../../models/keyword/keyword_overview.dart';
 import 'charts/animated_keyword_progress_bar.dart';
 import 'charts/keyword_chart_card.dart';
@@ -84,7 +85,7 @@ class _FrequentKeywordRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      key: ValueKey('most_frequent_keyword_${keyword.id}'),
+      key: AppKeys.keywordItem(keyword.id),
       onTap: () => onSelected(keyword),
       borderRadius: BorderRadius.circular(8),
       child: Padding(
