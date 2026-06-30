@@ -176,32 +176,24 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
   }
 
   @override
-  Future<void> logViewJournal({
-    required String journalName,
-    required String journalId,
-    int? worksCount,
-    int? citedByCount,
-  }) async {
-    final cleanName = journalName.trim();
-    if (cleanName.isEmpty) return;
+  Future<void> logViewJournal({required String journalName}) async {
+    final cleanJournalName = journalName.trim();
+    if (cleanJournalName.isEmpty) return;
 
     await _safely(() async {
       await _ensureCollectionEnabled();
 
-      final parameters = <String, Object>{
-        'journal_name': _analyticsString(cleanName),
-        'journal_id': _analyticsString(journalId),
-      };
-      if (worksCount != null) parameters['works_count'] = worksCount;
-      if (citedByCount != null) parameters['cited_by_count'] = citedByCount;
+      final user = _activeUser;
 
-      await _analytics.logEvent(name: 'view_journal', parameters: parameters);
+      await _analytics.logEvent(
+        name: 'view_journal',
+        parameters: {'journal_name': _analyticsString(cleanJournalName)},
+      );
 
       debugPrint('''
 [Analytics] view_journal logged
-  User UID: ${_activeUser?.uid ?? 'anonymous'}
-  Journal: $cleanName
-  ID: $journalId
+  Viewer UID: ${user?.uid ?? 'anonymous'}
+  Journal: $cleanJournalName
 ''');
     });
   }
