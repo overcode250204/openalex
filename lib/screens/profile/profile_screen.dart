@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/auth/app_user.dart';
 import '../../models/firebase/app_push_notification.dart';
@@ -11,14 +12,33 @@ import '../../viewmodels/auth_view_model.dart';
 import '../../viewmodels/cloud_messaging_view_model.dart';
 import '../../viewmodels/remote_config_view_model.dart';
 import '../../viewmodels/selected_topic_view_model.dart';
+import '../../viewmodels/uploaded_reports_view_model.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   static const _background = Color(0xFFF5F7FB);
   static const _primary = Color(0xFF2563EB);
   static const _ink = Color(0xFF111827);
   static const _muted = Color(0xFF6B7280);
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  String? _lastUserId;
+
+  void _syncUploadedReports(AppUser? user) {
+    final userId = user?.uid;
+    if (userId == _lastUserId) return;
+
+    _lastUserId = userId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<UploadedReportsViewModel>().load(force: true);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,10 +49,10 @@ class ProfileScreen extends StatelessWidget {
     final remoteConfig = context.watch<RemoteConfigViewModel>();
 
     return Scaffold(
-      backgroundColor: _background,
+      backgroundColor: ProfileScreen._background,
       appBar: AppBar(
         title: const Text('Profile'),
-        backgroundColor: _background,
+        backgroundColor: ProfileScreen._background,
         surfaceTintColor: Colors.transparent,
       ),
       body: SafeArea(
@@ -72,6 +92,11 @@ class ProfileScreen extends StatelessWidget {
                             _WorkspaceCard(selectedTopic: selectedTopic),
                           ],
                         ),
+                ),
+                const SizedBox(height: 16),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 980),
+                  child: _UploadedReportsCard(viewModel: uploadedReports),
                 ),
                 const SizedBox(height: 16),
                 ConstrainedBox(
@@ -892,3 +917,25 @@ class _InfoRow extends StatelessWidget {
     );
   }
 }
+
+String _formatBytes(int bytes) {
+  if (bytes >= 1024 * 1024) {
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+  if (bytes >= 1024) {
+    return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  }
+
+  return '$bytes B';
+}
+
+String _formatDateTime(DateTime value) {
+  final local = value.toLocal();
+  return '${local.year}-'
+      '${_twoDigits(local.month)}-'
+      '${_twoDigits(local.day)} '
+      '${_twoDigits(local.hour)}:'
+      '${_twoDigits(local.minute)}';
+}
+
+String _twoDigits(int number) => number.toString().padLeft(2, '0');

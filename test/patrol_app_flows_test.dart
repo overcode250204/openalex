@@ -1,15 +1,21 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/main.dart';
 import 'package:openalex/models/analytics/topic_analytics.dart';
 import 'package:openalex/models/publication/publication.dart';
+import 'package:openalex/models/report/report_upload_result.dart';
 import 'package:openalex/models/search/search_filter.dart';
+import 'package:openalex/models/trend/trend_report_snapshot.dart';
 import 'package:openalex/routes/route_arguments.dart';
 import 'package:openalex/screens/dashboard/dashboard_screen.dart';
 import 'package:openalex/services/analytics/analytics_service.dart';
 import 'package:openalex/services/openalex_service.dart';
+import 'package:openalex/services/pdf_export_service.dart';
+import 'package:openalex/services/pdf_report_layout_service.dart';
+import 'package:openalex/services/report/report_storage_service.dart';
 import 'package:openalex/services/trend_report_export_service.dart';
 import 'package:openalex/utils/app_keys.dart';
 import 'package:openalex/viewmodels/analytics_view_model.dart';
@@ -62,20 +68,53 @@ class _FakeOpenAlexService extends OpenAlexService {
   }
 }
 
-class _RecordingExportService extends TrendReportExportService {
-  _RecordingExportService();
+class _RecordingPdfExportService extends PdfExportService {
+  _RecordingPdfExportService()
+    : super(layoutService: const PdfReportLayoutService());
 
   var exportCount = 0;
 
   @override
-  Future<TrendReportExportResult> exportMarkdownReport(
-    report, {
+  Future<PdfExportResult> exportDashboardPdfReport(
+    TrendReportSnapshot report, {
     DateTime? generatedAt,
   }) async {
     exportCount++;
-    return TrendReportExportResult(
-      file: File('patrol-export-report.md'),
-      markdown: '# Patrol Export',
+    final directory = Directory.systemTemp.createTempSync('patrol-pdf-export');
+    final file = File('${directory.path}/patrol-export-report.pdf');
+    final bytes = Uint8List.fromList([1, 2, 3]);
+    file.writeAsBytesSync(bytes, flush: true);
+
+    return PdfExportResult(
+      file: file,
+      bytes: bytes,
+      byteLength: bytes.length,
+      generatedAt: generatedAt ?? DateTime(2026, 6, 25),
+    );
+  }
+}
+
+class _RecordingReportStorageService implements ReportStorageService {
+  var uploadCount = 0;
+
+  @override
+  Future<ReportUploadResult> uploadReport({
+    required Uint8List bytes,
+    required String fileName,
+    required String contentType,
+    required String topic,
+    DateTime? uploadedAt,
+  }) async {
+    uploadCount++;
+
+    return ReportUploadResult(
+      provider: 'fake',
+      bucket: 'reports',
+      objectKey: 'reports/$fileName',
+      fileName: fileName,
+      downloadUrl: 'https://cdn.test/$fileName',
+      sizeBytes: bytes.length,
+      uploadedAt: uploadedAt ?? DateTime.utc(2026, 6, 25),
     );
   }
 }
@@ -137,7 +176,10 @@ class _RemoteConfigProbeState extends State<_RemoteConfigProbe> {
   }
 }
 
-Widget _dashboardHarness(_RecordingExportService exportService) {
+Widget _dashboardHarness(
+  _RecordingPdfExportService exportService,
+  _RecordingReportStorageService storageService,
+) {
   final openAlexService = _FakeOpenAlexService();
   return MultiProvider(
     providers: [
@@ -148,7 +190,11 @@ Widget _dashboardHarness(_RecordingExportService exportService) {
             AnalyticsViewModel(analyticsService: _FakeAnalyticsService()),
       ),
       ChangeNotifierProvider(
-        create: (_) => DashboardViewModel(exportService: exportService),
+        create: (_) => DashboardViewModel(
+          exportService: const TrendReportExportService(),
+          pdfExportService: exportService,
+          reportStorageService: storageService,
+        ),
       ),
     ],
     child: const MaterialApp(
@@ -197,13 +243,14 @@ void main() {
   );
 
   patrolWidgetTest('PDF export action creates an export result', ($) async {
-    final exportService = _RecordingExportService();
+    final exportService = _RecordingPdfExportService();
+    final storageService = _RecordingReportStorageService();
     $.tester.view.physicalSize = const Size(1200, 1800);
     $.tester.view.devicePixelRatio = 1;
     addTearDown($.tester.view.resetPhysicalSize);
     addTearDown($.tester.view.resetDevicePixelRatio);
 
-    await $.tester.pumpWidget(_dashboardHarness(exportService));
+    await $.tester.pumpWidget(_dashboardHarness(exportService, storageService));
     await $.tester.pump();
     await $.tester.pump(const Duration(milliseconds: 300));
     final listView = find.byType(ListView);
@@ -221,10 +268,20 @@ void main() {
 
     await $.tester.tap(exportButton);
     await $.tester.pump();
-    await $.tester.pump(const Duration(milliseconds: 300));
+    for (
+      var attempt = 0;
+      attempt < 10 && storageService.uploadCount == 0;
+      attempt++
+    ) {
+      await $.tester.pump(const Duration(milliseconds: 100));
+    }
 
     expect(exportService.exportCount, 1);
-    expect($('Trend report exported: patrol-export-report.md'), findsOneWidget);
+    expect(storageService.uploadCount, 1);
+    expect(
+      $('Dashboard PDF uploaded: https://cdn.test/patrol-export-report.pdf'),
+      findsOneWidget,
+    );
   }, config: _patrolConfig);
 
   patrolWidgetTest('Logout redirects to Login Screen', ($) async {
@@ -236,7 +293,19 @@ void main() {
     await $(find.byKey(AppKeys.profileTab)).tap();
     await $.tester.pump(const Duration(milliseconds: 300));
 
-    await $(find.byKey(AppKeys.logoutButton)).tap();
+    final listView = find.byType(ListView);
+    final logoutButton = find.byKey(AppKeys.logoutButton);
+    for (
+      var attempt = 0;
+      attempt < 8 && logoutButton.evaluate().isEmpty;
+      attempt++
+    ) {
+      await $.tester.drag(listView, const Offset(0, -500));
+      await $.tester.pump(const Duration(milliseconds: 100));
+    }
+
+    await $.tester.ensureVisible(logoutButton);
+    await $.tester.tap(logoutButton);
     await $.tester.pump();
     await $.tester.pump(const Duration(milliseconds: 300));
 

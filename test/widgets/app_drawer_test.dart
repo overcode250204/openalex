@@ -22,7 +22,7 @@ void main() {
     testWidgets('displays app logo and user profile footer', (tester) async {
       await tester.pumpWidget(buildDrawer());
 
-      expect(find.text('openalex'), findsOneWidget);
+      expect(find.text('ScholarTrend'), findsOneWidget);
       expect(find.text('Alex Researcher'), findsOneWidget);
       expect(find.text('researcher@example.com'), findsOneWidget);
     });

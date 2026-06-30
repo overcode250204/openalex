@@ -75,7 +75,7 @@ class TopicSummaryGrid extends StatelessWidget {
             crossAxisCount: columns,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            mainAxisExtent: constraints.maxWidth >= 360 ? 136 : 148,
+            mainAxisExtent: constraints.maxWidth >= 360 ? 156 : 168,
           ),
           itemBuilder: (context, index) =>
               _MetricCard(metric: metrics[index], isLoading: isLoading),

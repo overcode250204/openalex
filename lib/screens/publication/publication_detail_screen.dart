@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/publication/publication.dart';
 import '../../routes/app_routes.dart';
 import '../../routes/route_arguments.dart';
+import '../../utils/app_keys.dart';
 import '../../viewmodels/publication_list_view_model.dart';
 import '../../widgets/state/app_error_widget.dart';
 import '../../widgets/state/loading_widget.dart';
@@ -39,6 +40,7 @@ class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: AppKeys.publicationDetailScreen,
       body: Consumer<PublicationDetailViewModel>(
         builder: (context, provider, _) {
           final abstractText =
@@ -83,6 +85,7 @@ class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
                 // expandedHeight: 160,
                 pinned: true,
                 title: Text(
+                  key: AppKeys.publicationDetailTitle,
                   pub.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -109,10 +112,17 @@ class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
                       _InfoSection(pub: pub),
                       const SizedBox(height: 20),
                       if (pub.abstractText != null) ...[
-                        _AbstractSection(abstract: pub.abstractText!),
+                        _AbstractSection(
+                          key: AppKeys.publicationDetailAbstract,
+                          abstract: pub.abstractText!,
+                        ),
                         const SizedBox(height: 20),
                       ] else
-                        Text(abstractText, textAlign: TextAlign.justify),
+                        Text(
+                          abstractText,
+                          key: AppKeys.publicationDetailAbstract,
+                          textAlign: TextAlign.justify,
+                        ),
 
                       // Navigate buttons
                       _NavigateSection(pub: pub),
@@ -239,6 +249,7 @@ class _InfoSection extends StatelessWidget {
         child: Column(
           children: [
             _InfoTile(
+              key: AppKeys.publicationDetailAuthors,
               icon: Icons.people,
               title: 'Authors',
               value: pub.authors.isNotEmpty
@@ -246,6 +257,7 @@ class _InfoSection extends StatelessWidget {
                   : "Unknown authors",
             ),
             _InfoTile(
+              key: AppKeys.publicationDetailYear,
               icon: Icons.calendar_today,
               title: 'Publication year',
               value: pub.publicationYear != null
@@ -253,6 +265,7 @@ class _InfoSection extends StatelessWidget {
                   : 'Unknown year',
             ),
             _InfoTile(
+              key: AppKeys.publicationDetailSource,
               icon: Icons.menu_book,
               title: 'Journal',
               value: pub.journalName != null
@@ -282,6 +295,7 @@ class _InfoTile extends StatelessWidget {
   final String value;
 
   const _InfoTile({
+    super.key,
     required this.icon,
     required this.title,
     required this.value,
@@ -301,7 +315,7 @@ class _InfoTile extends StatelessWidget {
 
 class _AbstractSection extends StatefulWidget {
   final String abstract;
-  const _AbstractSection({required this.abstract});
+  const _AbstractSection({super.key, required this.abstract});
 
   @override
   State<_AbstractSection> createState() => _AbstractSectionState();
