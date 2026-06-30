@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/keyword/keyword_dashboard_result.dart';
+import '../services/firebase/remote_config_service.dart';
 import '../services/keyword_dashboard_service.dart';
 
 enum KeywordDashboardState {
@@ -14,8 +15,13 @@ enum KeywordDashboardState {
 
 class KeywordDashboardViewModel extends ChangeNotifier {
   final KeywordDashboardService _service;
+  final AppRemoteConfigService _remoteConfigService;
 
-  KeywordDashboardViewModel(this._service);
+  KeywordDashboardViewModel(
+    this._service, {
+    AppRemoteConfigService remoteConfigService =
+        const NoOpRemoteConfigService(),
+  }) : _remoteConfigService = remoteConfigService;
 
   KeywordDashboardState _state = KeywordDashboardState.initial;
   KeywordDashboardResult? _result;
@@ -24,7 +30,8 @@ class KeywordDashboardViewModel extends ChangeNotifier {
   int _selectedToYear = DateTime.now().year;
 
   KeywordDashboardState get state => _state;
-  KeywordDashboardResult? get result => _result;
+  KeywordDashboardResult? get result =>
+      _result == null ? null : _applyLimits(_result!);
   String? get errorMessage => _errorMessage;
   bool get hasData => _result != null && !_result!.isEmpty;
   int get selectedFromYear => _selectedFromYear;
@@ -76,7 +83,8 @@ class KeywordDashboardViewModel extends ChangeNotifier {
         trendEndYear: _selectedToYear,
         forceRefresh: forceRefresh,
       );
-      _state = _result!.isEmpty
+
+      _state = result!.isEmpty
           ? KeywordDashboardState.empty
           : KeywordDashboardState.loaded;
     } catch (_) {
@@ -84,5 +92,18 @@ class KeywordDashboardViewModel extends ChangeNotifier {
       _state = KeywordDashboardState.error;
     }
     notifyListeners();
+  }
+
+  KeywordDashboardResult _applyLimits(KeywordDashboardResult rawResult) {
+    final limit = _remoteConfigService.maxKeywordsDisplayed;
+    return rawResult.copyWith(
+      mostFrequentKeywords: _limitedList(rawResult.mostFrequentKeywords, limit),
+      trendingKeywords: _limitedList(rawResult.trendingKeywords, limit),
+    );
+  }
+
+  List<T> _limitedList<T>(List<T> items, int limit) {
+    if (items.length <= limit) return items;
+    return items.sublist(0, limit);
   }
 }

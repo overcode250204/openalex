@@ -31,6 +31,8 @@ import '../viewmodels/dashboard_view_model.dart';
 import '../viewmodels/auth_view_model.dart';
 import '../viewmodels/cloud_messaging_view_model.dart';
 import '../viewmodels/keyword_analyzer_view_model.dart';
+import '../viewmodels/remote_config_view_model.dart';
+import '../services/firebase/remote_config_service.dart';
 import '../viewmodels/selected_topic_view_model.dart';
 import '../viewmodels/uploaded_reports_view_model.dart';
 
@@ -40,6 +42,7 @@ abstract final class AppProviders {
     AuthService? authService,
     AppAnalyticsService? analyticsService,
     CloudMessagingService? cloudMessagingService,
+    AppRemoteConfigService? remoteConfigService,
   }) {
     return [
       Provider<http.Client>(
@@ -91,6 +94,13 @@ abstract final class AppProviders {
                 ? FirebaseAnalyticsService()
                 : const NoOpAnalyticsService()),
       ),
+      Provider<AppRemoteConfigService>(
+        create: (_) =>
+            remoteConfigService ??
+            (authService == null
+                ? FirebaseRemoteConfigService()
+                : const NoOpRemoteConfigService()),
+      ),
       ChangeNotifierProvider(
         create: (context) => AuthViewModel(
           authService: context.read<AuthService>(),
@@ -123,13 +133,16 @@ abstract final class AppProviders {
         ),
       ),
       ChangeNotifierProvider(
-        create: (context) =>
-            KeywordDashboardViewModel(context.read<KeywordDashboardService>()),
+        create: (context) => KeywordDashboardViewModel(
+          context.read<KeywordDashboardService>(),
+          remoteConfigService: context.read<AppRemoteConfigService>(),
+        ),
       ),
       ChangeNotifierProvider(
         create: (context) => KeywordAnalyzerViewModel(
           context.read<OpenAlexKeywordService>(),
           analyticsService: context.read<AppAnalyticsService>(),
+          remoteConfigService: context.read<AppRemoteConfigService>(),
         ),
       ),
       ChangeNotifierProvider(
@@ -137,7 +150,13 @@ abstract final class AppProviders {
           context.read<OpenAlexJournalService>(),
           suggestionService: context.read<SuggestionService>(),
           analyticsService: context.read<AppAnalyticsService>(),
+          remoteConfigService: context.read<AppRemoteConfigService>(),
         ),
+      ),
+      ChangeNotifierProvider(
+        create: (context) =>
+            RemoteConfigViewModel(context.read<AppRemoteConfigService>())
+              ..initialize(),
       ),
     ];
   }
