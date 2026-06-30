@@ -1,27 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openalex/main.dart';
 import 'package:openalex/utils/app_keys.dart';
 import 'package:patrol/patrol.dart';
 
-import '../test/fakes/fake_auth_service.dart';
+import 'patrol_test_harness.dart';
 
 const _config = PatrolTesterConfig(
   settlePolicy: SettlePolicy.noSettle,
-  visibleTimeout: Duration(seconds: 35),
-  existsTimeout: Duration(seconds: 35),
+  visibleTimeout: Duration(seconds: 10),
+  existsTimeout: Duration(seconds: 10),
+  printLogs: true,
 );
 
 Future<void> _launchApp(PatrolIntegrationTester $) async {
-  await $.pumpWidgetAndSettle(
-    MyApp(authService: FakeAuthService(initialUser: fakeUser())),
-  );
+  await launchPatrolApp($);
 }
 
 Future<void> _waitFor(
   PatrolIntegrationTester $,
   Finder finder, {
-  Duration timeout = const Duration(seconds: 45),
+  Duration timeout = const Duration(seconds: 15),
 }) async {
   final end = DateTime.now().add(timeout);
   while (DateTime.now().isBefore(end)) {
@@ -29,6 +27,12 @@ Future<void> _waitFor(
     if (finder.evaluate().isNotEmpty) return;
   }
   expect(finder, findsWidgets);
+}
+
+Future<void> _ensureVisible(PatrolIntegrationTester $, Finder finder) async {
+  await _waitFor($, finder);
+  await $.tester.ensureVisible(finder);
+  await $.pump(const Duration(milliseconds: 250));
 }
 
 Finder _byKeyPrefix(String prefix) {
@@ -75,7 +79,7 @@ void main() {
       expect(find.byKey(AppKeys.publicationDetailYear), findsOneWidget);
       expect(find.byKey(AppKeys.publicationDetailSource), findsOneWidget);
 
-      await $(find.byKey(AppKeys.publicationDetailAbstract)).scrollTo();
+      await _ensureVisible($, find.byKey(AppKeys.publicationDetailAbstract));
       expect(find.byKey(AppKeys.publicationDetailAbstract), findsOneWidget);
       expect($('Abstract'), findsOneWidget);
       expect($('Cited'), findsOneWidget);
