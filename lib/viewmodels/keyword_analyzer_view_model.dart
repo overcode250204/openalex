@@ -4,12 +4,18 @@ import 'package:flutter/material.dart';
 
 import '../models/keyword/keyword_analysis_result.dart';
 import '../models/keyword/openalex_keyword.dart';
+import '../services/analytics/app_analytics_service.dart';
+import '../services/analytics/no_op_analytics_service.dart';
 import '../services/openalex_keyword_service.dart';
 
 class KeywordAnalyzerViewModel extends ChangeNotifier {
   final OpenAlexKeywordService _service;
+  final AppAnalyticsService _analyticsService;
 
-  KeywordAnalyzerViewModel(this._service);
+  KeywordAnalyzerViewModel(
+    this._service, {
+    AppAnalyticsService analyticsService = const NoOpAnalyticsService(),
+  }) : _analyticsService = analyticsService;
 
   String _keyword = '';
   bool _isLoading = false;
@@ -163,6 +169,13 @@ class KeywordAnalyzerViewModel extends ChangeNotifier {
   Future<void> retry() async {
     if (_keyword.trim().isEmpty) return;
     await analyze(_keyword);
+  }
+
+  Future<void> logViewEvent(String keyword) async {
+    final cleanKeyword = keyword.trim();
+    if (cleanKeyword.isNotEmpty) {
+      await _analyticsService.logViewKeyword(keyword: cleanKeyword);
+    }
   }
 
   void clear() {

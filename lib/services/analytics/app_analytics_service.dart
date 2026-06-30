@@ -26,13 +26,17 @@ abstract interface class AppAnalyticsService {
     required int? publicationYear,
   });
 
-  Future<void> logPdfExport({
+  /// Fires when a user selects and views a journal.
+  Future<void> logViewJournal({
+    required String journalName,
+    required String journalId,
+    int? worksCount,
+    int? citedByCount,
+  });
+
+  /// Fires when a user successfully exports a PDF / Markdown trend report.
+  Future<void> logExportPdf({
     required String topic,
-    required String exportType,
-    required String provider,
-    required String bucket,
-    required String fileName,
-    required int sizeBytes,
-    required int hasUploadedLink,
+    required int publicationCount,
   });
 }

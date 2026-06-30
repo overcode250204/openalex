@@ -105,18 +105,7 @@ abstract final class AppProviders {
       ChangeNotifierProvider(
         create: (context) => DashboardViewModel(
           exportService: context.read<TrendReportExportService>(),
-          pdfExportService: context.read<PdfExportService>(),
-          reportStorageService: context.read<ReportStorageService>(),
-          reportMetadataService: context.read<ReportMetadataService>(),
           analyticsService: context.read<AppAnalyticsService>(),
-          currentUserIdResolver: () =>
-              context.read<AuthViewModel>().currentUser?.uid,
-        ),
-      ),
-      ChangeNotifierProvider(
-        create: (context) => UploadedReportsViewModel(
-          metadataService: context.read<ReportMetadataService>(),
-          userIdResolver: () => context.read<AuthViewModel>().currentUser?.uid,
         ),
       ),
       ChangeNotifierProvider(
@@ -124,13 +113,16 @@ abstract final class AppProviders {
             KeywordDashboardViewModel(context.read<KeywordDashboardService>()),
       ),
       ChangeNotifierProvider(
-        create: (context) =>
-            KeywordAnalyzerViewModel(context.read<OpenAlexKeywordService>()),
+        create: (context) => KeywordAnalyzerViewModel(
+          context.read<OpenAlexKeywordService>(),
+          analyticsService: context.read<AppAnalyticsService>(),
+        ),
       ),
       ChangeNotifierProvider(
         create: (context) => JournalViewModel(
           context.read<OpenAlexJournalService>(),
           suggestionService: context.read<SuggestionService>(),
+          analyticsService: context.read<AppAnalyticsService>(),
         ),
       ),
     ];

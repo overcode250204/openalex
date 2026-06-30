@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../models/journal/journal_publication.dart';
 import '../models/journal/journal_source.dart';
 import '../models/journal/journal_suggestion.dart';
+import '../services/analytics/app_analytics_service.dart';
+import '../services/analytics/no_op_analytics_service.dart';
 import '../services/openalex_journal_service.dart';
 import '../services/suggestion_service.dart';
 
@@ -13,9 +15,14 @@ class JournalViewModel extends ChangeNotifier {
 
   final OpenAlexJournalService _service;
   final SuggestionService _suggestionService;
+  final AppAnalyticsService _analyticsService;
 
-  JournalViewModel(this._service, {SuggestionService? suggestionService})
-    : _suggestionService = suggestionService ?? SuggestionService();
+  JournalViewModel(
+    this._service, {
+    SuggestionService? suggestionService,
+    AppAnalyticsService analyticsService = const NoOpAnalyticsService(),
+  }) : _suggestionService = suggestionService ?? SuggestionService(),
+       _analyticsService = analyticsService;
 
   String _searchQuery = '';
   List<JournalSource> _journals = [];
@@ -98,6 +105,16 @@ class JournalViewModel extends ChangeNotifier {
     _hasMorePublications = true;
     _errorMessage = null;
     notifyListeners();
+
+    // Fire analytics event when user views a journal
+    unawaited(
+      _analyticsService.logViewJournal(
+        journalName: journal.displayName,
+        journalId: journal.sourceId,
+        worksCount: journal.worksCount,
+        citedByCount: journal.citedByCount,
+      ),
+    );
 
     await Future.wait([
       loadPublications(journal.sourceId),
