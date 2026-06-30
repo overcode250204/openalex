@@ -19,7 +19,6 @@ import 'package:openalex/screens/dashboard/dashboard_screen.dart';
 import 'package:openalex/screens/publication/publication_detail_screen.dart'
     as screen_detail;
 import 'package:openalex/screens/search/search_screen.dart';
-import 'package:openalex/screens/trend/trend_analysis_screen.dart';
 import 'package:openalex/services/history_service.dart';
 import 'package:openalex/services/analytics/analytics_service.dart';
 import 'package:openalex/services/openalex_service.dart';
@@ -29,7 +28,6 @@ import 'package:openalex/services/report/report_storage_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
 import 'package:openalex/services/trend_report_export_service.dart';
 import 'package:openalex/utils/app_keys.dart';
-import 'package:openalex/viewmodels/trend_analysis_view_model.dart';
 import 'package:openalex/widgets/publication_card.dart';
 import 'package:openalex/widgets/publication_detail_screen.dart'
     as widget_detail;
@@ -70,7 +68,7 @@ class FakeTrendService extends OpenAlexService {
   @override
   Future<Map<int, int>> fetchPublicationTrend({
     required String keyword,
-    int fromYear = 2014,
+    int fromYear = 2010,
     int? toYear,
     String? topicId,
   }) async => {2023: 1, 2024: 1};
@@ -298,16 +296,17 @@ Widget appWithProvider(
   Widget child,
   HomeViewModel provider, {
   DashboardViewModel? dashboardViewModel,
+  OpenAlexService? openAlexService,
 }) {
   return MultiProvider(
     providers: [
+      Provider<OpenAlexService>.value(
+        value: openAlexService ?? FakeTrendService(),
+      ),
       ChangeNotifierProvider<HomeViewModel>.value(value: provider),
       ChangeNotifierProvider(
         create: (_) =>
             AnalyticsViewModel(analyticsService: FakeAnalyticsService()),
-      ),
-      ChangeNotifierProvider(
-        create: (_) => TrendAnalysisViewModel(service: FakeTrendService()),
       ),
       ChangeNotifierProvider(
         create: (_) =>
@@ -359,8 +358,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Search Result'), findsOneWidget);
-    expect(find.byTooltip('Trend Analysis'), findsOneWidget);
-    expect(find.byTooltip('Dashboard'), findsOneWidget);
+    expect(find.byTooltip('Trend Analysis'), findsNothing);
+    expect(find.byTooltip('Research Dashboard'), findsOneWidget);
   });
 
   testWidgets('SummaryCard and PublicationCard render and handle taps', (
@@ -498,7 +497,7 @@ void main() {
     expect(find.byKey(AppKeys.uploadedPdfLinkCard), findsNothing);
   });
 
-  testWidgets('TrendAnalysisScreen shows lists', (tester) async {
+  testWidgets('DashboardScreen includes merged trend sections', (tester) async {
     final provider = await seededProvider([
       publication(title: 'Influential', citations: 30, year: 2024),
       publication(title: 'Less Influential', citations: 2, year: 2023),
@@ -506,18 +505,32 @@ void main() {
 
     await tester.pumpWidget(
       appWithProvider(
-        const TrendAnalysisScreen(arguments: topicArgs),
+        const DashboardScreen(arguments: topicArgs),
         provider,
       ),
     );
     await tester.pumpAndSettle();
 
+    Future<void> scrollToText(String text) async {
+      final target = find.text(text);
+      final listView = find.byType(ListView);
+      for (var attempt = 0; attempt < 8 && target.evaluate().isEmpty; attempt++) {
+        await tester.drag(listView, const Offset(0, -700));
+        await tester.pumpAndSettle();
+      }
+      expect(target, findsOneWidget);
+    }
+
+    await scrollToText('Publication Trend: AI');
     expect(find.text('Publication Trend: AI'), findsOneWidget);
 
+    await scrollToText('Top Influential Papers');
     expect(find.text('Top Influential Papers'), findsOneWidget);
-    expect(find.text('Top Research Journals'), findsOneWidget);
-    expect(find.text('Top Contributing Authors'), findsOneWidget);
     expect(find.text('Influential'), findsWidgets);
+    await scrollToText('Top Research Journals');
+    expect(find.text('Top Research Journals'), findsOneWidget);
+    await scrollToText('Top Contributing Authors');
+    expect(find.text('Top Contributing Authors'), findsOneWidget);
   });
 
   testWidgets(

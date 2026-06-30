@@ -31,7 +31,6 @@ import '../viewmodels/dashboard_view_model.dart';
 import '../viewmodels/auth_view_model.dart';
 import '../viewmodels/keyword_analyzer_view_model.dart';
 import '../viewmodels/selected_topic_view_model.dart';
-import '../viewmodels/trend_analysis_view_model.dart';
 import '../viewmodels/uploaded_reports_view_model.dart';
 
 /// The single dependency-registration boundary for the application.
@@ -90,10 +89,6 @@ abstract final class AppProviders {
         ),
       ),
       ChangeNotifierProvider(create: (_) => SelectedTopicViewModel()),
-      ChangeNotifierProvider(
-        create: (context) =>
-            TrendAnalysisViewModel(service: context.read<OpenAlexService>()),
-      ),
       ChangeNotifierProvider(
         create: (context) => HomeViewModel(
           context.read<OpenAlexService>(),

@@ -36,7 +36,7 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
     final yInterval = maxCount > 5 ? (maxCount / 5).ceilToDouble() : 1.0;
 
     return SizedBox(
-      height: 320,
+      height: 420,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -52,15 +52,20 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
               for (final entry in topEntries.take(5))
                 Semantics(
                   label: '${entry.key}, ${entry.value} papers',
-                  child: Chip(
-                    key: AppKeys.authorRankingItem(
-                      entry.key.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_'),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width - 64,
                     ),
-                    label: Text(
-                      '${entry.key}: ${entry.value}',
-                      overflow: TextOverflow.ellipsis,
+                    child: Chip(
+                      key: AppKeys.authorRankingItem(
+                        entry.key.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_'),
+                      ),
+                      label: Text(
+                        '${entry.key}: ${entry.value}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      visualDensity: VisualDensity.compact,
                     ),
-                    visualDensity: VisualDensity.compact,
                   ),
                 ),
             ],
@@ -71,7 +76,7 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
               builder: (context, constraints) {
                 final chartWidth = math.max(
                   constraints.maxWidth,
-                  topEntries.length * 72.0,
+                  topEntries.length * 52.0,
                 );
 
                 return SingleChildScrollView(
@@ -117,7 +122,7 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
                           bottomTitles: AxisTitles(
                             sideTitles: SideTitles(
                               showTitles: true,
-                              reservedSize: 62,
+                              reservedSize: 82,
                               getTitlesWidget: (double value, TitleMeta meta) {
                                 final index = value.toInt();
                                 if (index < 0 || index >= topEntries.length) {
@@ -129,18 +134,16 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
 
                                 return SideTitleWidget(
                                   axisSide: meta.axisSide,
-                                  space: 8,
-                                  child: SizedBox(
-                                    width: 68,
-                                    child: Text(
-                                      label,
-                                      textAlign: TextAlign.center,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        color: Colors.black54,
-                                      ),
+                                  space: 16,
+                                  angle: -math.pi / 4,
+                                  child: Text(
+                                    label,
+                                    textAlign: TextAlign.left,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.black54,
                                     ),
                                   ),
                                 );
@@ -231,20 +234,9 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
   }
 
   static String _formatAuthorLabel(String name) {
-    final parts = name.trim().split(RegExp(r'\s+'));
-
-    if (parts.length <= 2) {
-      return name;
+    if (name.length > 12) {
+      return '${name.substring(0, 10)}...';
     }
-
-    final firstLine = parts.take(parts.length - 1).join(' ');
-    final lastLine = parts.last;
-
-    String shortFirstLine = firstLine;
-    if (shortFirstLine.length > 10) {
-      shortFirstLine = '${shortFirstLine.substring(0, 10)}...';
-    }
-
-    return '$shortFirstLine\n$lastLine';
+    return name;
   }
 }

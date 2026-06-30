@@ -169,22 +169,13 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
           ),
 
           IconButton(
-            tooltip: 'Trend Analysis',
-            onPressed: () => _openTopicAnalytics(
-              routeName: AppRoutes.trendAnalysis,
-              provider: provider,
-            ),
-            icon: const Icon(Icons.show_chart),
-          ),
-
-          IconButton(
             tooltip: 'My Zotero Library',
             onPressed: _openZoteroLibrary,
             icon: const Icon(Icons.library_books),
           ),
 
           IconButton(
-            tooltip: 'Dashboard',
+            tooltip: 'Research Dashboard',
             onPressed: () => _openTopicAnalytics(
               routeName: AppRoutes.dashboard,
               provider: provider,

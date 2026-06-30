@@ -10,7 +10,6 @@ import '../screens/keyword/keyword_detail_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/publication/publication_detail_screen.dart';
 import '../screens/publication/publication_list_screen.dart';
-import '../screens/trend/trend_analysis_screen.dart';
 import '../viewmodels/publication_detail_view_model.dart';
 import '../viewmodels/publication_list_view_model.dart';
 import '../viewmodels/journal_publication_detail_view_model.dart';
@@ -27,9 +26,6 @@ abstract final class AppRouter {
         return _page(const AuthGateScreen(child: AppShell()), settings);
       case AppRoutes.profile:
         return _page(const ProfileScreen(), settings);
-      case AppRoutes.trendAnalysis:
-        final args = settings.arguments! as TopicAnalyticsRouteArgs;
-        return _page(TrendAnalysisScreen(arguments: args), settings);
       case AppRoutes.dashboard:
         final args = settings.arguments! as TopicAnalyticsRouteArgs;
         return _page(DashboardScreen(arguments: args), settings);
