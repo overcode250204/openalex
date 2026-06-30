@@ -5,6 +5,9 @@ import '../models/report/report_upload_result.dart';
 import '../models/trend/trend_report_snapshot.dart';
 import '../services/analytics/app_analytics_service.dart';
 import '../services/analytics/no_op_analytics_service.dart';
+import '../services/pdf_export_service.dart';
+import '../services/report/report_metadata_service.dart';
+import '../services/report/report_storage_service.dart';
 import '../services/trend_report_export_service.dart';
 
 typedef CurrentUserIdResolver = String? Function();
@@ -21,13 +24,26 @@ class DashboardPdfUploadResult {
 
 class DashboardViewModel extends ChangeNotifier {
   final TrendReportExportService _exportService;
+  final PdfExportService _pdfExportService;
+  final ReportStorageService _reportStorageService;
+  final ReportMetadataService _reportMetadataService;
   final AppAnalyticsService _analyticsService;
+  final CurrentUserIdResolver _currentUserIdResolver;
 
   DashboardViewModel({
     required TrendReportExportService exportService,
+    required PdfExportService pdfExportService,
+    required ReportStorageService reportStorageService,
+    ReportMetadataService reportMetadataService =
+        const NoOpReportMetadataService(),
     AppAnalyticsService analyticsService = const NoOpAnalyticsService(),
+    CurrentUserIdResolver currentUserIdResolver = _noCurrentUserId,
   }) : _exportService = exportService,
-       _analyticsService = analyticsService;
+       _pdfExportService = pdfExportService,
+       _reportStorageService = reportStorageService,
+       _reportMetadataService = reportMetadataService,
+       _analyticsService = analyticsService,
+       _currentUserIdResolver = currentUserIdResolver;
 
   bool _isExporting = false;
   bool get isExporting => _isExporting;
@@ -133,3 +149,5 @@ class DashboardViewModel extends ChangeNotifier {
     }
   }
 }
+
+String? _noCurrentUserId() => null;

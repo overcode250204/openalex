@@ -235,6 +235,46 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
     });
   }
 
+  @override
+  Future<void> logPdfExport({
+    required String topic,
+    required String exportType,
+    required String provider,
+    required String bucket,
+    required String fileName,
+    required int sizeBytes,
+    required int hasUploadedLink,
+  }) async {
+    final cleanTopic = topic.trim();
+
+    await _safely(() async {
+      await _ensureCollectionEnabled();
+
+      await _analytics.logEvent(
+        name: 'export_pdf',
+        parameters: {
+          'topic': _analyticsString(
+            cleanTopic.isEmpty ? 'unknown' : cleanTopic,
+          ),
+          'export_type': _analyticsString(exportType),
+          'provider': _analyticsString(provider),
+          'bucket': _analyticsString(bucket),
+          'file_name': _analyticsString(fileName),
+          'size_bytes': sizeBytes,
+          'has_uploaded_link': hasUploadedLink,
+        },
+      );
+
+      debugPrint('''
+[Analytics] export_pdf logged
+  User UID: ${_activeUser?.uid ?? 'anonymous'}
+  Topic: $cleanTopic
+  Export type: $exportType
+  File: $fileName
+''');
+    });
+  }
+
   Future<void> _ensureCollectionEnabled() {
     return _enableCollectionFuture ??= _analytics.setAnalyticsCollectionEnabled(
       true,

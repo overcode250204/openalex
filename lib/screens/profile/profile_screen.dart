@@ -48,6 +48,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final selectedTopic = context.watch<SelectedTopicViewModel>();
     final cloudMessaging = context.watch<CloudMessagingViewModel>();
     final remoteConfig = context.watch<RemoteConfigViewModel>();
+    final uploadedReports = context.watch<UploadedReportsViewModel>();
+
+    _syncUploadedReports(user);
 
     return Scaffold(
       backgroundColor: ProfileScreen._background,
@@ -752,6 +755,186 @@ class _AccountActionsCard extends StatelessWidget {
                   : const Icon(Icons.logout),
               label: Text(auth.isLoading ? 'Signing out...' : 'Sign out'),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _UploadedReportsCard extends StatelessWidget {
+  const _UploadedReportsCard({required this.viewModel});
+
+  final UploadedReportsViewModel viewModel;
+
+  Future<void> _copyLink(BuildContext context, String link) async {
+    await Clipboard.setData(ClipboardData(text: link));
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Uploaded PDF link copied to clipboard'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<void> _openLink(BuildContext context, String link) async {
+    final uri = Uri.tryParse(link);
+    if (uri == null) return;
+
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!context.mounted || launched) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Cannot open uploaded PDF link.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      key: AppKeys.uploadedReportsCard,
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Uploaded PDF reports',
+                    style: TextStyle(
+                      color: ProfileScreen._ink,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                if (viewModel.isLoading)
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  IconButton(
+                    key: AppKeys.uploadedReportsRefreshButton,
+                    tooltip: 'Refresh uploaded PDF reports',
+                    onPressed: viewModel.refresh,
+                    icon: const Icon(Icons.refresh),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'PDF export links saved for this signed-in researcher.',
+              style: TextStyle(color: ProfileScreen._muted, fontSize: 13),
+            ),
+            if (viewModel.errorMessage != null) ...[
+              const SizedBox(height: 12),
+              _SignOutErrorBox(message: viewModel.errorMessage!),
+            ],
+            const SizedBox(height: 16),
+            if (!viewModel.isLoading && viewModel.reports.isEmpty)
+              const Text(
+                'No uploaded PDF reports yet.',
+                style: TextStyle(
+                  color: ProfileScreen._muted,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              )
+            else
+              ...viewModel.reports.map(
+                (report) => Container(
+                  key: AppKeys.uploadedReportItem(report.id),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9FAFB),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              report.topic,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: ProfileScreen._ink,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            _formatBytes(report.sizeBytes),
+                            style: const TextStyle(
+                              color: ProfileScreen._muted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        report.downloadUrl,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: ProfileScreen._muted,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _formatDateTime(report.uploadedAt),
+                              style: const TextStyle(
+                                color: ProfileScreen._muted,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            key: AppKeys.uploadedReportCopyButton(report.id),
+                            tooltip: 'Copy uploaded PDF link',
+                            onPressed: () =>
+                                _copyLink(context, report.downloadUrl),
+                            icon: const Icon(Icons.copy_outlined, size: 20),
+                          ),
+                          IconButton(
+                            key: AppKeys.uploadedReportOpenButton(report.id),
+                            tooltip: 'Open uploaded PDF',
+                            onPressed: () =>
+                                _openLink(context, report.downloadUrl),
+                            icon: const Icon(Icons.open_in_new, size: 20),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),

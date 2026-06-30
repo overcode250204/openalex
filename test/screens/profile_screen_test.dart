@@ -6,6 +6,7 @@ import 'package:openalex/screens/profile/profile_screen.dart';
 import 'package:openalex/services/firebase/cloud_messaging_service.dart';
 import 'package:openalex/services/firebase/crashlytics_service.dart';
 import 'package:openalex/services/firebase/remote_config_service.dart';
+import 'package:openalex/services/report/report_metadata_service.dart';
 import 'package:openalex/utils/app_keys.dart';
 import 'package:openalex/viewmodels/auth_view_model.dart';
 import 'package:openalex/viewmodels/cloud_messaging_view_model.dart';
@@ -38,6 +39,13 @@ Widget _buildProfile({
       ),
       ChangeNotifierProvider(
         create: (_) => RemoteConfigViewModel(const NoOpRemoteConfigService()),
+      ),
+      ChangeNotifierProvider(
+        create: (context) => UploadedReportsViewModel(
+          metadataService:
+              reportMetadataService ?? const NoOpReportMetadataService(),
+          userIdResolver: () => context.read<AuthViewModel>().currentUser?.uid,
+        ),
       ),
       Provider<AppCrashlyticsService>(
         create: (_) => crashlyticsService ?? const NoOpCrashlyticsService(),
@@ -308,6 +316,8 @@ void main() {
       300,
       scrollable: find.byType(Scrollable),
     );
+    await tester.ensureVisible(find.text('Demo: Record handled exception'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Demo: Record handled exception'));
     await tester.pump();
@@ -318,6 +328,8 @@ void main() {
       findsOneWidget,
     );
 
+    await tester.ensureVisible(find.text('Demo: Test crash'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Demo: Test crash'));
     await tester.pump();
 

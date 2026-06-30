@@ -54,4 +54,15 @@ class NoOpAnalyticsService implements AppAnalyticsService {
     required String topic,
     required int publicationCount,
   }) async {}
+
+  @override
+  Future<void> logPdfExport({
+    required String topic,
+    required String exportType,
+    required String provider,
+    required String bucket,
+    required String fileName,
+    required int sizeBytes,
+    required int hasUploadedLink,
+  }) async {}
 }

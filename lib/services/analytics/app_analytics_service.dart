@@ -39,4 +39,15 @@ abstract interface class AppAnalyticsService {
     required String topic,
     required int publicationCount,
   });
+
+  /// Fires when a generated dashboard PDF is uploaded to report storage.
+  Future<void> logPdfExport({
+    required String topic,
+    required String exportType,
+    required String provider,
+    required String bucket,
+    required String fileName,
+    required int sizeBytes,
+    required int hasUploadedLink,
+  });
 }

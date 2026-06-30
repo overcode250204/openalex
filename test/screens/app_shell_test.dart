@@ -25,6 +25,7 @@ import 'package:openalex/viewmodels/cloud_messaging_view_model.dart';
 import 'package:openalex/viewmodels/keyword_analyzer_view_model.dart';
 import 'package:openalex/viewmodels/keyword_dashboard_view_model.dart';
 import 'package:openalex/viewmodels/remote_config_view_model.dart';
+import 'package:openalex/viewmodels/uploaded_reports_view_model.dart';
 import 'package:openalex/services/keyword_dashboard_service.dart';
 import 'package:openalex/models/keyword/keyword_dashboard_result.dart';
 import 'package:openalex/models/keyword/keyword_frequency_stat.dart';

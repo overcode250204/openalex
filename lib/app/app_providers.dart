@@ -17,6 +17,7 @@ import '../services/analytics/no_op_analytics_service.dart';
 import '../services/firebase/firebase_auth_service.dart';
 import '../services/firebase/cloud_messaging_service.dart';
 import '../services/firebase/crashlytics_service.dart';
+import '../services/firebase/firestore_report_metadata_service.dart';
 import '../services/openalex_journal_service.dart';
 import '../services/openalex_keyword_service.dart';
 import '../services/openalex_service.dart';
@@ -143,7 +144,18 @@ abstract final class AppProviders {
       ChangeNotifierProvider(
         create: (context) => DashboardViewModel(
           exportService: context.read<TrendReportExportService>(),
+          pdfExportService: context.read<PdfExportService>(),
+          reportStorageService: context.read<ReportStorageService>(),
+          reportMetadataService: context.read<ReportMetadataService>(),
           analyticsService: context.read<AppAnalyticsService>(),
+          currentUserIdResolver: () =>
+              context.read<AuthViewModel>().currentUser?.uid,
+        ),
+      ),
+      ChangeNotifierProvider(
+        create: (context) => UploadedReportsViewModel(
+          metadataService: context.read<ReportMetadataService>(),
+          userIdResolver: () => context.read<AuthViewModel>().currentUser?.uid,
         ),
       ),
       ChangeNotifierProvider(
