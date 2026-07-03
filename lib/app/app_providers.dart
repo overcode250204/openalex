@@ -6,7 +6,6 @@ import 'package:provider/single_child_widget.dart';
 
 import '../models/report/report_storage_config.dart';
 import '../viewmodels/analytics_view_model.dart';
-import '../viewmodels/journal_view_model.dart';
 import '../viewmodels/keyword_dashboard_view_model.dart';
 import '../viewmodels/home_view_model.dart';
 import '../services/keyword_dashboard_service.dart';
@@ -16,6 +15,8 @@ import '../services/analytics/app_analytics_service.dart';
 import '../services/firebase/firebase_analytics_service.dart';
 import '../services/analytics/no_op_analytics_service.dart';
 import '../services/firebase/firebase_auth_service.dart';
+import '../services/firebase/cloud_messaging_service.dart';
+import '../services/firebase/crashlytics_service.dart';
 import '../services/firebase/firestore_report_metadata_service.dart';
 import '../services/openalex_journal_service.dart';
 import '../services/openalex_keyword_service.dart';
@@ -30,9 +31,13 @@ import '../services/trend_report_export_service.dart';
 import '../services/zotero_service.dart';
 import '../viewmodels/dashboard_view_model.dart';
 import '../viewmodels/auth_view_model.dart';
+import '../viewmodels/cloud_messaging_view_model.dart';
+import '../viewmodels/crashlytics_view_model.dart';
+import '../viewmodels/journal_view_model.dart';
 import '../viewmodels/keyword_analyzer_view_model.dart';
+import '../viewmodels/remote_config_view_model.dart';
+import '../services/firebase/remote_config_service.dart';
 import '../viewmodels/selected_topic_view_model.dart';
-import '../viewmodels/trend_analysis_view_model.dart';
 import '../viewmodels/uploaded_reports_view_model.dart';
 
 /// The single dependency-registration boundary for the application.
@@ -40,6 +45,9 @@ abstract final class AppProviders {
   static List<SingleChildWidget> build({
     AuthService? authService,
     AppAnalyticsService? analyticsService,
+    CloudMessagingService? cloudMessagingService,
+    AppRemoteConfigService? remoteConfigService,
+    AppCrashlyticsService? crashlyticsService,
   }) {
     return [
       Provider<http.Client>(
@@ -84,6 +92,13 @@ abstract final class AppProviders {
       Provider<AuthService>(
         create: (_) => authService ?? FirebaseAuthService(),
       ),
+      Provider<CloudMessagingService>(
+        create: (_) =>
+            cloudMessagingService ??
+            (authService == null
+                ? FirebaseCloudMessagingService()
+                : const NoOpCloudMessagingService()),
+      ),
       Provider<AppAnalyticsService>(
         create: (_) =>
             analyticsService ??
@@ -91,17 +106,36 @@ abstract final class AppProviders {
                 ? FirebaseAnalyticsService()
                 : const NoOpAnalyticsService()),
       ),
+      Provider<AppRemoteConfigService>(
+        create: (_) =>
+            remoteConfigService ??
+            (authService == null
+                ? FirebaseRemoteConfigService()
+                : const NoOpRemoteConfigService()),
+      ),
+      Provider<AppCrashlyticsService>(
+        create: (_) =>
+            crashlyticsService ??
+            (authService == null
+                ? FirebaseCrashlyticsService(installGlobalHandlers: false)
+                : const NoOpCrashlyticsService()),
+      ),
       ChangeNotifierProvider(
         create: (context) => AuthViewModel(
           authService: context.read<AuthService>(),
           analyticsService: context.read<AppAnalyticsService>(),
         ),
       ),
-      ChangeNotifierProvider(create: (_) => SelectedTopicViewModel()),
       ChangeNotifierProvider(
         create: (context) =>
-            TrendAnalysisViewModel(service: context.read<OpenAlexService>()),
+            CloudMessagingViewModel(context.read<CloudMessagingService>())
+              ..initialize(),
       ),
+      ChangeNotifierProvider(
+        create: (context) =>
+            CrashlyticsViewModel(context.read<AppCrashlyticsService>()),
+      ),
+      ChangeNotifierProvider(create: (_) => SelectedTopicViewModel()),
       ChangeNotifierProvider(
         create: (context) => HomeViewModel(
           context.read<OpenAlexService>(),
@@ -133,18 +167,26 @@ abstract final class AppProviders {
         ),
       ),
       ChangeNotifierProvider(
-        create: (context) =>
-            KeywordDashboardViewModel(context.read<KeywordDashboardService>()),
-      ),
-      ChangeNotifierProvider(
-        create: (context) =>
-            KeywordAnalyzerViewModel(context.read<OpenAlexKeywordService>()),
-      ),
-      ChangeNotifierProvider(
-        create: (context) => JournalViewModel(
-          context.read<OpenAlexJournalService>(),
-          suggestionService: context.read<SuggestionService>(),
+        create: (context) => KeywordDashboardViewModel(
+          context.read<KeywordDashboardService>(),
+          remoteConfigService: context.read<AppRemoteConfigService>(),
         ),
+      ),
+      ChangeNotifierProvider(
+        create: (context) => KeywordAnalyzerViewModel(
+          context.read<OpenAlexKeywordService>(),
+          analyticsService: context.read<AppAnalyticsService>(),
+          remoteConfigService: context.read<AppRemoteConfigService>(),
+        ),
+      ),
+      ChangeNotifierProvider(
+        create: (context) =>
+            JournalViewModel(context.read<OpenAlexJournalService>()),
+      ),
+      ChangeNotifierProvider(
+        create: (context) =>
+            RemoteConfigViewModel(context.read<AppRemoteConfigService>())
+              ..initialize(),
       ),
     ];
   }

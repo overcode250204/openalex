@@ -52,10 +52,14 @@ class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
       }
 
       _hasLoggedViewEvent = true;
-      await context.read<AppAnalyticsService>().logViewPublication(
-        publicationTitle: publication.title,
-        publicationYear: publication.publicationYear,
-      );
+      try {
+        await context.read<AppAnalyticsService>().logViewPublication(
+          publicationTitle: publication.title,
+          publicationYear: publication.publicationYear,
+        );
+      } on ProviderNotFoundException {
+        // safe in widget tests without AppAnalyticsService provider
+      }
     });
   }
 
@@ -79,6 +83,7 @@ class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: AppKeys.publicationDetailScreen,
       floatingActionButton: Consumer<PublicationDetailViewModel>(
         builder: (context, provider, _) {
           final publication = provider.publication;
@@ -137,6 +142,7 @@ class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
                 // expandedHeight: 160,
                 pinned: true,
                 title: Text(
+                  key: AppKeys.publicationDetailTitle,
                   pub.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -163,10 +169,17 @@ class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
                       _InfoSection(pub: pub),
                       const SizedBox(height: 20),
                       if (pub.abstractText != null) ...[
-                        _AbstractSection(abstract: pub.abstractText!),
+                        _AbstractSection(
+                          key: AppKeys.publicationDetailAbstract,
+                          abstract: pub.abstractText!,
+                        ),
                         const SizedBox(height: 20),
                       ] else
-                        Text(abstractText, textAlign: TextAlign.justify),
+                        Text(
+                          abstractText,
+                          key: AppKeys.publicationDetailAbstract,
+                          textAlign: TextAlign.justify,
+                        ),
 
                       // Navigate buttons
                       _NavigateSection(pub: pub),
@@ -267,7 +280,7 @@ class _ActionButtons extends StatelessWidget {
         ),
         if (pub.doi != null)
           FilledButton.icon(
-            onPressed: () => {_openDoi(context)},
+            onPressed: () => _openDoi(context),
             icon: const Icon(Icons.open_in_browser),
             label: const Text('Open DOI'),
           ),
@@ -294,6 +307,7 @@ class _InfoSection extends StatelessWidget {
         child: Column(
           children: [
             _InfoTile(
+              key: AppKeys.publicationDetailAuthors,
               icon: Icons.people,
               title: 'Authors',
               value: pub.authors.isNotEmpty
@@ -301,6 +315,7 @@ class _InfoSection extends StatelessWidget {
                   : "Unknown authors",
             ),
             _InfoTile(
+              key: AppKeys.publicationDetailYear,
               icon: Icons.calendar_today,
               title: 'Publication year',
               value: pub.publicationYear != null
@@ -308,6 +323,7 @@ class _InfoSection extends StatelessWidget {
                   : 'Unknown year',
             ),
             _InfoTile(
+              key: AppKeys.publicationDetailSource,
               icon: Icons.menu_book,
               title: 'Journal',
               value: pub.journalName != null
@@ -337,6 +353,7 @@ class _InfoTile extends StatelessWidget {
   final String value;
 
   const _InfoTile({
+    super.key,
     required this.icon,
     required this.title,
     required this.value,
@@ -356,7 +373,7 @@ class _InfoTile extends StatelessWidget {
 
 class _AbstractSection extends StatefulWidget {
   final String abstract;
-  const _AbstractSection({required this.abstract});
+  const _AbstractSection({super.key, required this.abstract});
 
   @override
   State<_AbstractSection> createState() => _AbstractSectionState();

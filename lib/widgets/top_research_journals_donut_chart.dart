@@ -1,10 +1,17 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../utils/formatters.dart';
+
 class TopResearchJournalsDonutChart extends StatefulWidget {
   final Map<String, int> journalsData;
+  final String valueLabel;
 
-  const TopResearchJournalsDonutChart({super.key, required this.journalsData});
+  const TopResearchJournalsDonutChart({
+    super.key,
+    required this.journalsData,
+    this.valueLabel = 'papers',
+  });
 
   @override
   State<TopResearchJournalsDonutChart> createState() =>
@@ -105,7 +112,7 @@ class _TopResearchJournalsDonutChartState
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '${donutEntries.length}',
+                    '${donutEntries.length - 1}',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -154,16 +161,13 @@ class _TopResearchJournalsDonutChartState
                       ),
                     ),
                     const SizedBox(width: 8),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 96),
-                      child: Text(
-                        '${entry.value} ${entry.value == 1 ? 'paper' : 'papers'}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
+                    Text(
+                      '${Formatters.formatCompactNumber(entry.value)} ${widget.valueLabel}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
                       ),
                     ),
                   ],

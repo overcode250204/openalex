@@ -1,3 +1,4 @@
+import '../models/journal/journal_source.dart';
 import '../models/keyword/openalex_keyword.dart';
 import '../viewmodels/publication_list_view_model.dart';
 
@@ -44,4 +45,10 @@ class KeywordDetailRouteArgs {
     required this.keyword,
     this.originalSearchText,
   });
+}
+
+class JournalDetailRouteArgs {
+  final JournalSource journal;
+
+  const JournalDetailRouteArgs({required this.journal});
 }

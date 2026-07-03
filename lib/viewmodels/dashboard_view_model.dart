@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../models/report/report_upload_result.dart';
@@ -36,13 +37,13 @@ class DashboardViewModel extends ChangeNotifier {
     ReportMetadataService reportMetadataService =
         const NoOpReportMetadataService(),
     AppAnalyticsService analyticsService = const NoOpAnalyticsService(),
-    CurrentUserIdResolver? currentUserIdResolver,
+    CurrentUserIdResolver currentUserIdResolver = _noCurrentUserId,
   }) : _exportService = exportService,
        _pdfExportService = pdfExportService,
        _reportStorageService = reportStorageService,
        _reportMetadataService = reportMetadataService,
        _analyticsService = analyticsService,
-       _currentUserIdResolver = currentUserIdResolver ?? (() => null);
+       _currentUserIdResolver = currentUserIdResolver;
 
   bool _isExporting = false;
   bool get isExporting => _isExporting;
@@ -63,7 +64,15 @@ class DashboardViewModel extends ChangeNotifier {
     _isExporting = true;
     notifyListeners();
     try {
-      return await _exportService.exportMarkdownReport(report);
+      final result = await _exportService.exportMarkdownReport(report);
+      // Log export_pdf event on success
+      unawaited(
+        _analyticsService.logExportPdf(
+          topic: report.topic,
+          publicationCount: report.totalPublications,
+        ),
+      );
+      return result;
     } finally {
       _isExporting = false;
       notifyListeners();
@@ -140,3 +149,5 @@ class DashboardViewModel extends ChangeNotifier {
     }
   }
 }
+
+String? _noCurrentUserId() => null;

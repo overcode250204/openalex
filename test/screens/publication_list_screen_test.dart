@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/models/publication/publication.dart';
-import 'package:openalex/viewmodels/journal_view_model.dart';
 import 'package:openalex/viewmodels/publication_detail_view_model.dart';
 import 'package:openalex/viewmodels/publication_list_view_model.dart';
 import 'package:openalex/viewmodels/home_view_model.dart';
 import 'package:openalex/screens/publication/publication_list_screen.dart';
-import 'package:openalex/services/openalex_journal_service.dart';
 import 'package:openalex/services/openalex_service.dart';
+import 'package:openalex/services/firebase/remote_config_service.dart';
+import 'package:openalex/viewmodels/remote_config_view_model.dart';
 import 'package:provider/provider.dart';
 
 class _FakeOpenAlexService extends OpenAlexService {
@@ -40,9 +40,6 @@ Widget _buildScreen({
       ),
       ChangeNotifierProvider<PublicationDetailViewModel>(
         create: (_) => PublicationDetailViewModel(),
-      ),
-      ChangeNotifierProvider<JournalViewModel>(
-        create: (_) => JournalViewModel(OpenAlexJournalService()),
       ),
     ],
     child: MaterialApp(

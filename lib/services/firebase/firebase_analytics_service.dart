@@ -12,8 +12,6 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
   }) : _analytics = analytics ?? FirebaseAnalytics.instance,
        _auth = firebaseAuth ?? FirebaseAuth.instance;
 
-  static const String googleMethod = 'google';
-
   final FirebaseAnalytics _analytics;
   final FirebaseAuth _auth;
 
@@ -22,11 +20,9 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
 
   AppUser? get _activeUser {
     final firebaseUser = _auth.currentUser;
-
     if (firebaseUser != null) {
       return AppUser.fromFirebaseUser(firebaseUser);
     }
-
     return _currentUser;
   }
 
@@ -34,22 +30,16 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
   Future<void> logLogin({required AppUser user, required String method}) async {
     await _safely(() async {
       await _ensureCollectionEnabled();
-
       _currentUser = user;
-
-      // Firebase Analytics chỉ gắn UID, không gửi email/name.
       await _analytics.setUserId(id: user.uid);
-
-      await _analytics.logLogin(
-        loginMethod: method,
-        parameters: {'auth_provider': method},
+      await _analytics.logEvent(
+        name: 'login',
+        parameters: {'auth_provider': _analyticsString(method)},
       );
-
       debugPrint('''
-[Analytics] Login logged successfully
+[Analytics] login logged
   UID: ${user.uid}
   Name: ${user.displayName ?? 'Unknown'}
-  Email: ${user.email ?? 'No email'}
   Provider: $method
 ''');
     });
@@ -73,7 +63,6 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
   Future<void> clearUser() async {
     await _safely(() async {
       await _ensureCollectionEnabled();
-
       await _analytics.setUserId(id: null);
       _currentUser = null;
     });
@@ -187,6 +176,58 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
   }
 
   @override
+  Future<void> logViewJournal({required String journalName}) async {
+    final cleanJournalName = journalName.trim();
+    if (cleanJournalName.isEmpty) return;
+
+    await _safely(() async {
+      await _ensureCollectionEnabled();
+
+      final user = _activeUser;
+
+      await _analytics.logEvent(
+        name: 'view_journal',
+        parameters: {'journal_name': _analyticsString(cleanJournalName)},
+      );
+
+      debugPrint('''
+[Analytics] view_journal logged
+  Viewer UID: ${user?.uid ?? 'anonymous'}
+  Journal: $cleanJournalName
+''');
+    });
+  }
+
+  @override
+  Future<void> logExportPdf({
+    required String topic,
+    required int publicationCount,
+  }) async {
+    final cleanTopic = topic.trim();
+
+    await _safely(() async {
+      await _ensureCollectionEnabled();
+
+      await _analytics.logEvent(
+        name: 'export_pdf',
+        parameters: {
+          'topic': _analyticsString(
+            cleanTopic.isEmpty ? 'unknown' : cleanTopic,
+          ),
+          'publication_count': publicationCount,
+        },
+      );
+
+      debugPrint('''
+[Analytics] export_pdf logged
+  User UID: ${_activeUser?.uid ?? 'anonymous'}
+  Topic: $cleanTopic
+  Publications: $publicationCount
+''');
+    });
+  }
+
+  @override
   Future<void> logPdfExport({
     required String topic,
     required String exportType,
@@ -197,31 +238,31 @@ class FirebaseAnalyticsService implements AppAnalyticsService {
     required int hasUploadedLink,
   }) async {
     final cleanTopic = topic.trim();
-    if (cleanTopic.isEmpty) return;
 
     await _safely(() async {
       await _ensureCollectionEnabled();
 
-      final parameters = <String, Object>{
-        'topic': _analyticsString(cleanTopic),
-        'export_type': _analyticsString(exportType),
-        'provider': _analyticsString(provider),
-        'bucket': _analyticsString(bucket),
-        'file_name': _analyticsString(fileName),
-        'size_bytes': sizeBytes,
-        'has_uploaded_link': hasUploadedLink,
-      };
-
-      await _analytics.logEvent(name: 'pdf_export', parameters: parameters);
+      await _analytics.logEvent(
+        name: 'export_pdf',
+        parameters: {
+          'topic': _analyticsString(
+            cleanTopic.isEmpty ? 'unknown' : cleanTopic,
+          ),
+          'export_type': _analyticsString(exportType),
+          'provider': _analyticsString(provider),
+          'bucket': _analyticsString(bucket),
+          'file_name': _analyticsString(fileName),
+          'size_bytes': sizeBytes,
+          'has_uploaded_link': hasUploadedLink,
+        },
+      );
 
       debugPrint('''
-[Analytics] pdf_export logged
+[Analytics] export_pdf logged
   User UID: ${_activeUser?.uid ?? 'anonymous'}
   Topic: $cleanTopic
   Export type: $exportType
-  Provider: $provider
   File: $fileName
-  Size bytes: $sizeBytes
 ''');
     });
   }
