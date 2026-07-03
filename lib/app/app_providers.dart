@@ -9,6 +9,7 @@ import '../viewmodels/analytics_view_model.dart';
 import '../viewmodels/keyword_dashboard_view_model.dart';
 import '../viewmodels/home_view_model.dart';
 import '../services/keyword_dashboard_service.dart';
+import '../services/ai/openrouter_service.dart';
 import '../services/analytics/analytics_service.dart';
 import '../services/analytics/app_analytics_service.dart';
 import '../services/firebase/firebase_analytics_service.dart';
@@ -57,6 +58,13 @@ abstract final class AppProviders {
       Provider(create: (_) => OpenAlexKeywordService()),
       Provider(create: (_) => OpenAlexJournalService()),
       Provider(create: (_) => AnalyticsService(apiKey: _openAlexApiKey())),
+      Provider(
+        create: (context) => OpenRouterService(
+          client: context.read<http.Client>(),
+          apiKey: _openRouterApiKey(),
+          model: _openRouterModel(),
+        ),
+      ),
       Provider(create: (_) => KeywordDashboardService()),
       Provider(create: (_) => SuggestionService()),
       Provider(create: (_) => _reportStorageConfig()),
@@ -188,6 +196,22 @@ abstract final class AppProviders {
       return dotenv.env['OPENALEX_API_KEY'];
     } catch (_) {
       return null;
+    }
+  }
+
+  static String _openRouterApiKey() {
+    try {
+      return dotenv.env['OPENROUTER_API_KEY'] ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  static String _openRouterModel() {
+    try {
+      return dotenv.env['OPENROUTER_MODEL'] ?? OpenRouterService.defaultModel;
+    } catch (_) {
+      return OpenRouterService.defaultModel;
     }
   }
 

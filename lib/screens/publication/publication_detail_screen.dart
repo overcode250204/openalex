@@ -4,11 +4,15 @@ import 'package:openalex/viewmodels/publication_detail_view_model.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/publication/publication.dart';
+import '../../services/ai/openrouter_service.dart';
 import '../../services/analytics/app_analytics_service.dart';
 import '../../routes/app_routes.dart';
 import '../../routes/route_arguments.dart';
 import '../../utils/app_keys.dart';
+import '../../viewmodels/publication_ai_chat_view_model.dart';
 import '../../viewmodels/publication_list_view_model.dart';
+import '../../widgets/ai/ai_research_assistant_button.dart';
+import '../../widgets/ai/publication_ai_chat_panel.dart';
 import '../../widgets/state/app_error_widget.dart';
 import '../../widgets/state/loading_widget.dart';
 
@@ -59,10 +63,41 @@ class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
     });
   }
 
+  void _openAiChat(Publication publication) {
+    final aiService = context.read<OpenRouterService>();
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => ChangeNotifierProvider(
+        create: (_) => PublicationAiChatViewModel(
+          aiService: aiService,
+          publication: publication,
+        ),
+        child: const PublicationAiChatPanel(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: AppKeys.publicationDetailScreen,
+      floatingActionButton: Consumer<PublicationDetailViewModel>(
+        builder: (context, provider, _) {
+          final publication = provider.publication;
+          if (provider.state != DetailState.success || publication == null) {
+            return const SizedBox.shrink();
+          }
+
+          return AiResearchAssistantButton(
+            key: AppKeys.publicationAiChatButton,
+            showLabelOnWide: false,
+            onPressed: () => _openAiChat(publication),
+          );
+        },
+      ),
       body: Consumer<PublicationDetailViewModel>(
         builder: (context, provider, _) {
           final abstractText =
@@ -163,6 +198,7 @@ class _PublicationDetailScreenState extends State<PublicationDetailScreen> {
 class _ActionButtons extends StatelessWidget {
   final Publication pub;
   const _ActionButtons({required this.pub});
+
   Future<void> _openDoi(BuildContext context) async {
     final doi = context.read<PublicationDetailViewModel>().publication?.doi;
 
@@ -244,7 +280,7 @@ class _ActionButtons extends StatelessWidget {
         ),
         if (pub.doi != null)
           FilledButton.icon(
-            onPressed: () => {_openDoi(context)},
+            onPressed: () => _openDoi(context),
             icon: const Icon(Icons.open_in_browser),
             label: const Text('Open DOI'),
           ),

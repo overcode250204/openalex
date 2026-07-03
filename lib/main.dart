@@ -11,7 +11,7 @@ import 'services/firebase/firebase_auth_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await dotenv.load(fileName: ".env");
+  await dotenv.load(fileName: '.env');
   await FirebaseBootstrap.initialize();
   runApp(const MyApp());
 }
