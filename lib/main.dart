@@ -11,9 +11,26 @@ import 'services/firebase/firebase_auth_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await dotenv.load(fileName: ".env");
+  await _loadEnvironment();
   await FirebaseBootstrap.initialize();
   runApp(const MyApp());
+}
+
+Future<void> _loadEnvironment() async {
+  var fallbackEnv = <String, String>{};
+
+  try {
+    await dotenv.load(fileName: '.env');
+    fallbackEnv = Map<String, String>.from(dotenv.env);
+  } catch (_) {
+    // Allow local-only setups in tests or fresh clones.
+  }
+
+  try {
+    await dotenv.load(fileName: '.env.local', mergeWith: fallbackEnv);
+  } catch (_) {
+    // .env remains the fallback when .env.local is not available.
+  }
 }
 
 class MyApp extends StatelessWidget {

@@ -23,6 +23,15 @@ abstract final class AppKeys {
   );
   static const logoutButton = Key('logout_button');
   static const googleSignInButton = Key('google_sign_in_button');
+  static const publicationAiChatButton = Key('publication_ai_chat_button');
+  static const publicationAiChatPanel = Key('publication_ai_chat_panel');
+  static const publicationAiChatInput = Key('publication_ai_chat_input');
+  static const publicationAiChatSendButton = Key(
+    'publication_ai_chat_send_button',
+  );
+  static const publicationAiChatClearButton = Key(
+    'publication_ai_chat_clear_button',
+  );
 
   static Key publicationItem(String id) => Key('publication_item_$id');
   static Key journalItem(String id) => Key('journal_item_$id');
@@ -32,4 +41,6 @@ abstract final class AppKeys {
       Key('uploaded_report_copy_button_$id');
   static Key uploadedReportOpenButton(String id) =>
       Key('uploaded_report_open_button_$id');
+  static Key publicationAiPromptChip(String id) =>
+      Key('publication_ai_prompt_chip_$id');
 }

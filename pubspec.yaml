@@ -73,6 +73,7 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   assets:
+    - .env.local
     - .env
     - assets/fonts/DroidSans.ttf
     - assets/fonts/DroidSans-Bold.ttf

@@ -6,7 +6,18 @@ import 'research_assistant_panel.dart';
 /// Keyword Analyzer dashboard. On narrow screens it collapses to a circular
 /// FAB; on wide screens it expands into a pill with label text.
 class AiResearchAssistantButton extends StatelessWidget {
-  const AiResearchAssistantButton({super.key});
+  const AiResearchAssistantButton({
+    super.key,
+    this.onPressed,
+    this.showLabelOnWide = true,
+    this.label = 'Ask AI',
+    this.subtitle = 'Your research assistant',
+  });
+
+  final VoidCallback? onPressed;
+  final bool showLabelOnWide;
+  final String label;
+  final String subtitle;
 
   static const _primaryBlue = Color(0xFF2F6FB0);
   static const _lightBlue = Color(0xFFEAF3FF);
@@ -22,12 +33,12 @@ class AiResearchAssistantButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.sizeOf(context).width >= 600;
+    final isWide = showLabelOnWide && MediaQuery.sizeOf(context).width >= 600;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _openPanel(context),
+        onTap: onPressed ?? () => _openPanel(context),
         borderRadius: BorderRadius.circular(32),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -97,7 +108,7 @@ class AiResearchAssistantButton extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Ask AI',
+                      label,
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -106,7 +117,7 @@ class AiResearchAssistantButton extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Your research assistant',
+                      subtitle,
                       style: TextStyle(
                         fontSize: 10,
                         color: Colors.grey.shade500,
