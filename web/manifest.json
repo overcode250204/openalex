@@ -1,11 +1,11 @@
 {
-    "name": "openalex",
-    "short_name": "openalex",
+    "name": "ScholarTrend",
+    "short_name": "ScholarTrend",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Academic trend analysis for journals, papers, and keywords.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

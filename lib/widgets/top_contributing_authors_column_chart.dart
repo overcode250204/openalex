@@ -1,5 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+
+import '../utils/app_keys.dart';
 
 class TopContributingAuthorsColumnChart extends StatelessWidget {
   final Map<String, int> authorsData;
@@ -32,7 +36,7 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
     final yInterval = maxCount > 5 ? (maxCount / 5).ceilToDouble() : 1.0;
 
     return SizedBox(
-      height: 260,
+      height: 420,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -40,139 +44,182 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
             'Number of Papers',
             style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              for (final entry in topEntries.take(5))
+                Semantics(
+                  label: '${entry.key}, ${entry.value} papers',
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width - 64,
+                    ),
+                    child: Chip(
+                      key: AppKeys.authorRankingItem(
+                        entry.key.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '_'),
+                      ),
+                      label: Text(
+                        '${entry.key}: ${entry.value}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           const SizedBox(height: 24),
           Expanded(
-            child: BarChart(
-              BarChartData(
-                alignment: BarChartAlignment.spaceAround,
-                maxY: maxY,
-                barTouchData: BarTouchData(
-                  enabled: true,
-                  touchTooltipData: BarTouchTooltipData(
-                    getTooltipColor: (group) => const Color(0xFF546A76),
-                    tooltipRoundedRadius: 6,
-                    tooltipPadding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                      final index = group.x.toInt();
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final chartWidth = math.max(
+                  constraints.maxWidth,
+                  topEntries.length * 52.0,
+                );
 
-                      if (index < 0 || index >= topEntries.length) {
-                        return null;
-                      }
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: SizedBox(
+                    width: chartWidth,
+                    child: BarChart(
+                      BarChartData(
+                        alignment: BarChartAlignment.spaceAround,
+                        maxY: maxY,
+                        barTouchData: BarTouchData(
+                          enabled: true,
+                          touchTooltipData: BarTouchTooltipData(
+                            getTooltipColor: (group) => const Color(0xFF546A76),
+                            tooltipRoundedRadius: 6,
+                            tooltipPadding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
+                            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                              final index = group.x.toInt();
 
-                      final authorName = topEntries[index].key;
+                              if (index < 0 || index >= topEntries.length) {
+                                return null;
+                              }
 
-                      return BarTooltipItem(
-                        '$authorName\n${rod.toY.toInt()} papers',
-                        const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
+                              final authorName = topEntries[index].key;
+
+                              return BarTooltipItem(
+                                '$authorName\n${rod.toY.toInt()} papers',
+                                const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              );
+                            },
+                          ),
                         ),
-                      );
-                    },
-                  ),
-                ),
-                titlesData: FlTitlesData(
-                  show: true,
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 56,
-                      getTitlesWidget: (double value, TitleMeta meta) {
-                        final index = value.toInt();
-                        if (index < 0 || index >= topEntries.length) {
-                          return const SizedBox.shrink();
-                        }
+                        titlesData: FlTitlesData(
+                          show: true,
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 82,
+                              getTitlesWidget: (double value, TitleMeta meta) {
+                                final index = value.toInt();
+                                if (index < 0 || index >= topEntries.length) {
+                                  return const SizedBox.shrink();
+                                }
 
-                        final authorName = topEntries[index].key;
-                        final label = _formatAuthorLabel(authorName);
+                                final authorName = topEntries[index].key;
+                                final label = _formatAuthorLabel(authorName);
 
-                        return SideTitleWidget(
-                          axisSide: meta.axisSide,
-                          space: 8,
-                          child: SizedBox(
-                            width: 64,
-                            child: Text(
-                              label,
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Colors.black54,
+                                return SideTitleWidget(
+                                  axisSide: meta.axisSide,
+                                  space: 16,
+                                  angle: -math.pi / 4,
+                                  child: Text(
+                                    label,
+                                    textAlign: TextAlign.left,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.black54,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 42,
+                              interval: yInterval,
+                              getTitlesWidget: (double value, TitleMeta meta) {
+                                return SideTitleWidget(
+                                  axisSide: meta.axisSide,
+                                  child: Text(
+                                    _formatAxisValue(value.toInt()),
+                                    style: const TextStyle(
+                                      color: Colors.black54,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          topTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          rightTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                        ),
+                        gridData: FlGridData(
+                          show: true,
+                          drawVerticalLine: false,
+                          horizontalInterval: yInterval,
+                          getDrawingHorizontalLine: (value) {
+                            return FlLine(
+                              color: Colors.grey.shade200,
+                              strokeWidth: 1,
+                              dashArray: [5, 5],
+                            );
+                          },
+                        ),
+                        borderData: FlBorderData(
+                          show: true,
+                          border: Border(
+                            bottom: BorderSide(
+                              color: Colors.grey.shade300,
+                              width: 1,
+                            ),
+                            left: BorderSide.none,
+                            right: BorderSide.none,
+                            top: BorderSide.none,
+                          ),
+                        ),
+                        barGroups: topEntries.asMap().entries.map((e) {
+                          final index = e.key;
+                          final count = e.value.value.toDouble();
+                          return BarChartGroupData(
+                            x: index,
+                            barRods: [
+                              BarChartRodData(
+                                toY: count,
+                                color: const Color(0xFF9C27B0),
+                                width: 14,
+                                borderRadius: BorderRadius.circular(4),
                               ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 42,
-                      interval: yInterval,
-                      getTitlesWidget: (double value, TitleMeta meta) {
-                        return SideTitleWidget(
-                          axisSide: meta.axisSide,
-                          child: Text(
-                            _formatAxisValue(value.toInt()),
-                            style: const TextStyle(
-                              color: Colors.black54,
-                              fontSize: 10,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                ),
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: yInterval,
-                  getDrawingHorizontalLine: (value) {
-                    return FlLine(
-                      color: Colors.grey.shade200,
-                      strokeWidth: 1,
-                      dashArray: [5, 5],
-                    );
-                  },
-                ),
-                borderData: FlBorderData(
-                  show: true,
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey.shade300, width: 1),
-                    left: BorderSide.none,
-                    right: BorderSide.none,
-                    top: BorderSide.none,
-                  ),
-                ),
-                barGroups: topEntries.asMap().entries.map((e) {
-                  final index = e.key;
-                  final count = e.value.value.toDouble();
-                  return BarChartGroupData(
-                    x: index,
-                    barRods: [
-                      BarChartRodData(
-                        toY: count,
-                        color: const Color(0xFF9C27B0),
-                        width: 12,
-                        borderRadius: BorderRadius.circular(4),
+                            ],
+                          );
+                        }).toList(),
                       ),
-                    ],
-                  );
-                }).toList(),
-              ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -187,20 +234,9 @@ class TopContributingAuthorsColumnChart extends StatelessWidget {
   }
 
   static String _formatAuthorLabel(String name) {
-    final parts = name.trim().split(RegExp(r'\s+'));
-
-    if (parts.length <= 2) {
-      return name;
+    if (name.length > 12) {
+      return '${name.substring(0, 10)}...';
     }
-
-    final firstLine = parts.take(parts.length - 1).join(' ');
-    final lastLine = parts.last;
-
-    String shortFirstLine = firstLine;
-    if (shortFirstLine.length > 10) {
-      shortFirstLine = '${shortFirstLine.substring(0, 10)}...';
-    }
-
-    return '$shortFirstLine\n$lastLine';
+    return name;
   }
 }

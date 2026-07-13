@@ -6,12 +6,12 @@ import 'package:openalex/routes/app_routes.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-import 'services/firebase_auth_service.dart';
+import 'services/firebase/firebase_auth_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await dotenv.load(fileName: ".env");
+  await dotenv.load(fileName: '.env');
   await FirebaseBootstrap.initialize();
   runApp(const MyApp());
 }
@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
 
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Journal Trend Analyzer',
+        title: 'ScholarTrend',
         theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
         initialRoute: AppRoutes.home,
         onGenerateRoute: AppRouter.onGenerateRoute,

@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
 import 'package:openalex/models/search/search_filter.dart';
-import 'package:openalex/services/analytics_service.dart';
+import 'package:openalex/services/analytics/analytics_service.dart';
 
 class MockClient extends Mock implements http.Client {}
 
@@ -72,38 +72,38 @@ void main() {
     });
   });
 
-  test('calculates all summary metrics from the selected topic dataset', () async {
-    final result = await service.fetchSummary(
-      'Artificial Intelligence',
-      const SearchFilter(yearFrom: 2020, yearTo: 2024),
-      topicId: 'https://openalex.org/T1',
-    );
-
-    expect(result.totalWorks, 3);
-    expect(result.analyzedWorks, 3);
-    expect(result.totalCitations, 30);
-    expect(result.averageCitations, 10);
-    expect(result.publicationTrend, {2022: 4, 2024: 4});
-    expect(result.topAuthors, {'Ada Lovelace': 3});
-    expect(result.topJournals, {'Journal One': 2});
-    expect(result.mostInfluentialPaper?.title, 'Most Influential');
-    expect(result.mostInfluentialPaper?.citedByCount, 20);
-    expect(result.mostInfluentialPaper?.publicationYear, 2024);
-    expect(result.mostInfluentialPaper?.id, 'https://openalex.org/W1');
-    expect(result.mostInfluentialPaper?.doi, 'https://doi.org/10.1/top');
-
-    for (final uri in requestedUris) {
-      expect(uri.queryParameters.containsKey('search'), isFalse);
-      expect(
-        uri.queryParameters['filter'],
-        contains('primary_topic.id:T1'),
+  test(
+    'calculates all summary metrics from the selected topic dataset',
+    () async {
+      final result = await service.fetchSummary(
+        'Artificial Intelligence',
+        const SearchFilter(yearFrom: 2020, yearTo: 2024),
+        topicId: 'https://openalex.org/T1',
       );
-      expect(
-        uri.queryParameters['filter'],
-        contains('publication_year:2020-2024'),
-      );
-    }
-  });
+
+      expect(result.totalWorks, 3);
+      expect(result.analyzedWorks, 3);
+      expect(result.totalCitations, 30);
+      expect(result.averageCitations, 10);
+      expect(result.publicationTrend, {2022: 4, 2024: 4});
+      expect(result.topAuthors, {'Ada Lovelace': 3});
+      expect(result.topJournals, {'Journal One': 2});
+      expect(result.mostInfluentialPaper?.title, 'Most Influential');
+      expect(result.mostInfluentialPaper?.citedByCount, 20);
+      expect(result.mostInfluentialPaper?.publicationYear, 2024);
+      expect(result.mostInfluentialPaper?.id, 'https://openalex.org/W1');
+      expect(result.mostInfluentialPaper?.doi, 'https://doi.org/10.1/top');
+
+      for (final uri in requestedUris) {
+        expect(uri.queryParameters.containsKey('search'), isFalse);
+        expect(uri.queryParameters['filter'], contains('primary_topic.id:T1'));
+        expect(
+          uri.queryParameters['filter'],
+          contains('publication_year:2020-2024'),
+        );
+      }
+    },
+  );
 
   test('returns safe empty metrics for an empty dataset', () async {
     when(() => client.get(any())).thenAnswer((invocation) async {
@@ -208,11 +208,7 @@ void main() {
         jsonEncode({
           'meta': {'count': 2},
           'results': [
-            {
-              'id': 'W1',
-              'display_name': 'Top Work',
-              'cited_by_count': 5,
-            },
+            {'id': 'W1', 'display_name': 'Top Work', 'cited_by_count': 5},
           ],
         }),
         200,

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:openalex/models/auth/app_user.dart';
-import 'package:openalex/services/firebase_auth_service.dart';
+import 'package:openalex/services/firebase/firebase_auth_service.dart';
 
 class FakeAuthService implements AuthService {
   FakeAuthService({AppUser? initialUser, this.signInError, this.signOutError})

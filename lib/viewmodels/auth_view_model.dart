@@ -3,15 +3,20 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:openalex/services/firebase_auth_service.dart';
+import 'package:openalex/services/firebase/firebase_auth_service.dart';
 
 import '../models/auth/app_user.dart';
+import '../services/analytics/app_analytics_service.dart';
+import '../services/analytics/no_op_analytics_service.dart';
 
 enum AuthStatus { checking, authenticated, unauthenticated }
 
 class AuthViewModel extends ChangeNotifier {
-  AuthViewModel({required AuthService authService})
-    : _authService = authService {
+  AuthViewModel({
+    required AuthService authService,
+    AppAnalyticsService analyticsService = const NoOpAnalyticsService(),
+  }) : _authService = authService,
+       _analyticsService = analyticsService {
     final persistedUser = _authService.getCurrentUser();
     _currentUser = persistedUser;
     _status = persistedUser == null
@@ -21,6 +26,7 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   final AuthService _authService;
+  final AppAnalyticsService _analyticsService;
 
   StreamSubscription<AppUser?>? _authSubscription;
 
@@ -49,7 +55,11 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _authService.signInWithGoogle();
+      final user = await _authService.signInWithGoogle();
+      await _analyticsService.logLogin(
+        user: user,
+        method: AppAnalyticsService.googleAuthMethod,
+      );
     } catch (error) {
       _errorMessage = _mapAuthError(error);
     } finally {
@@ -67,7 +77,13 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final user = _currentUser;
+      await _analyticsService.logLogout(
+        user: user,
+        method: AppAnalyticsService.googleAuthMethod,
+      );
       await _authService.signOut();
+      await _analyticsService.clearUser();
     } catch (error) {
       _errorMessage = _mapAuthError(error);
     } finally {

@@ -28,4 +28,30 @@ class KeywordDashboardResult {
   });
 
   bool get isEmpty => hottestKeyword == null || mostFrequentKeywords.isEmpty;
+
+  KeywordDashboardResult copyWith({
+    KeywordOverview? hottestKeyword,
+    List<KeywordOverview>? mostFrequentKeywords,
+    List<KeywordOverview>? trendingKeywords,
+    KeywordFrequencyStat? statistics,
+    Map<String, List<KeywordTrendPoint>>? trendSeries,
+    DateTime? currentPeriodStart,
+    DateTime? currentPeriodEnd,
+    DateTime? previousPeriodStart,
+    DateTime? previousPeriodEnd,
+    DateTime? fetchedAt,
+  }) {
+    return KeywordDashboardResult(
+      hottestKeyword: hottestKeyword ?? this.hottestKeyword,
+      mostFrequentKeywords: mostFrequentKeywords ?? this.mostFrequentKeywords,
+      trendingKeywords: trendingKeywords ?? this.trendingKeywords,
+      statistics: statistics ?? this.statistics,
+      trendSeries: trendSeries ?? this.trendSeries,
+      currentPeriodStart: currentPeriodStart ?? this.currentPeriodStart,
+      currentPeriodEnd: currentPeriodEnd ?? this.currentPeriodEnd,
+      previousPeriodStart: previousPeriodStart ?? this.previousPeriodStart,
+      previousPeriodEnd: previousPeriodEnd ?? this.previousPeriodEnd,
+      fetchedAt: fetchedAt ?? this.fetchedAt,
+    );
+  }
 }

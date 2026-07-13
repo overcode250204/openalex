@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:openalex/models/topic/topic.dart';
-import '../models/journal/journal_suggestion.dart';
 import '../models/keyword/openalex_keyword.dart';
 
 class SuggestionService {
@@ -127,45 +126,6 @@ class SuggestionService {
       return results
           .map((item) => OpenAlexKeyword.fromJson(item as Map<String, dynamic>))
           .where((keyword) => keyword.displayName.trim().isNotEmpty)
-          .toList();
-    } catch (_) {
-      return [];
-    }
-  }
-
-  Future<List<JournalSuggestion>> fetchJournalSuggestions(String query) async {
-    final trimmedQuery = query.trim();
-
-    if (trimmedQuery.length < 2) {
-      return [];
-    }
-
-    try {
-      final uri = Uri.https('api.openalex.org', '/sources', {
-        'search': trimmedQuery,
-        'filter': 'type:journal',
-        'per-page': '6',
-        'select':
-            'id,display_name,works_count,issn_l,host_organization_name,type',
-        'mailto': mailto,
-      });
-
-      final response = await _client.get(uri);
-
-      if (response.statusCode != 200) {
-        return [];
-      }
-
-      final Map<String, dynamic> body =
-          jsonDecode(response.body) as Map<String, dynamic>;
-
-      final List<dynamic> results = body['results'] as List<dynamic>? ?? [];
-
-      return results
-          .map(
-            (item) => JournalSuggestion.fromJson(item as Map<String, dynamic>),
-          )
-          .where((journal) => journal.displayName.trim().isNotEmpty)
           .toList();
     } catch (_) {
       return [];

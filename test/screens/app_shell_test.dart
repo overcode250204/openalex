@@ -2,27 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openalex/main.dart';
 import 'package:openalex/models/app/app_page.dart';
-import 'package:openalex/models/journal/journal_publication.dart';
-import 'package:openalex/models/journal/journal_source.dart';
 import 'package:openalex/models/keyword/keyword_analysis_result.dart';
 import 'package:openalex/models/keyword/keyword_trend_point.dart';
 import 'package:openalex/models/publication/publication.dart';
 import 'package:openalex/models/topic/topic.dart';
 import 'package:openalex/viewmodels/auth_view_model.dart';
-import 'package:openalex/viewmodels/journal_view_model.dart';
 import 'package:openalex/viewmodels/publication_detail_view_model.dart';
 import 'package:openalex/viewmodels/home_view_model.dart';
 import 'package:openalex/screens/app/app_shell_screen.dart';
-import 'package:openalex/services/openalex_journal_service.dart';
 import 'package:openalex/services/openalex_keyword_service.dart';
 import 'package:openalex/services/openalex_service.dart';
+import 'package:openalex/services/report/report_metadata_service.dart';
 import 'package:openalex/services/suggestion_service.dart';
+import 'package:openalex/services/firebase/cloud_messaging_service.dart';
+import 'package:openalex/services/firebase/crashlytics_service.dart';
+import 'package:openalex/services/firebase/remote_config_service.dart';
 import 'package:openalex/viewmodels/selected_topic_view_model.dart';
+import 'package:openalex/viewmodels/cloud_messaging_view_model.dart';
+import 'package:openalex/viewmodels/crashlytics_view_model.dart';
 import 'package:openalex/viewmodels/keyword_analyzer_view_model.dart';
 import 'package:openalex/viewmodels/keyword_dashboard_view_model.dart';
+import 'package:openalex/viewmodels/remote_config_view_model.dart';
+import 'package:openalex/viewmodels/uploaded_reports_view_model.dart';
 import 'package:openalex/services/keyword_dashboard_service.dart';
 import 'package:openalex/models/keyword/keyword_dashboard_result.dart';
 import 'package:openalex/models/keyword/keyword_frequency_stat.dart';
+import 'package:openalex/models/journal/journal_source.dart';
+import 'package:openalex/services/openalex_journal_service.dart';
+import 'package:openalex/viewmodels/journal_view_model.dart';
 import 'package:provider/provider.dart';
 
 import '../fakes/fake_auth_service.dart';
@@ -44,23 +51,6 @@ class _FakeOpenAlexService extends OpenAlexService {
   Future<(int, List<Publication>)> searchWithFilter(
     Map<String, String> params,
   ) async => (0, <Publication>[]);
-}
-
-class _FakeJournalService extends OpenAlexJournalService {
-  @override
-  Future<List<JournalSource>> searchJournals(String query) async => [];
-
-  @override
-  Future<List<JournalPublication>> getJournalPublications(
-    String sourceId, {
-    int page = 1,
-    int perPage = 20,
-  }) async => [];
-
-  @override
-  Future<JournalPublication?> getHighestCitedPublication(
-    String sourceId,
-  ) async => null;
 }
 
 class _FakeKeywordService extends OpenAlexKeywordService {
@@ -92,6 +82,24 @@ class _FakeSuggestionService extends SuggestionService {
 
   @override
   Future<List<String>> fetchRelatedKeywords(String keyword) async => [];
+}
+
+class _FakeJournalService extends OpenAlexJournalService {
+  @override
+  Future<List<JournalSource>> fetchTopJournals({int perPage = 20}) async => [];
+
+  @override
+  Future<List<JournalSource>> searchJournals(
+    String query, {
+    int perPage = 20,
+  }) async => [];
+
+  @override
+  Future<List<Publication>> fetchPublicationsForJournal(
+    String journalId, {
+    int perPage = 10,
+    int page = 1,
+  }) async => [];
 }
 
 class _FakeKeywordDashboardService extends KeywordDashboardService {
@@ -131,15 +139,23 @@ Widget _appShellWidget({List<TopicSuggestion> topicSuggestions = const []}) {
       ),
       ChangeNotifierProvider(create: (_) => SelectedTopicViewModel()),
       ChangeNotifierProvider(
+        create: (_) =>
+            CloudMessagingViewModel(const NoOpCloudMessagingService())
+              ..initialize(),
+      ),
+      ChangeNotifierProvider(
+        create: (_) => RemoteConfigViewModel(const NoOpRemoteConfigService()),
+      ),
+      ChangeNotifierProvider(
+        create: (_) => CrashlyticsViewModel(const NoOpCrashlyticsService()),
+      ),
+      ChangeNotifierProvider(
         create: (_) => HomeViewModel(
           openAlexService,
           suggestionService: _FakeSuggestionService(
             topicSuggestions: topicSuggestions,
           ),
         ),
-      ),
-      ChangeNotifierProvider(
-        create: (_) => JournalViewModel(_FakeJournalService()),
       ),
       ChangeNotifierProvider(
         create: (_) => PublicationDetailViewModel(service: openAlexService),
@@ -150,6 +166,15 @@ Widget _appShellWidget({List<TopicSuggestion> topicSuggestions = const []}) {
       ChangeNotifierProvider(
         create: (_) =>
             KeywordDashboardViewModel(_FakeKeywordDashboardService()),
+      ),
+      ChangeNotifierProvider(
+        create: (_) => UploadedReportsViewModel(
+          metadataService: const NoOpReportMetadataService(),
+          userIdResolver: () => fakeUser().uid,
+        ),
+      ),
+      ChangeNotifierProvider(
+        create: (_) => JournalViewModel(_FakeJournalService()),
       ),
     ],
     child: const MaterialApp(home: AppShell()),
@@ -240,15 +265,18 @@ void main() {
       expect(find.text('Keyword Analyzer'), findsOneWidget);
     });
 
-    testWidgets('navigates to Journal Search via bottom nav', (tester) async {
+    testWidgets('navigates to Journals via bottom nav', (tester) async {
       await tester.pumpWidget(_appShellWidget());
       await tester.pump();
 
       await tester.tap(find.text('Journal'));
       await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 300));
 
-      // JournalSearchScreen renders a search field
-      expect(find.text('Journal Search'), findsOneWidget);
+      // JournalsScreen shows AppBar title "Journals" and the search field.
+      // Fake service returns empty list, so the empty state is shown.
+      expect(find.text('Journals'), findsOneWidget);
+      expect(find.text('No journals available.'), findsOneWidget);
     });
   });
 

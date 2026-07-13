@@ -6,6 +6,7 @@ import '../../models/keyword/keyword_analysis_result.dart';
 import '../../models/keyword/openalex_keyword.dart';
 import '../../routes/app_routes.dart';
 import '../../routes/route_arguments.dart';
+import '../../utils/app_keys.dart';
 import '../../viewmodels/keyword_analyzer_view_model.dart';
 import '../../widgets/analytics/analytics_chart_card.dart';
 import '../../widgets/keyword/charts/keyword_publication_trend_chart.dart';
@@ -17,6 +18,7 @@ import '../../widgets/keyword/open_access_papers_card.dart';
 import '../../widgets/top_contributing_authors_column_chart.dart';
 import '../../widgets/top_research_journals_donut_chart.dart';
 import '../../widgets/top_selector_dropdown.dart';
+import '../../services/analytics/app_analytics_service.dart';
 
 class KeywordAnalyzerPage extends StatefulWidget {
   final VoidCallback? onOpenDrawer;
@@ -37,6 +39,8 @@ class KeywordAnalyzerPage extends StatefulWidget {
 }
 
 class _KeywordAnalyzerPageState extends State<KeywordAnalyzerPage> {
+  bool _hasLoggedViewKeyword = false;
+
   @override
   void initState() {
     super.initState();
@@ -45,14 +49,42 @@ class _KeywordAnalyzerPageState extends State<KeywordAnalyzerPage> {
 
   Future<void> _analyzeInitial() async {
     final viewModel = context.read<KeywordAnalyzerViewModel>();
+
     if (widget.selectedKeyword != null) {
       final text =
           widget.originalSearchText ?? widget.selectedKeyword!.displayName;
+
       await viewModel.analyzeResolvedKeyword(text, widget.selectedKeyword!);
     } else if (widget.originalSearchText != null &&
         widget.originalSearchText!.trim().isNotEmpty) {
       await viewModel.analyze(widget.originalSearchText!);
+    } else {
+      return;
     }
+
+    // Chỉ log sau khi Keyword Detail/analyze tải thành công.
+    if (!mounted ||
+        _hasLoggedViewKeyword ||
+        viewModel.errorMessage != null ||
+        viewModel.result == null ||
+        viewModel.result!.isEmpty) {
+      return;
+    }
+
+    final keyword = viewModel.result!.keyword.trim();
+    if (keyword.isEmpty) return;
+
+    _hasLoggedViewKeyword = true;
+
+    AppAnalyticsService? analytics;
+
+    try {
+      analytics = context.read<AppAnalyticsService>();
+    } on ProviderNotFoundException {
+      // Analytics là optional trong widget test hoặc standalone screen.
+    }
+
+    await analytics?.logViewKeyword(keyword: keyword);
   }
 
   void _openPaper(KeywordAnalysisPaper paper) {
@@ -73,6 +105,7 @@ class _KeywordAnalyzerPageState extends State<KeywordAnalyzerPage> {
     final viewModel = context.watch<KeywordAnalyzerViewModel>();
 
     return Scaffold(
+      key: AppKeys.keywordDetailScreen,
       backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
         title: const Text('Keyword Analyzer', overflow: TextOverflow.ellipsis),
@@ -230,24 +263,34 @@ class _KeywordDashboardState extends State<_KeywordDashboard> {
               ),
               const SizedBox(height: 16),
             ],
-            KeywordAnalysisSummary(result: result),
+            KeyedSubtree(
+              key: AppKeys.keywordAnalysisSection,
+              child: KeywordAnalysisSummary(result: result),
+            ),
             const SizedBox(height: 16),
-            KeywordPublicationTrendChart(
-              viewModel: context.read<KeywordAnalyzerViewModel>(),
-              trend: result.trend,
+            KeyedSubtree(
+              key: AppKeys.keywordTrendSection,
+              child: KeywordPublicationTrendChart(
+                viewModel: context.read<KeywordAnalyzerViewModel>(),
+                trend: result.trend,
+              ),
             ),
             if (result.topAuthors.isNotEmpty) ...[
               const SizedBox(height: 16),
-              AnalyticsChartCard(
-                title: 'Top Contributing Authors',
-                subtitle: 'Authors with the most publications on this keyword.',
-                customDropdown: TopSelectorDropdown(
-                  value: _topAuthors,
-                  options: _topOptions,
-                  onChanged: (v) => setState(() => _topAuthors = v),
-                ),
-                child: TopContributingAuthorsColumnChart(
-                  authorsData: _take(result.topAuthors, _topAuthors),
+              KeyedSubtree(
+                key: AppKeys.authorRankingSection,
+                child: AnalyticsChartCard(
+                  title: 'Top Contributing Authors',
+                  subtitle:
+                      'Authors with the most publications on this keyword.',
+                  customDropdown: TopSelectorDropdown(
+                    value: _topAuthors,
+                    options: _topOptions,
+                    onChanged: (v) => setState(() => _topAuthors = v),
+                  ),
+                  child: TopContributingAuthorsColumnChart(
+                    authorsData: _take(result.topAuthors, _topAuthors),
+                  ),
                 ),
               ),
             ],
@@ -267,14 +310,17 @@ class _KeywordDashboardState extends State<_KeywordDashboard> {
               ),
             ],
             const SizedBox(height: 16),
-            KeywordPaperListCard(
-              title: 'Papers Using This Keyword',
-              subtitle:
-                  'Papers ranked by how strongly OpenAlex associates them with this keyword.',
-              emptyMessage: 'No relevant papers found.',
-              papers: result.relevantPapers,
-              showKeywordScore: true,
-              onPaperTap: widget.onPaperTap,
+            KeyedSubtree(
+              key: AppKeys.keywordPublicationsSection,
+              child: KeywordPaperListCard(
+                title: 'Papers Using This Keyword',
+                subtitle:
+                    'Papers ranked by how strongly OpenAlex associates them with this keyword.',
+                emptyMessage: 'No relevant papers found.',
+                papers: result.relevantPapers,
+                showKeywordScore: true,
+                onPaperTap: widget.onPaperTap,
+              ),
             ),
             const SizedBox(height: 16),
             MostCitedPapersCard(

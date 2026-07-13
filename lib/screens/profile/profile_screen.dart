@@ -1,12 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/auth/app_user.dart';
+import '../../models/firebase/app_push_notification.dart';
+import '../../services/firebase/cloud_messaging_service.dart';
 import '../../utils/app_keys.dart';
 import '../../viewmodels/auth_view_model.dart';
+import '../../viewmodels/cloud_messaging_view_model.dart';
+import '../../viewmodels/crashlytics_view_model.dart';
+import '../../viewmodels/remote_config_view_model.dart';
 import '../../viewmodels/selected_topic_view_model.dart';
+import '../../viewmodels/uploaded_reports_view_model.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   static const _background = Color(0xFFF5F7FB);
@@ -15,16 +24,39 @@ class ProfileScreen extends StatelessWidget {
   static const _muted = Color(0xFF6B7280);
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  String? _lastUserId;
+
+  void _syncUploadedReports(AppUser? user) {
+    final userId = user?.uid;
+    if (userId == _lastUserId) return;
+
+    _lastUserId = userId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<UploadedReportsViewModel>().load(force: true);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthViewModel>();
     final user = auth.currentUser;
     final selectedTopic = context.watch<SelectedTopicViewModel>();
+    final cloudMessaging = context.watch<CloudMessagingViewModel>();
+    final remoteConfig = context.watch<RemoteConfigViewModel>();
+    final uploadedReports = context.watch<UploadedReportsViewModel>();
+
+    _syncUploadedReports(user);
 
     return Scaffold(
-      backgroundColor: _background,
+      backgroundColor: ProfileScreen._background,
       appBar: AppBar(
         title: const Text('Profile'),
-        backgroundColor: _background,
+        backgroundColor: ProfileScreen._background,
         surfaceTintColor: Colors.transparent,
       ),
       body: SafeArea(
@@ -41,38 +73,587 @@ class ProfileScreen extends StatelessWidget {
                 24,
               ),
               children: [
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 980),
-                  child: isWide
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(flex: 5, child: _ProfileCard(user: user)),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              flex: 4,
-                              child: _WorkspaceCard(
-                                selectedTopic: selectedTopic,
-                              ),
-                            ),
-                          ],
-                        )
-                      : Column(
-                          children: [
-                            _ProfileCard(user: user),
-                            const SizedBox(height: 16),
-                            _WorkspaceCard(selectedTopic: selectedTopic),
-                          ],
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1120),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _ProfileSummaryStrip(
+                          selectedTopic: selectedTopic,
+                          uploadedReports: uploadedReports,
+                          cloudMessaging: cloudMessaging,
                         ),
-                ),
-                const SizedBox(height: 16),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 980),
-                  child: _AccountActionsCard(auth: auth),
+                        const SizedBox(height: 16),
+                        if (isWide)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 4,
+                                child: Column(
+                                  children: [
+                                    _ProfileCard(user: user),
+                                    const SizedBox(height: 16),
+                                    _WorkspaceCard(
+                                      selectedTopic: selectedTopic,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    _AccountActionsCard(auth: auth),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                flex: 5,
+                                child: Column(
+                                  children: [
+                                    _UploadedReportsCard(
+                                      viewModel: uploadedReports,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    _NotificationCenterCard(
+                                      viewModel: cloudMessaging,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    _RemoteConfigCard(viewModel: remoteConfig),
+                                    const SizedBox(height: 16),
+                                    const _CrashlyticsDemoCard(),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          )
+                        else ...[
+                          _ProfileCard(user: user),
+                          const SizedBox(height: 16),
+                          _WorkspaceCard(selectedTopic: selectedTopic),
+                          const SizedBox(height: 16),
+                          _UploadedReportsCard(viewModel: uploadedReports),
+                          const SizedBox(height: 16),
+                          _NotificationCenterCard(viewModel: cloudMessaging),
+                          const SizedBox(height: 16),
+                          _RemoteConfigCard(viewModel: remoteConfig),
+                          const SizedBox(height: 16),
+                          _AccountActionsCard(auth: auth),
+                          const SizedBox(height: 16),
+                          const _CrashlyticsDemoCard(),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileSummaryStrip extends StatelessWidget {
+  const _ProfileSummaryStrip({
+    required this.selectedTopic,
+    required this.uploadedReports,
+    required this.cloudMessaging,
+  });
+
+  final SelectedTopicViewModel selectedTopic;
+  final UploadedReportsViewModel uploadedReports;
+  final CloudMessagingViewModel cloudMessaging;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        _SummaryPill(
+          icon: Icons.topic_outlined,
+          label: 'Topic',
+          value: selectedTopic.selectedTopic ?? 'None selected',
+        ),
+        _SummaryPill(
+          icon: Icons.picture_as_pdf_outlined,
+          label: 'PDF reports',
+          value: uploadedReports.isLoading
+              ? 'Loading'
+              : uploadedReports.reports.length.toString(),
+        ),
+        _SummaryPill(
+          icon: Icons.notifications_active_outlined,
+          label: 'Notifications',
+          value: cloudMessaging.canReceiveNotifications ? 'Enabled' : 'Off',
+          tone: cloudMessaging.canReceiveNotifications
+              ? _SummaryPillTone.success
+              : _SummaryPillTone.neutral,
+        ),
+      ],
+    );
+  }
+}
+
+enum _SummaryPillTone { neutral, success }
+
+class _SummaryPill extends StatelessWidget {
+  const _SummaryPill({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.tone = _SummaryPillTone.neutral,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final _SummaryPillTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final isSuccess = tone == _SummaryPillTone.success;
+    final color = isSuccess ? Colors.green.shade700 : ProfileScreen._primary;
+    final background = isSuccess ? Colors.green.shade50 : Colors.white;
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 56, minWidth: 168),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isSuccess ? Colors.green.shade100 : Colors.grey.shade200,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 19),
+          const SizedBox(width: 10),
+          Flexible(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: ProfileScreen._muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: ProfileScreen._ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotificationCenterCard extends StatelessWidget {
+  const _NotificationCenterCard({required this.viewModel});
+
+  final CloudMessagingViewModel viewModel;
+
+  @override
+  Widget build(BuildContext context) {
+    final notifications = viewModel.notifications;
+    final token = viewModel.token?.trim();
+
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Notification Center',
+                    style: TextStyle(
+                      color: ProfileScreen._ink,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                if (viewModel.isInitializing)
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Firebase Cloud Messaging status and received test pushes.',
+              style: TextStyle(color: ProfileScreen._muted, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            _InfoRow(
+              icon: Icons.notifications_active_outlined,
+              label: 'Permission',
+              value: _permissionLabel(viewModel.permissionStatus),
+            ),
+            const SizedBox(height: 12),
+            _InfoRow(
+              icon: Icons.vpn_key_outlined,
+              label: 'FCM token',
+              value: token == null || token.isEmpty
+                  ? 'No token available'
+                  : token,
+              trailing: token != null && token.isNotEmpty
+                  ? IconButton(
+                      tooltip: 'Copy FCM token',
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: token));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('FCM token copied to clipboard'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.copy_outlined, size: 20),
+                    )
+                  : null,
+            ),
+            if (viewModel.errorMessage != null) ...[
+              const SizedBox(height: 12),
+              _NotificationErrorBox(message: viewModel.errorMessage!),
+            ],
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: viewModel.isRequestingPermission
+                        ? null
+                        : viewModel.requestPermission,
+                    icon: viewModel.isRequestingPermission
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.notification_add_outlined),
+                    label: Text(
+                      viewModel.isRequestingPermission
+                          ? 'Requesting...'
+                          : 'Enable notifications',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                IconButton(
+                  tooltip: 'Clear notifications',
+                  onPressed: notifications.isEmpty
+                      ? null
+                      : viewModel.clearNotifications,
+                  icon: const Icon(Icons.delete_outline),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (notifications.isEmpty)
+              const _EmptyNotifications()
+            else
+              ...notifications
+                  .take(5)
+                  .map((notification) => _NotificationTile(notification)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _permissionLabel(CloudMessagingPermissionStatus status) {
+    return switch (status) {
+      CloudMessagingPermissionStatus.authorized => 'Authorized',
+      CloudMessagingPermissionStatus.provisional => 'Provisional',
+      CloudMessagingPermissionStatus.denied => 'Denied',
+      CloudMessagingPermissionStatus.notDetermined => 'Not determined',
+      CloudMessagingPermissionStatus.unsupported => 'Unsupported device',
+    };
+  }
+}
+
+class _EmptyNotifications extends StatelessWidget {
+  const _EmptyNotifications();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _EmptyStateBox(
+      icon: Icons.notifications_none_outlined,
+      title: 'No push notifications received yet.',
+      message: 'Test pushes and opened notification events will appear here.',
+    );
+  }
+}
+
+class _EmptyStateBox extends StatelessWidget {
+  const _EmptyStateBox({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: ProfileScreen._primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: ProfileScreen._primary, size: 19),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: ProfileScreen._ink,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    color: ProfileScreen._muted,
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotificationTile extends StatelessWidget {
+  const _NotificationTile(this.notification);
+
+  final AppPushNotification notification;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: _typeColor(notification.type).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              _typeIcon(notification.type),
+              color: _typeColor(notification.type),
+              size: 19,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        notification.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: ProfileScreen._ink,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      _formatTime(notification.receivedAt),
+                      style: const TextStyle(
+                        color: ProfileScreen._muted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  notification.body,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: ProfileScreen._muted,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Text(
+                      _typeLabel(notification.type),
+                      style: TextStyle(
+                        color: _typeColor(notification.type),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Text(
+                      '•',
+                      style: TextStyle(
+                        color: ProfileScreen._muted,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _sourceLabel(notification.source),
+                      style: const TextStyle(
+                        color: ProfileScreen._muted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static IconData _typeIcon(AppPushNotificationType type) {
+    return switch (type) {
+      AppPushNotificationType.trend => Icons.trending_up,
+      AppPushNotificationType.citation => Icons.format_quote,
+      AppPushNotificationType.researchUpdate => Icons.update,
+      AppPushNotificationType.generic => Icons.notifications_none_outlined,
+    };
+  }
+
+  static Color _typeColor(AppPushNotificationType type) {
+    return switch (type) {
+      AppPushNotificationType.trend => Colors.orange.shade700,
+      AppPushNotificationType.citation => Colors.blue.shade700,
+      AppPushNotificationType.researchUpdate => Colors.green.shade700,
+      AppPushNotificationType.generic => ProfileScreen._primary,
+    };
+  }
+
+  static String _typeLabel(AppPushNotificationType type) {
+    return switch (type) {
+      AppPushNotificationType.trend => 'Trend Alert',
+      AppPushNotificationType.citation => 'New Citation',
+      AppPushNotificationType.researchUpdate => 'Research Update',
+      AppPushNotificationType.generic => 'Notification',
+    };
+  }
+
+  static String _sourceLabel(PushNotificationSource source) {
+    return switch (source) {
+      PushNotificationSource.foreground => 'Live',
+      PushNotificationSource.background => 'Background',
+      PushNotificationSource.openedApp => 'Direct',
+      PushNotificationSource.initial => 'Initial',
+    };
+  }
+
+  static String _formatTime(DateTime time) {
+    final now = DateTime.now();
+    final difference = now.difference(time);
+
+    if (difference.inMinutes < 1) return 'now';
+    if (difference.inMinutes < 60) return '${difference.inMinutes}m';
+    if (difference.inHours < 24) return '${difference.inHours}h';
+    return DateFormat('MMM d').format(time);
+  }
+}
+
+class _NotificationErrorBox extends StatelessWidget {
+  const _NotificationErrorBox({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(
+          color: colorScheme.onErrorContainer,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -367,6 +948,356 @@ class _AccountActionsCard extends StatelessWidget {
   }
 }
 
+class _UploadedReportsCard extends StatelessWidget {
+  const _UploadedReportsCard({required this.viewModel});
+
+  final UploadedReportsViewModel viewModel;
+
+  Future<void> _copyLink(BuildContext context, String link) async {
+    await Clipboard.setData(ClipboardData(text: link));
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Uploaded PDF link copied to clipboard'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<void> _openLink(BuildContext context, String link) async {
+    final uri = Uri.tryParse(link);
+    if (uri == null) return;
+
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!context.mounted || launched) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Cannot open uploaded PDF link.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      key: AppKeys.uploadedReportsCard,
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Uploaded PDF reports',
+                    style: TextStyle(
+                      color: ProfileScreen._ink,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                if (viewModel.isLoading)
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  IconButton(
+                    key: AppKeys.uploadedReportsRefreshButton,
+                    tooltip: 'Refresh uploaded PDF reports',
+                    onPressed: viewModel.refresh,
+                    icon: const Icon(Icons.refresh),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'PDF export links saved for this signed-in researcher.',
+              style: TextStyle(color: ProfileScreen._muted, fontSize: 13),
+            ),
+            if (viewModel.errorMessage != null) ...[
+              const SizedBox(height: 12),
+              _SignOutErrorBox(message: viewModel.errorMessage!),
+            ],
+            const SizedBox(height: 16),
+            if (!viewModel.isLoading && viewModel.reports.isEmpty)
+              const _EmptyStateBox(
+                icon: Icons.picture_as_pdf_outlined,
+                title: 'No uploaded PDF reports yet.',
+                message: 'Export a dashboard PDF to keep the share link here.',
+              )
+            else
+              ...viewModel.reports.map(
+                (report) => Container(
+                  key: AppKeys.uploadedReportItem(report.id),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9FAFB),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              report.topic,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: ProfileScreen._ink,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            _formatBytes(report.sizeBytes),
+                            style: const TextStyle(
+                              color: ProfileScreen._muted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        report.downloadUrl,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: ProfileScreen._muted,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _formatDateTime(report.uploadedAt),
+                              style: const TextStyle(
+                                color: ProfileScreen._muted,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            key: AppKeys.uploadedReportCopyButton(report.id),
+                            tooltip: 'Copy uploaded PDF link',
+                            onPressed: () =>
+                                _copyLink(context, report.downloadUrl),
+                            icon: const Icon(Icons.copy_outlined, size: 20),
+                          ),
+                          IconButton(
+                            key: AppKeys.uploadedReportOpenButton(report.id),
+                            tooltip: 'Open uploaded PDF',
+                            onPressed: () =>
+                                _openLink(context, report.downloadUrl),
+                            icon: const Icon(Icons.open_in_new, size: 20),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RemoteConfigCard extends StatelessWidget {
+  const _RemoteConfigCard({required this.viewModel});
+
+  final RemoteConfigViewModel viewModel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Remote Configurations',
+                    style: TextStyle(
+                      color: ProfileScreen._ink,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                if (viewModel.isFetching)
+                  const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Dynamic application parameters from Firebase Remote Config.',
+              style: TextStyle(color: ProfileScreen._muted, fontSize: 13),
+            ),
+            const SizedBox(height: 18),
+            _InfoRow(
+              icon: Icons.auto_stories_outlined,
+              label: 'Max journals displayed',
+              value: viewModel.maxJournalsDisplayed.toString(),
+            ),
+            const SizedBox(height: 12),
+            _InfoRow(
+              icon: Icons.key_outlined,
+              label: 'Max keywords displayed',
+              value: viewModel.maxKeywordsDisplayed.toString(),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: viewModel.isFetching
+                  ? null
+                  : viewModel.fetchAndActivate,
+              icon: const Icon(Icons.refresh),
+              label: Text(
+                viewModel.isFetching ? 'Fetching...' : 'Fetch & Activate',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CrashlyticsDemoCard extends StatelessWidget {
+  const _CrashlyticsDemoCard();
+
+  static const _handledExceptionButtonKey = Key(
+    'profile_demo_handled_exception_button',
+  );
+  static const _testCrashButtonKey = Key('profile_demo_test_crash_button');
+
+  Future<void> _recordHandledException(BuildContext context) async {
+    final crashlytics = context.read<CrashlyticsViewModel>();
+    final didSend = await crashlytics.recordDemoHandledException();
+
+    if (!context.mounted || !didSend) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Demo handled exception sent to Crashlytics'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<void> _triggerTestCrash(BuildContext context) async {
+    final crashlytics = context.read<CrashlyticsViewModel>();
+    await crashlytics.triggerDemoCrash();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final viewModel = context.watch<CrashlyticsViewModel>();
+
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Developer demo tools',
+              style: TextStyle(
+                color: ProfileScreen._ink,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Crashlytics verification actions for development and demos only.',
+              style: TextStyle(color: ProfileScreen._muted, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              key: _handledExceptionButtonKey,
+              onPressed: viewModel.isRecordingHandledException
+                  ? null
+                  : () => _recordHandledException(context),
+              icon: const Icon(Icons.bug_report_outlined),
+              label: Text(
+                viewModel.isRecordingHandledException
+                    ? 'Sending demo exception...'
+                    : 'Demo: Record handled exception',
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              key: _testCrashButtonKey,
+              onPressed: viewModel.isTriggeringCrash
+                  ? null
+                  : () => _triggerTestCrash(context),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: colorScheme.error,
+                side: BorderSide(
+                  color: colorScheme.error.withValues(alpha: 0.5),
+                ),
+              ),
+              icon: const Icon(Icons.warning_amber_outlined),
+              label: Text(
+                viewModel.isTriggeringCrash
+                    ? 'Sending crash evidence...'
+                    : 'Demo: Test crash',
+              ),
+            ),
+            if (viewModel.errorMessage != null) ...[
+              const SizedBox(height: 12),
+              _SignOutErrorBox(message: viewModel.errorMessage!),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _SignOutErrorBox extends StatelessWidget {
   const _SignOutErrorBox({required this.message});
 
@@ -465,3 +1396,25 @@ class _InfoRow extends StatelessWidget {
     );
   }
 }
+
+String _formatBytes(int bytes) {
+  if (bytes >= 1024 * 1024) {
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+  if (bytes >= 1024) {
+    return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  }
+
+  return '$bytes B';
+}
+
+String _formatDateTime(DateTime value) {
+  final local = value.toLocal();
+  return '${local.year}-'
+      '${_twoDigits(local.month)}-'
+      '${_twoDigits(local.day)} '
+      '${_twoDigits(local.hour)}:'
+      '${_twoDigits(local.minute)}';
+}
+
+String _twoDigits(int number) => number.toString().padLeft(2, '0');

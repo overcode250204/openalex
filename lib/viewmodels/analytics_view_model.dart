@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/analytics/topic_analytics.dart';
 import '../models/publication/publication.dart';
 import '../models/search/search_filter.dart';
-import '../services/analytics_service.dart';
+import '../services/analytics/analytics_service.dart';
 
 class AuthorImpact {
   final String name;
@@ -95,8 +95,7 @@ class AnalyticsViewModel extends ChangeNotifier {
     if (_result.publicationTrend.isEmpty) return null;
     return _result.publicationTrend.entries
         .reduce(
-          (a, b) =>
-              a.value > b.value || (a.value == b.value && a.key > b.key)
+          (a, b) => a.value > b.value || (a.value == b.value && a.key > b.key)
               ? a
               : b,
         )
@@ -131,6 +130,9 @@ class AnalyticsViewModel extends ChangeNotifier {
   // Title of the most-cited paper across the full dataset.
   InfluentialPaperSummary? get mostInfluentialPaper =>
       _result.mostInfluentialPaper;
+
+  List<InfluentialPaperSummary> get topInfluentialPapers =>
+      _result.topInfluentialPapers;
 
   String? get mostCitedTitle => mostInfluentialPaper?.title;
 
@@ -186,11 +188,7 @@ class AnalyticsViewModel extends ChangeNotifier {
 
     try {
       final result = includeCharts
-          ? await _analyticsService.fetchAll(
-              keyword,
-              filter,
-              topicId: topicId,
-            )
+          ? await _analyticsService.fetchAll(keyword, filter, topicId: topicId)
           : await _analyticsService.fetchSummary(
               keyword,
               filter,
@@ -209,13 +207,11 @@ class AnalyticsViewModel extends ChangeNotifier {
         topAuthors: result.topAuthors,
         totalWorks: result.totalWorks > 0
             ? result.totalWorks
-            : effectiveTrend.values.fold<int>(
-                0,
-                (sum, count) => sum + count,
-              ),
+            : effectiveTrend.values.fold<int>(0, (sum, count) => sum + count),
         analyzedWorks: result.analyzedWorks,
         totalCitations: result.totalCitations,
         mostInfluentialPaper: result.mostInfluentialPaper,
+        topInfluentialPapers: result.topInfluentialPapers,
         authorImpact: result.authorImpact,
       );
       _loadedSignature = signature;

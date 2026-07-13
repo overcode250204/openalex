@@ -1,19 +1,29 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../models/report/report_upload_result.dart';
 import '../../models/search/search_filter.dart';
 import '../../routes/app_routes.dart';
 import '../../routes/route_arguments.dart';
+import '../../services/openalex_service.dart';
 import '../../viewmodels/analytics_view_model.dart';
 import '../../viewmodels/dashboard_view_model.dart';
 import '../../viewmodels/home_view_model.dart';
 import '../../utils/app_keys.dart';
+import '../../widgets/analytics/analytics_chart_card.dart';
 import '../../widgets/analytics/author_impact_chart.dart';
 import '../../widgets/analytics/citation_trend_chart.dart';
 import '../../widgets/analytics/country_output_chart.dart';
 import '../../widgets/analytics/institution_ranking_chart.dart';
 import '../../widgets/analytics/top_keywords_chart.dart';
 import '../../widgets/analytics/topic_summary_grid.dart';
+import '../../widgets/publication_trend_line_chart.dart';
+import '../../widgets/top_contributing_authors_column_chart.dart';
+import '../../widgets/top_influential_papers_horizontal_chart.dart';
+import '../../widgets/top_research_journals_donut_chart.dart';
+import '../../widgets/top_selector_dropdown.dart';
 
 class DashboardScreen extends StatefulWidget {
   final TopicAnalyticsRouteArgs arguments;
@@ -26,8 +36,21 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   String? _lastSignature;
+  String? _lastTrendSignature;
   int? _yearFrom = 2010;
   int? _yearTo = DateTime.now().year;
+  int? _selectedTopPapers = 5;
+  int? _selectedTopJournals = 10;
+  int? _selectedTopAuthors = 10;
+  Map<int, int>? _fetchedTrendData;
+  Map<String, int>? _fetchedJournalsData;
+  Map<String, int>? _fetchedAuthorsData;
+  bool _isLoadingTrend = false;
+  bool _hasErrorTrend = false;
+  bool _isLoadingJournals = false;
+  bool _hasErrorJournals = false;
+  bool _isLoadingAuthors = false;
+  bool _hasErrorAuthors = false;
   bool _isFirstSyncScheduled = false;
 
   /// The base search filter with the dashboard's year range applied on top.
@@ -44,6 +67,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _syncAnalytics();
+      _syncTrendSections();
     });
   }
 
@@ -65,14 +89,121 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  void _syncTrendSections() {
+    final signature =
+        '${widget.arguments.topicId}|${widget.arguments.topicName}|'
+        '${_yearFrom ?? ''}|${_yearTo ?? ''}';
+    if (signature == _lastTrendSignature) return;
+    _lastTrendSignature = signature;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _loadTrendSections();
+    });
+  }
+
+  Future<void> _loadTrendSections() async {
+    await Future.wait([
+      _loadPublicationTrend(),
+      _loadTopResearchJournals(limit: _selectedTopJournals),
+      _loadTopContributingAuthors(limit: _selectedTopAuthors),
+    ]);
+  }
+
+  Future<void> _loadPublicationTrend() async {
+    if (widget.arguments.topicName.trim().isEmpty) return;
+    setState(() {
+      _isLoadingTrend = true;
+      _hasErrorTrend = false;
+    });
+
+    try {
+      final data = await context.read<OpenAlexService>().fetchPublicationTrend(
+        keyword: widget.arguments.topicName,
+        topicId: widget.arguments.topicId,
+        fromYear: _yearFrom ?? 2010,
+        toYear: _yearTo,
+      );
+      if (!mounted) return;
+      setState(() => _fetchedTrendData = data);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _hasErrorTrend = true);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingTrend = false);
+      }
+    }
+  }
+
+  Future<void> _loadTopResearchJournals({int? limit}) async {
+    if (widget.arguments.topicName.trim().isEmpty) return;
+    setState(() {
+      _isLoadingJournals = true;
+      _hasErrorJournals = false;
+    });
+
+    try {
+      final data = await context
+          .read<OpenAlexService>()
+          .fetchTopResearchJournals(
+            keyword: widget.arguments.topicName,
+            limit: limit,
+            topicId: widget.arguments.topicId,
+            fromYear: _yearFrom ?? 2010,
+            toYear: _yearTo,
+          );
+      if (!mounted) return;
+      setState(() => _fetchedJournalsData = data);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _hasErrorJournals = true);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingJournals = false);
+      }
+    }
+  }
+
+  Future<void> _loadTopContributingAuthors({int? limit}) async {
+    if (widget.arguments.topicName.trim().isEmpty) return;
+    setState(() {
+      _isLoadingAuthors = true;
+      _hasErrorAuthors = false;
+    });
+
+    try {
+      final data = await context
+          .read<OpenAlexService>()
+          .fetchTopContributingAuthors(
+            keyword: widget.arguments.topicName,
+            limit: limit,
+            topicId: widget.arguments.topicId,
+            fromYear: _yearFrom ?? 2010,
+            toYear: _yearTo,
+          );
+      if (!mounted) return;
+      setState(() => _fetchedAuthorsData = data);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _hasErrorAuthors = true);
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingAuthors = false);
+      }
+    }
+  }
+
   void _onYearFromChanged(int? value) {
     setState(() {
       _yearFrom = value;
       if (_yearFrom != null && _yearTo != null && _yearFrom! > _yearTo!) {
         _yearTo = _yearFrom;
       }
+      _lastTrendSignature = null;
     });
     _syncAnalytics();
+    _syncTrendSections();
   }
 
   void _onYearToChanged(int? value) {
@@ -81,16 +212,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (_yearFrom != null && _yearTo != null && _yearTo! < _yearFrom!) {
         _yearFrom = _yearTo;
       }
+      _lastTrendSignature = null;
     });
     _syncAnalytics();
+    _syncTrendSections();
   }
 
   void _clearYears() {
     setState(() {
-      _yearFrom = null;
-      _yearTo = null;
+      _yearFrom = 2010;
+      _yearTo = DateTime.now().year;
+      _lastTrendSignature = null;
     });
     _syncAnalytics();
+    _syncTrendSections();
+  }
+
+  void _updateTopPapers(int? limit) {
+    setState(() => _selectedTopPapers = limit);
+  }
+
+  Future<void> _updateTopJournals(int? limit) async {
+    setState(() => _selectedTopJournals = limit);
+    await _loadTopResearchJournals(limit: limit);
+  }
+
+  Future<void> _updateTopAuthors(int? limit) async {
+    setState(() => _selectedTopAuthors = limit);
+    await _loadTopContributingAuthors(limit: limit);
   }
 
   @override
@@ -183,7 +332,185 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 16),
           const CountryOutputChart(),
           const SizedBox(height: 24),
+          Text(
+            'Trend Sections',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Detailed trend views use the same year range as the dashboard '
+            'summary.',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 12),
+          AnalyticsChartCard(
+            title: 'Publication Trend: ${widget.arguments.topicName}',
+            child: _isLoadingTrend
+                ? const SizedBox(
+                    height: 300,
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : _hasErrorTrend
+                ? SizedBox(
+                    height: 300,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('Failed to load publication trend.'),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _loadPublicationTrend,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : (_fetchedTrendData == null || _fetchedTrendData!.isEmpty)
+                ? const SizedBox(
+                    height: 300,
+                    child: Center(
+                      child: Text('No publication trend data available.'),
+                    ),
+                  )
+                : PublicationTrendLineChart(data: _fetchedTrendData!),
+          ),
+          const SizedBox(height: 16),
+          AnalyticsChartCard(
+            title: 'Top Influential Papers',
+            showInfoIcon: true,
+            customDropdown: TopSelectorDropdown(
+              value: _selectedTopPapers,
+              onChanged: _updateTopPapers,
+            ),
+            child: loading || (!analytics.hasLoaded && analytics.error == null)
+                ? const SizedBox(
+                    height: 260,
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : analytics.topInfluentialPapers.isEmpty
+                ? const SizedBox(
+                    height: 260,
+                    child: Center(
+                      child: Text('No influential papers available.'),
+                    ),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8.0, left: 4.0),
+                        child: Text(
+                          'Influential',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      TopInfluentialPapersHorizontalChart(
+                        papers: analytics.topInfluentialPapers
+                            .take(_selectedTopPapers ?? 5)
+                            .toList(),
+                      ),
+                    ],
+                  ),
+          ),
+          const SizedBox(height: 16),
+          AnalyticsChartCard(
+            title: 'Top Research Journals',
+            showInfoIcon: true,
+            customDropdown: TopSelectorDropdown(
+              value: _selectedTopJournals,
+              onChanged: _updateTopJournals,
+            ),
+            child: _isLoadingJournals || _fetchedJournalsData == null
+                ? const SizedBox(
+                    height: 260,
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : _hasErrorJournals
+                ? SizedBox(
+                    height: 260,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('Failed to load research journals.'),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => _loadTopResearchJournals(
+                              limit: _selectedTopJournals,
+                            ),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : _fetchedJournalsData!.isEmpty
+                ? const SizedBox(
+                    height: 260,
+                    child: Center(
+                      child: Text('No research journals available.'),
+                    ),
+                  )
+                : TopResearchJournalsDonutChart(
+                    journalsData: _fetchedJournalsData!,
+                  ),
+          ),
+          const SizedBox(height: 16),
+          AnalyticsChartCard(
+            title: 'Top Contributing Authors',
+            showInfoIcon: true,
+            customDropdown: TopSelectorDropdown(
+              value: _selectedTopAuthors,
+              onChanged: _updateTopAuthors,
+            ),
+            child: _isLoadingAuthors || _fetchedAuthorsData == null
+                ? const SizedBox(
+                    height: 260,
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : _hasErrorAuthors
+                ? SizedBox(
+                    height: 260,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('Failed to load contributing authors.'),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => _loadTopContributingAuthors(
+                              limit: _selectedTopAuthors,
+                            ),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : _fetchedAuthorsData!.isEmpty
+                ? const SizedBox(
+                    height: 260,
+                    child: Center(
+                      child: Text('No contributing authors available.'),
+                    ),
+                  )
+                : TopContributingAuthorsColumnChart(
+                    authorsData: _cleanAuthorData(_fetchedAuthorsData!),
+                  ),
+          ),
+          const SizedBox(height: 24),
           _ExportTrendReportButton(provider: provider),
+          const SizedBox(height: 12),
+          const _UploadedPdfLinkCard(),
         ],
       ),
     );
@@ -203,20 +530,26 @@ class _ExportTrendReportButton extends StatefulWidget {
 class _ExportTrendReportButtonState extends State<_ExportTrendReportButton> {
   Future<void> _exportReport() async {
     try {
-      final result = await context.read<DashboardViewModel>().exportTrendReport(
-        widget.provider.trendReportSnapshot,
-      );
+      final result = await context
+          .read<DashboardViewModel>()
+          .exportAndUploadDashboardPdfReport(
+            widget.provider.trendReportSnapshot,
+          );
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Trend report exported: ${result.file.path}')),
+        SnackBar(
+          content: Text(
+            'Dashboard PDF uploaded: ${result.uploadResult.downloadUrl}',
+          ),
+        ),
       );
     } catch (error) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Cannot export trend report: $error')),
+        SnackBar(content: Text('Cannot upload dashboard PDF: $error')),
       );
     }
   }
@@ -233,8 +566,130 @@ class _ExportTrendReportButtonState extends State<_ExportTrendReportButton> {
               height: 18,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
-          : const Icon(Icons.description),
-      label: Text(isExporting ? 'Exporting Report' : 'Export Trend Report'),
+          : const Icon(Icons.cloud_upload_outlined),
+      label: Text(isExporting ? 'Uploading PDF' : 'Upload PDF Report'),
+    );
+  }
+}
+
+class _UploadedPdfLinkCard extends StatelessWidget {
+  const _UploadedPdfLinkCard();
+
+  Future<void> _copyLink(BuildContext context, String url) async {
+    await Clipboard.setData(ClipboardData(text: url));
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('PDF link copied')));
+  }
+
+  Future<void> _openLink(BuildContext context, String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Invalid PDF link')));
+      return;
+    }
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!context.mounted || opened) return;
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Cannot open PDF link')));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final report = context.select<DashboardViewModel, ReportUploadResult?>(
+      (viewModel) => viewModel.lastUploadedPdfReport,
+    );
+    if (report == null) return const SizedBox.shrink();
+
+    final uploadedAt = report.uploadedAt.toLocal();
+    final uploadedAtText =
+        '${uploadedAt.year}-'
+        '${_twoDigits(uploadedAt.month)}-'
+        '${_twoDigits(uploadedAt.day)} '
+        '${_twoDigits(uploadedAt.hour)}:'
+        '${_twoDigits(uploadedAt.minute)}';
+
+    return Card(
+      key: AppKeys.uploadedPdfLinkCard,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.picture_as_pdf_outlined,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Uploaded PDF report',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${report.fileName} - ${_formatBytes(report.sizeBytes)} - $uploadedAtText',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  key: AppKeys.uploadedPdfDismissButton,
+                  tooltip: 'Hide PDF link',
+                  onPressed: () => context
+                      .read<DashboardViewModel>()
+                      .clearUploadedPdfReport(),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            SelectableText(
+              report.downloadUrl,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  key: AppKeys.uploadedPdfCopyButton,
+                  onPressed: () => _copyLink(context, report.downloadUrl),
+                  icon: const Icon(Icons.copy, size: 18),
+                  label: const Text('Copy link'),
+                ),
+                FilledButton.icon(
+                  key: AppKeys.uploadedPdfOpenButton,
+                  onPressed: () => _openLink(context, report.downloadUrl),
+                  icon: const Icon(Icons.open_in_new, size: 18),
+                  label: const Text('Open PDF'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -245,11 +700,40 @@ String _compactNumber(int n) {
   return n.toString();
 }
 
+String _formatBytes(int bytes) {
+  if (bytes >= 1024 * 1024) {
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+  if (bytes >= 1024) {
+    return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  }
+
+  return '$bytes B';
+}
+
+String _twoDigits(int number) => number.toString().padLeft(2, '0');
+
 String? _influentialPaperDetails(AnalyticsViewModel analytics) {
   final paper = analytics.mostInfluentialPaper;
   if (paper == null) return null;
   final year = paper.publicationYear?.toString() ?? 'Unknown year';
-  return '${_compactNumber(paper.citedByCount)} citations • $year';
+  return '${_compactNumber(paper.citedByCount)} citations - $year';
+}
+
+Map<String, int> _cleanAuthorData(Map<String, int> authors) {
+  final cleanedEntries = authors.entries.where((entry) {
+    final name = entry.key.trim().toLowerCase();
+    final isUrl =
+        name.startsWith('http') ||
+        name.startsWith('www.') ||
+        name.contains('://') ||
+        RegExp(r'\.(com|org|net|io|edu|gov)\b').hasMatch(name);
+    return name.isNotEmpty &&
+        !isUrl &&
+        name != 'unknown' &&
+        name != 'unknown author';
+  }).toList()..sort((a, b) => b.value.compareTo(a.value));
+  return Map<String, int>.fromEntries(cleanedEntries);
 }
 
 class _AnalyticsErrorBanner extends StatelessWidget {

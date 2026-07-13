@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:openalex/models/search/search_filter.dart';
 import 'package:openalex/models/topic/topic.dart';
@@ -57,11 +56,25 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
   Future<void> _search(TopicSuggestion? topic) async {
     final keyword = _topicController.text.trim();
     if (keyword.isEmpty) return;
+
+    debugPrint('[Search UI] Analyze Topic clicked. keyword=$keyword');
+
     FocusScope.of(context).unfocus();
-    context.read<HomeViewModel>().searchPublications(
-      keyword: keyword,
-      topic: topic,
-    );
+
+    final homeViewModel = context.read<HomeViewModel>();
+
+    await homeViewModel.searchPublications(keyword: keyword, topic: topic);
+
+    debugPrint('''
+[Search UI] Search completed
+  error: ${homeViewModel.errorMessage}
+  totalResults: ${homeViewModel.totalResults}
+''');
+
+    if (!mounted || homeViewModel.errorMessage != null) {
+      debugPrint('[Search UI] Analytics skipped because search failed.');
+      return;
+    }
   }
 
   void _onQueryChanged(String value) {
@@ -69,6 +82,38 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
     _debounce = Timer(const Duration(milliseconds: 400), () {
       context.read<HomeViewModel>().onQueryChanged(value);
     });
+  }
+
+  void _showTopicRequiredMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Please select a valid research topic from the suggestions before opening analytics.',
+        ),
+      ),
+    );
+  }
+
+  void _openTopicAnalytics({
+    required String routeName,
+    required HomeViewModel provider,
+  }) {
+    final topicId = provider.currentTopicId;
+    final topicName = provider.currentTopic.trim();
+
+    if (topicId == null || topicName.isEmpty) {
+      _showTopicRequiredMessage();
+      return;
+    }
+
+    Navigator.pushNamed(
+      context,
+      routeName,
+      arguments: TopicAnalyticsRouteArgs(
+        topicId: topicId,
+        topicName: topicName,
+      ),
+    );
   }
 
   @override
@@ -88,9 +133,11 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
                   provider.filter.isOpenAccess != null ||
                   provider.filter.documentType != DocumentType.all ||
                   provider.filter.sortOption != SortOption.relevance;
+
               return Stack(
                 children: [
                   IconButton(
+                    tooltip: 'Filters',
                     icon: const Icon(Icons.tune),
                     onPressed: () => showModalBottomSheet(
                       context: context,
@@ -120,42 +167,19 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
               );
             },
           ),
-          IconButton(
-            tooltip: 'Trend Analysis',
-            onPressed: provider.currentTopicId == null
-                ? null
-                : () {
-                    Navigator.pushNamed(
-                      context,
-                      AppRoutes.trendAnalysis,
-                      arguments: TopicAnalyticsRouteArgs(
-                        topicId: provider.currentTopicId!,
-                        topicName: provider.currentTopic,
-                      ),
-                    );
-                  },
-            icon: const Icon(Icons.show_chart),
-          ),
 
           IconButton(
             tooltip: 'My Zotero Library',
             onPressed: _openZoteroLibrary,
             icon: const Icon(Icons.library_books),
           ),
+
           IconButton(
-            tooltip: 'Dashboard',
-            onPressed: provider.currentTopicId == null
-                ? null
-                : () {
-                    Navigator.pushNamed(
-                      context,
-                      AppRoutes.dashboard,
-                      arguments: TopicAnalyticsRouteArgs(
-                        topicId: provider.currentTopicId!,
-                        topicName: provider.currentTopic,
-                      ),
-                    );
-                  },
+            tooltip: 'Research Dashboard',
+            onPressed: () => _openTopicAnalytics(
+              routeName: AppRoutes.dashboard,
+              provider: provider,
+            ),
             icon: const Icon(Icons.dashboard),
           ),
         ],
@@ -165,10 +189,9 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
         top: false,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final suggestionMaxHeight = (constraints.maxHeight - 240).clamp(
-              0.0,
-              220.0,
-            ).toDouble();
+            final suggestionMaxHeight = (constraints.maxHeight - 240)
+                .clamp(0.0, 220.0)
+                .toDouble();
 
             return Column(
               children: [
@@ -176,14 +199,11 @@ class _TrendAnalyzerHomePageState extends State<TrendAnalyzerHomePage> {
                   topicController: _topicController,
                   suggestionMaxHeight: suggestionMaxHeight,
                   onSearch: provider.isLoading ? null : _search,
-                  onQueryChanged: provider.isLoading
-                      ? null
-                      : _onQueryChanged,
+                  onQueryChanged: provider.isLoading ? null : _onQueryChanged,
                 ),
 
                 Consumer<HomeViewModel>(
-                  builder: (context, provider, _) =>
-                      provider.totalResults > 0
+                  builder: (context, provider, _) => provider.totalResults > 0
                       ? Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -264,7 +284,7 @@ class _SearchHeader extends StatelessWidget {
 
             FilledButton.icon(
               key: AppKeys.searchTopicButton,
-              onPressed: () => {onSearch?.call(null)},
+              onPressed: onSearch == null ? null : () => onSearch!(null),
               icon: const Icon(Icons.analytics),
               label: const Text('Analyze Topic'),
             ),
@@ -283,11 +303,17 @@ class _SearchResultView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (provider.isLoading) {
-      return const LoadingWidget();
+      return const KeyedSubtree(
+        key: AppKeys.topicSearchLoading,
+        child: LoadingWidget(),
+      );
     }
 
     if (provider.errorMessage != null) {
-      return AppErrorWidget(message: provider.errorMessage!);
+      return KeyedSubtree(
+        key: AppKeys.searchErrorState,
+        child: AppErrorWidget(message: provider.errorMessage!),
+      );
     }
 
     if (provider.publications.isEmpty) {
@@ -296,6 +322,7 @@ class _SearchResultView extends StatelessWidget {
           child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: constraints.maxHeight),
             child: const EmptyStateWidget(
+              key: AppKeys.emptySearchState,
               message: 'Enter a research topic and tap Analyze Topic.',
               icon: Icons.manage_search,
             ),
@@ -324,16 +351,22 @@ class _SearchResultView extends StatelessWidget {
             );
           }
           final publication = provider.publications[index];
-          return PublicationCard(
-            key: AppKeys.publicationItem(publication.id),
-            publication: publication,
-            onTap: () {
-              Navigator.pushNamed(
-                context,
-                AppRoutes.publicationDetail,
-                arguments: PublicationDetailRouteArgs(workId: publication.id),
-              );
-            },
+          return KeyedSubtree(
+            key: AppKeys.publicationResultItem(publication.id),
+            child: PublicationCard(
+              key: AppKeys.publicationCard(publication.id),
+              publication: publication,
+              onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.publicationDetail,
+                  arguments: PublicationDetailRouteArgs(
+                    workId: publication.id,
+                    initialTitle: publication.title,
+                  ),
+                );
+              },
+            ),
           );
         },
       ),

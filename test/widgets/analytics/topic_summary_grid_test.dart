@@ -50,10 +50,7 @@ void main() {
   testWidgets('renders a loading indicator in every card', (tester) async {
     await tester.pumpWidget(_subject(loading: true));
 
-    expect(
-      find.byKey(const Key('summary_card_loading')),
-      findsNWidgets(6),
-    );
+    expect(find.byKey(const Key('summary_card_loading')), findsNWidgets(6));
   });
 
   testWidgets('most influential paper card is tappable', (tester) async {

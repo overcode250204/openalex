@@ -37,6 +37,7 @@ class TopicAnalytics {
   final int analyzedWorks;
   final int totalCitations;
   final InfluentialPaperSummary? mostInfluentialPaper;
+  final List<InfluentialPaperSummary> topInfluentialPapers;
   final List<AuthorImpactSummary> authorImpact;
 
   const TopicAnalytics({
@@ -50,6 +51,7 @@ class TopicAnalytics {
     this.analyzedWorks = 0,
     this.totalCitations = 0,
     this.mostInfluentialPaper,
+    this.topInfluentialPapers = const [],
     this.authorImpact = const [],
   });
 

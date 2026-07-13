@@ -344,7 +344,7 @@ class OpenAlexService {
 
   String _topicAnalyticsFilter(String topicId, int? fromYear, int? toYear) {
     final filters = <String>[
-      'topics.id:${_normalizeId(topicId)}',
+      'primary_topic.id:${_normalizeId(topicId)}',
       if (fromYear != null) 'from_publication_date:$fromYear-01-01',
       if (toYear != null) 'to_publication_date:$toYear-12-31',
     ];

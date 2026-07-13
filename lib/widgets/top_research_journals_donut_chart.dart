@@ -1,10 +1,17 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../utils/formatters.dart';
+
 class TopResearchJournalsDonutChart extends StatefulWidget {
   final Map<String, int> journalsData;
+  final String valueLabel;
 
-  const TopResearchJournalsDonutChart({super.key, required this.journalsData});
+  const TopResearchJournalsDonutChart({
+    super.key,
+    required this.journalsData,
+    this.valueLabel = 'papers',
+  });
 
   @override
   State<TopResearchJournalsDonutChart> createState() =>
@@ -44,11 +51,14 @@ class _TopResearchJournalsDonutChartState
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isSmallScreen = constraints.maxWidth < 300;
+        final useVerticalLayout = constraints.maxWidth < 520;
+        final chartSize = useVerticalLayout
+            ? constraints.maxWidth.clamp(180.0, 220.0).toDouble()
+            : 200.0;
 
         final chartWidget = SizedBox(
-          height: 200,
-          width: 200,
+          height: chartSize,
+          width: chartSize,
           child: Stack(
             alignment: Alignment.center,
             children: [
@@ -102,7 +112,7 @@ class _TopResearchJournalsDonutChartState
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '${donutEntries.length}',
+                    '${donutEntries.length - 1}',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -118,51 +128,63 @@ class _TopResearchJournalsDonutChartState
           ),
         );
 
-        final legendWidget = Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: List.generate(donutEntries.length, (index) {
-            final entry = donutEntries[index];
-            final color = chartColors[index % chartColors.length];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8.0),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: color,
+        final legendWidget = ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: List.generate(donutEntries.length, (index) {
+              final entry = donutEntries[index];
+              final color = chartColors[index % chartColors.length];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: color,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      entry.key,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        entry.key,
+                        maxLines: useVerticalLayout ? 2 : 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${Formatters.formatCompactNumber(entry.value)} ${widget.valueLabel}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade800,
+                        color: Colors.grey.shade600,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${entry.value} ${entry.value == 1 ? 'paper' : 'papers'}',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
-            );
-          }),
+                  ],
+                ),
+              );
+            }),
+          ),
         );
 
-        if (isSmallScreen) {
+        if (useVerticalLayout) {
           return Column(
-            children: [chartWidget, const SizedBox(height: 24), legendWidget],
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(child: chartWidget),
+              const SizedBox(height: 20),
+              legendWidget,
+            ],
           );
         }
 

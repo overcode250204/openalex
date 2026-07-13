@@ -7,22 +7,41 @@ import 'package:openalex/viewmodels/selected_topic_view_model.dart';
 
 import '../models/publication/publication.dart';
 import '../models/trend/trend_report_snapshot.dart';
+import '../services/analytics/app_analytics_service.dart';
+import '../services/analytics/no_op_analytics_service.dart';
 import '../services/openalex_service.dart';
+
+class TopicResolutionResult {
+  final String topicName;
+  final List<String> topicIds;
+  final TopicSuggestion? suggestion;
+
+  const TopicResolutionResult({
+    required this.topicName,
+    required this.topicIds,
+    required this.suggestion,
+  });
+
+  String? get topicId => topicIds.isNotEmpty ? topicIds.first : null;
+}
 
 class HomeViewModel extends ChangeNotifier {
   final OpenAlexService _openAlexService;
   final SearchHistoryService _historyService;
   final SuggestionService _suggestionService;
   final SelectedTopicViewModel? _selectedTopicViewModel;
+  final AppAnalyticsService _analyticsService;
 
   HomeViewModel(
     this._openAlexService, {
     SearchHistoryService? historyService,
     SuggestionService? suggestionService,
     SelectedTopicViewModel? selectedTopicViewModel,
+    AppAnalyticsService analyticsService = const NoOpAnalyticsService(),
   }) : _historyService = historyService ?? SearchHistoryService(),
        _suggestionService = suggestionService ?? SuggestionService(),
-       _selectedTopicViewModel = selectedTopicViewModel;
+       _selectedTopicViewModel = selectedTopicViewModel,
+       _analyticsService = analyticsService;
 
   List<Publication> _publications = [];
   bool _isLoading = false;
@@ -43,6 +62,7 @@ class HomeViewModel extends ChangeNotifier {
   List<TopicSuggestion> _conceptSuggestions = [];
   List<String> _relatedKeywords = [];
   bool _showSuggestions = false;
+  int _searchRequestVersion = 0;
 
   List<Publication> get publications => _publications;
 
@@ -53,6 +73,7 @@ class HomeViewModel extends ChangeNotifier {
   String get currentTopic => _currentTopic;
   String? get currentTopicId => _currentTopicId;
   List<String> get currentTopicIds => List.unmodifiable(_currentTopicIds);
+  TopicSuggestion? get selectedTopic => _selectedTopic;
 
   SearchFilter get filter => _filter;
   bool get hasMore => _hasMore;
@@ -62,46 +83,180 @@ class HomeViewModel extends ChangeNotifier {
   List<TopicSuggestion> get conceptSuggestions => _conceptSuggestions;
   List<String> get relatedKeywords => _relatedKeywords;
   bool get showSuggestions => _showSuggestions;
-  Future<TopicSuggestion?> _resolveTopic(
-    String keyword,
+
+  Future<TopicSuggestion?> resolveTopicForSearch(
+    String keyword, {
     TopicSuggestion? selectedTopic,
-  ) async {
-    // User bấm suggestion: dùng chính xác topic đó.
+  }) async {
     if (selectedTopic != null) {
       return selectedTopic;
     }
 
-    final normalizedKeyword = keyword.trim().toLowerCase();
+    final normalizedKeyword = _normalizeTopicText(keyword);
     if (normalizedKeyword.isEmpty) return null;
 
-    // Tìm topic suggestion từ OpenAlex.
     final suggestions = await _suggestionService.fetchTopicSuggestions(keyword);
 
     if (suggestions.isEmpty) return null;
 
-    // Ưu tiên topic trùng tên chính xác.
     for (final suggestion in suggestions) {
-      if (suggestion.displayName.trim().toLowerCase() == normalizedKeyword) {
+      if (_normalizeTopicText(suggestion.displayName) == normalizedKeyword) {
         return suggestion;
       }
+    }
+
+    final topSuggestion = suggestions.first;
+    if (_isHighConfidenceTopicMatch(
+      keyword: keyword,
+      suggestion: topSuggestion,
+      nextSuggestion: suggestions.length > 1 ? suggestions[1] : null,
+    )) {
+      return topSuggestion;
     }
 
     return null;
   }
 
-  Future<List<String>> _resolveTopicIds(
-    String keyword,
-    TopicSuggestion? resolvedTopic,
-  ) async {
-    if (resolvedTopic != null) {
-      return [resolvedTopic.id.replaceAll('https://openalex.org/', '')];
+  String _normalizeTopicText(String value) {
+    return value
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  bool _isHighConfidenceTopicMatch({
+    required String keyword,
+    required TopicSuggestion suggestion,
+    TopicSuggestion? nextSuggestion,
+  }) {
+    final normalizedKeyword = _normalizeTopicText(keyword);
+    final normalizedSuggestion = _normalizeTopicText(suggestion.displayName);
+
+    if (normalizedKeyword.isEmpty || normalizedSuggestion.isEmpty) {
+      return false;
     }
 
-    try {
-      return await _openAlexService.getTopicIdsFromKeyword(keyword);
-    } catch (_) {
-      return [];
+    if (normalizedKeyword == normalizedSuggestion) {
+      return true;
     }
+
+    if (normalizedKeyword.length >= 4 &&
+        normalizedSuggestion.contains(normalizedKeyword)) {
+      return true;
+    }
+
+    if (normalizedSuggestion.length >= 4 &&
+        normalizedKeyword.contains(normalizedSuggestion)) {
+      return true;
+    }
+
+    final suggestionTokens = normalizedSuggestion
+        .split(' ')
+        .where((token) => token.isNotEmpty)
+        .toList();
+    final keywordTokens = normalizedKeyword
+        .split(' ')
+        .where((token) => token.isNotEmpty)
+        .toList();
+
+    final abbreviation = suggestionTokens
+        .where((token) => token.isNotEmpty)
+        .map((token) => token[0])
+        .join();
+    if (normalizedKeyword.replaceAll(' ', '') == abbreviation &&
+        abbreviation.length >= 2) {
+      return true;
+    }
+
+    final meaningfulKeywordTokens = keywordTokens
+        .where((token) => token.length >= 3)
+        .toList();
+    if (meaningfulKeywordTokens.isNotEmpty &&
+        meaningfulKeywordTokens.every(suggestionTokens.contains)) {
+      return true;
+    }
+
+    final overlapCount = meaningfulKeywordTokens
+        .where(suggestionTokens.contains)
+        .length;
+    final overlapRatio = meaningfulKeywordTokens.isEmpty
+        ? 0.0
+        : overlapCount / meaningfulKeywordTokens.length;
+    final clearlyDominant =
+        nextSuggestion == null ||
+        suggestion.workCount >= nextSuggestion.workCount * 2;
+
+    return overlapRatio >= 0.6 && clearlyDominant;
+  }
+
+  String _normalizeTopicId(String topicId) {
+    return topicId.replaceAll('https://openalex.org/', '');
+  }
+
+  TopicResolutionResult _resolutionFrom(
+    String keyword,
+    TopicSuggestion? resolvedTopic,
+  ) {
+    final topicIds = resolvedTopic == null
+        ? <String>[]
+        : [_normalizeTopicId(resolvedTopic.id)];
+
+    return TopicResolutionResult(
+      topicName: resolvedTopic?.displayName ?? keyword.trim(),
+      topicIds: topicIds,
+      suggestion: resolvedTopic,
+    );
+  }
+
+  void _commitAnalyzedTopic(TopicResolutionResult result) {
+    _selectedTopic = result.suggestion;
+    _currentTopic = result.topicName;
+    _currentTopicId = result.topicId;
+    _currentTopicIds = result.topicIds;
+
+    _selectedTopicViewModel?.setTopic(
+      _currentTopic,
+      suggestion: result.suggestion,
+    );
+  }
+
+  void _clearAnalyzedTopicIdForNewSearch() {
+    _selectedTopic = null;
+    _currentTopicId = null;
+    _currentTopicIds = [];
+  }
+
+  Future<TopicResolutionResult> resolveAndCommitAnalyzedTopic(
+    String keyword, {
+    TopicSuggestion? selectedTopic,
+    required int requestVersion,
+  }) async {
+    final resolvedTopic = await resolveTopicForSearch(
+      keyword,
+      selectedTopic: selectedTopic,
+    );
+
+    TopicResolutionResult result;
+    if (resolvedTopic != null) {
+      result = _resolutionFrom(keyword, resolvedTopic);
+    } else {
+      final topicIds = await _openAlexService.getTopicIdsFromKeyword(
+        keyword.trim(),
+      );
+      result = TopicResolutionResult(
+        topicName: keyword.trim(),
+        topicIds: topicIds,
+        suggestion: null,
+      );
+    }
+
+    if (requestVersion == _searchRequestVersion) {
+      _commitAnalyzedTopic(result);
+    }
+
+    return result;
   }
 
   Future<void> searchPublications({
@@ -116,11 +271,14 @@ class HomeViewModel extends ChangeNotifier {
       return;
     }
 
+    final requestVersion = ++_searchRequestVersion;
+
     _currentPage = 1;
     _publications = [];
     _totalResults = 0;
     _hasMore = true;
     _isLoadingMore = false;
+    _clearAnalyzedTopicIdForNewSearch();
 
     _showSuggestions = false;
     _isLoading = true;
@@ -131,30 +289,24 @@ class HomeViewModel extends ChangeNotifier {
 
     notifyListeners();
 
+    var hasCommittedResolution = false;
+
     try {
-      final resolvedTopic = await _resolveTopic(trimmedKeyword, topic);
-
-      _selectedTopic = resolvedTopic;
-
-      _currentTopic = resolvedTopic?.displayName ?? trimmedKeyword;
-      _currentTopicId = resolvedTopic?.id.replaceAll(
-        'https://openalex.org/',
-        '',
+      final resolution = await resolveAndCommitAnalyzedTopic(
+        trimmedKeyword,
+        selectedTopic: topic,
+        requestVersion: requestVersion,
       );
-      _currentTopicIds = await _resolveTopicIds(_currentTopic, resolvedTopic);
-      _currentTopicId ??= _currentTopicIds.length == 1
-          ? _currentTopicIds.single
-          : null;
 
-      _selectedTopicViewModel?.setTopic(
-        _currentTopic,
-        suggestion: resolvedTopic,
-      );
+      if (requestVersion != _searchRequestVersion) return;
+      hasCommittedResolution = true;
 
       final (total, result) = await _openAlexService.searchPublications(
-        keyword: _currentTopic,
-        topicIds: _currentTopicIds,
+        keyword: resolution.topicName,
+        topicIds: resolution.topicIds,
       );
+
+      if (requestVersion != _searchRequestVersion) return;
 
       _totalResults = total;
       _publications = result;
@@ -162,25 +314,36 @@ class HomeViewModel extends ChangeNotifier {
 
       // Page đầu tiên xong, lần loadMore tiếp theo phải load page 2.
       _currentPage = 2;
+
+      await _logSearchTopic(
+        trimmedKeyword,
+        resultCount: total,
+        searchSource: topic == null ? 'manual' : 'suggestion',
+      );
     } catch (_) {
-      _currentTopicId = null;
-      _currentTopicIds = [];
-      _selectedTopic = null;
+      if (requestVersion != _searchRequestVersion) return;
+      if (!hasCommittedResolution) {
+        _currentTopicId = null;
+        _currentTopicIds = [];
+        _selectedTopic = null;
+      }
       _publications = [];
       _totalResults = 0;
       _errorMessage = 'Cannot load publications. Please try again.';
     } finally {
-      _isLoading = false;
+      if (requestVersion == _searchRequestVersion) {
+        _isLoading = false;
 
-      try {
-        _relatedKeywords = await _suggestionService.fetchRelatedKeywords(
-          _currentTopic,
-        );
-      } catch (_) {
-        _relatedKeywords = [];
+        try {
+          _relatedKeywords = await _suggestionService.fetchRelatedKeywords(
+            _currentTopic,
+          );
+        } catch (_) {
+          _relatedKeywords = [];
+        }
+
+        notifyListeners();
       }
-
-      notifyListeners();
     }
   }
 
@@ -344,28 +507,21 @@ class HomeViewModel extends ChangeNotifier {
     try {
       // Khi user bấm filter hoặc chọn topic mới.
       // Khi loadMore() thì topic null và phải giữ topic đã resolve trước đó.
-      final resolvedTopic = topic ?? _selectedTopic;
-
-      // Chỉ resolve từ OpenAlex khi app chưa có topic đã chọn.
-      final effectiveTopic =
-          resolvedTopic ?? await _resolveTopic(keyword, null);
-
-      _selectedTopic = effectiveTopic;
-
-      _currentTopic = effectiveTopic?.displayName ?? keyword.trim();
-      _currentTopicId = effectiveTopic?.id.replaceAll(
-        'https://openalex.org/',
-        '',
-      );
-      _currentTopicIds = await _resolveTopicIds(_currentTopic, effectiveTopic);
-      _currentTopicId ??= _currentTopicIds.length == 1
-          ? _currentTopicIds.single
-          : null;
-
-      _selectedTopicViewModel?.setTopic(
-        _currentTopic,
-        suggestion: effectiveTopic,
-      );
+      if (topic != null) {
+        final result = _resolutionFrom(keyword, topic);
+        _commitAnalyzedTopic(result);
+      } else if (_currentTopic.trim().isEmpty) {
+        final topicIds = await _openAlexService.getTopicIdsFromKeyword(
+          keyword.trim(),
+        );
+        _commitAnalyzedTopic(
+          TopicResolutionResult(
+            topicName: keyword.trim(),
+            topicIds: topicIds,
+            suggestion: null,
+          ),
+        );
+      }
 
       final params = _filter.toQueryParams(_currentTopic, _currentTopicIds);
       params['page'] = _currentPage.toString();
@@ -388,6 +544,14 @@ class HomeViewModel extends ChangeNotifier {
 
       _hasMore = result.length >= 50;
       _currentPage++;
+
+      if (resetPage) {
+        await _logSearchTopic(
+          keyword,
+          resultCount: total,
+          searchSource: 'filter',
+        );
+      }
     } catch (_) {
       _currentTopicId = null;
       _currentTopicIds = [];
@@ -406,6 +570,24 @@ class HomeViewModel extends ChangeNotifier {
   Future<void> loadMore() async {
     if (!_hasMore || _isLoading) return;
     await searchWithFilter(_currentTopic, null, resetPage: false);
+  }
+
+  Future<void> _logSearchTopic(
+    String keyword, {
+    required int resultCount,
+    required String searchSource,
+  }) async {
+    await _analyticsService.logSearchTopic(
+      keyword,
+      resultCount: resultCount,
+      searchSource: searchSource,
+      topicId: _currentTopicId,
+      hasValidTopic: _currentTopicIds.isNotEmpty ? 1 : 0,
+      filterYearFrom: _filter.yearFrom,
+      filterYearTo: _filter.yearTo,
+      openAccessOnly: _filter.isOpenAccess == true ? 1 : 0,
+      sortOption: _filter.sortOption.name,
+    );
   }
 
   void resetFilter() {
