@@ -84,12 +84,7 @@ class _RecordingAnalyticsService implements AppAnalyticsService {
   }
 
   @override
-  Future<void> logViewJournal({
-    required String journalName,
-    required String journalId,
-    int? worksCount,
-    int? citedByCount,
-  }) async {}
+  Future<void> logViewJournal({required String journalName}) async {}
 
   @override
   Future<void> logExportPdf({

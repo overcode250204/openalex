@@ -58,12 +58,14 @@ class _PublicationListScreenState extends State<PublicationListScreen> {
             onNotification: (scroll) {
               if (scroll.metrics.pixels >=
                   scroll.metrics.maxScrollExtent - 200) {
-                provider.load(
-                  type: widget.type,
-                  workId: widget.workId,
-                  ids: widget.ids,
-                  reset: false,
-                );
+                if (provider.hasMore && !provider.isLoading) {
+                  provider.load(
+                    type: widget.type,
+                    workId: widget.workId,
+                    ids: widget.ids,
+                    reset: false,
+                  );
+                }
               }
               return false;
             },

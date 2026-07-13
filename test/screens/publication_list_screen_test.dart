@@ -8,8 +8,6 @@ import 'package:openalex/viewmodels/publication_list_view_model.dart';
 import 'package:openalex/viewmodels/home_view_model.dart';
 import 'package:openalex/screens/publication/publication_list_screen.dart';
 import 'package:openalex/services/openalex_service.dart';
-import 'package:openalex/services/firebase/remote_config_service.dart';
-import 'package:openalex/viewmodels/remote_config_view_model.dart';
 import 'package:provider/provider.dart';
 
 class _FakeOpenAlexService extends OpenAlexService {

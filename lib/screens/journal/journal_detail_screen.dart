@@ -150,6 +150,7 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
         });
       }
     } on ProviderNotFoundException {
+      // Some widget tests render without the journal service provider.
     } catch (_) {
       // silently ignore load-more errors; user can scroll again to retry
     } finally {
@@ -239,10 +240,7 @@ class _JournalDetailScreenState extends State<JournalDetailScreen> {
     }
 
     if (_pubsError != null) {
-      return AppErrorWidget(
-        message: _pubsError!,
-        onRetry: _fetchFromApi,
-      );
+      return AppErrorWidget(message: _pubsError!, onRetry: _fetchFromApi);
     }
 
     if (_publications.isEmpty) {
@@ -290,8 +288,7 @@ class _StatsSection extends StatelessWidget {
         ),
         _StatChip(
           icon: Icons.equalizer,
-          label:
-              '${journal.averageCitations.toStringAsFixed(1)} avg citations',
+          label: '${journal.averageCitations.toStringAsFixed(1)} avg citations',
           color: Colors.purple,
         ),
         if (journal.publisher != null)

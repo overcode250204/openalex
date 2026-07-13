@@ -51,13 +51,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _hasErrorJournals = false;
   bool _isLoadingAuthors = false;
   bool _hasErrorAuthors = false;
+  bool _isFirstSyncScheduled = false;
 
   /// The base search filter with the dashboard's year range applied on top.
   SearchFilter _effectiveFilter() {
     return SearchFilter(yearFrom: _yearFrom, yearTo: _yearTo);
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Chỉ schedule lần đầu — sau đó các callback onChange sẽ gọi trực tiếp.
+    if (_isFirstSyncScheduled) return;
+    _isFirstSyncScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _syncAnalytics();
+      _syncTrendSections();
+    });
+  }
+
   /// Refetches full-dataset analytics whenever the topic or year range changes.
+  /// KHÔNG gọi trong build() — chỉ gọi từ lifecycle hooks và onChange callbacks.
   void _syncAnalytics() {
     final filter = _effectiveFilter();
     final signature =
@@ -65,15 +80,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (signature == _lastSignature) return;
     _lastSignature = signature;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      context.read<AnalyticsViewModel>().fetchAnalytics(
-        widget.arguments.topicName,
-        filter,
-        const [],
-        topicId: widget.arguments.topicId,
-      );
-    });
+    if (!mounted) return;
+    context.read<AnalyticsViewModel>().fetchAnalytics(
+      widget.arguments.topicName,
+      filter,
+      const [],
+      topicId: widget.arguments.topicId,
+    );
   }
 
   void _syncTrendSections() {
@@ -189,6 +202,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
       _lastTrendSignature = null;
     });
+    _syncAnalytics();
+    _syncTrendSections();
   }
 
   void _onYearToChanged(int? value) {
@@ -199,6 +214,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
       _lastTrendSignature = null;
     });
+    _syncAnalytics();
+    _syncTrendSections();
   }
 
   void _clearYears() {
@@ -207,6 +224,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _yearTo = DateTime.now().year;
       _lastTrendSignature = null;
     });
+    _syncAnalytics();
+    _syncTrendSections();
   }
 
   void _updateTopPapers(int? limit) {
@@ -227,9 +246,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<HomeViewModel>();
     final analytics = context.watch<AnalyticsViewModel>();
-
-    _syncAnalytics();
-    _syncTrendSections();
 
     final loading = analytics.isLoading;
 
@@ -380,7 +396,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 : analytics.topInfluentialPapers.isEmpty
                 ? const SizedBox(
                     height: 260,
-                    child: Center(child: Text('No influential papers available.')),
+                    child: Center(
+                      child: Text('No influential papers available.'),
+                    ),
                   )
                 : Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -438,7 +456,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 : _fetchedJournalsData!.isEmpty
                 ? const SizedBox(
                     height: 260,
-                    child: Center(child: Text('No research journals available.')),
+                    child: Center(
+                      child: Text('No research journals available.'),
+                    ),
                   )
                 : TopResearchJournalsDonutChart(
                     journalsData: _fetchedJournalsData!,
