@@ -21,7 +21,7 @@ class _PublicationAiChatPanelState extends State<PublicationAiChatPanel> {
       id: 'summary',
       label: 'Summarize',
       prompt:
-          'Summarize this paper in Vietnamese using the available abstract and metadata.',
+          'Summarize this paper in English using the available abstract and metadata.',
     ),
     (
       id: 'contributions',
