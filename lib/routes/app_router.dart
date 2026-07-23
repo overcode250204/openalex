@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../screens/auth/auth_gate_screen.dart';
 import '../screens/app/app_shell_screen.dart';
+import '../screens/app/role_router_screen.dart';
 import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/journal/journal_detail_screen.dart';
 import '../screens/keyword/keyword_detail_screen.dart';
@@ -21,7 +22,10 @@ abstract final class AppRouter {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       case AppRoutes.home:
-        return _page(const AuthGateScreen(child: AppShell()), settings);
+        return _page(
+          const AuthGateScreen(child: RoleRouterScreen()),
+          settings,
+        );
       case AppRoutes.profile:
         return _page(const ProfileScreen(), settings);
       case AppRoutes.dashboard:

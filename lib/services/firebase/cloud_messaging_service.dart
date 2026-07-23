@@ -75,6 +75,11 @@ class NoOpCloudMessagingService implements CloudMessagingService {
 }
 
 class FirebaseCloudMessagingService implements CloudMessagingService {
+  /// Every client subscribes to this topic so the admin dashboard can send
+  /// a single broadcast (adminSendBroadcastNotification Cloud Function)
+  /// without needing to store per-user FCM tokens server-side.
+  static const broadcastTopic = 'broadcast_all';
+
   FirebaseCloudMessagingService({
     FirebaseMessaging? messaging,
     Stream<RemoteMessage>? foregroundMessages,
@@ -130,6 +135,7 @@ class FirebaseCloudMessagingService implements CloudMessagingService {
       badge: true,
       sound: true,
     );
+    await _subscribeToBroadcastTopic();
 
     final settings = await _messaging.getNotificationSettings();
     final token = await _safeGetToken();
@@ -173,6 +179,15 @@ class FirebaseCloudMessagingService implements CloudMessagingService {
       return await _messaging.getToken();
     } catch (_) {
       return null;
+    }
+  }
+
+  Future<void> _subscribeToBroadcastTopic() async {
+    try {
+      await _messaging.subscribeToTopic(broadcastTopic);
+    } catch (_) {
+      // Topic subscription is unsupported on some platforms (e.g. web) —
+      // those clients simply won't receive admin broadcasts.
     }
   }
 

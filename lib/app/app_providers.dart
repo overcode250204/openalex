@@ -5,6 +5,18 @@ import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
 import '../models/report/report_storage_config.dart';
+import '../services/admin/admin_role_service.dart';
+import '../services/admin/admin_service.dart';
+import '../services/admin/no_op_admin_role_service.dart';
+import '../services/admin/no_op_admin_service.dart';
+import '../services/firebase/firebase_admin_service.dart';
+import '../services/firebase/firestore_admin_role_service.dart';
+import '../viewmodels/admin/admin_dashboard_view_model.dart';
+import '../viewmodels/admin/admin_notifications_view_model.dart';
+import '../viewmodels/admin/admin_remote_config_view_model.dart';
+import '../viewmodels/admin/admin_reports_view_model.dart';
+import '../viewmodels/admin/admin_role_view_model.dart';
+import '../viewmodels/admin/admin_users_view_model.dart';
 import '../viewmodels/analytics_view_model.dart';
 import '../viewmodels/keyword_dashboard_view_model.dart';
 import '../viewmodels/home_view_model.dart';
@@ -48,6 +60,7 @@ abstract final class AppProviders {
     CloudMessagingService? cloudMessagingService,
     AppRemoteConfigService? remoteConfigService,
     AppCrashlyticsService? crashlyticsService,
+    AdminService? adminService,
   }) {
     return [
       Provider<http.Client>(
@@ -120,6 +133,18 @@ abstract final class AppProviders {
                 ? FirebaseCrashlyticsService(installGlobalHandlers: false)
                 : const NoOpCrashlyticsService()),
       ),
+      Provider<AdminService>(
+        create: (_) =>
+            adminService ??
+            (authService == null
+                ? FirebaseAdminService()
+                : const NoOpAdminService()),
+      ),
+      Provider<AdminRoleService>(
+        create: (_) => authService == null
+            ? FirestoreAdminRoleService()
+            : const NoOpAdminRoleService(),
+      ),
       ChangeNotifierProvider(
         create: (context) => AuthViewModel(
           authService: context.read<AuthService>(),
@@ -187,6 +212,28 @@ abstract final class AppProviders {
         create: (context) =>
             RemoteConfigViewModel(context.read<AppRemoteConfigService>())
               ..initialize(),
+      ),
+      ChangeNotifierProvider(
+        create: (context) => AdminRoleViewModel(context.read<AdminRoleService>()),
+      ),
+      ChangeNotifierProvider(
+        create: (context) => AdminUsersViewModel(context.read<AdminService>()),
+      ),
+      ChangeNotifierProvider(
+        create: (context) =>
+            AdminRemoteConfigViewModel(context.read<AdminService>()),
+      ),
+      ChangeNotifierProvider(
+        create: (context) =>
+            AdminNotificationsViewModel(context.read<AdminService>()),
+      ),
+      ChangeNotifierProvider(
+        create: (context) =>
+            AdminReportsViewModel(context.read<AdminService>()),
+      ),
+      ChangeNotifierProvider(
+        create: (context) =>
+            AdminDashboardViewModel(context.read<AdminService>()),
       ),
     ];
   }

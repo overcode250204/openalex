@@ -1,0 +1,38 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Uploaded PDF report metadata (lib/services/firebase/firestore_report_metadata_service.dart).
+    // Client can create its own reports and read only its own reports.
+    // Admin cross-user reads happen through the adminListAllReports Cloud
+    // Function, which uses the Admin SDK and bypasses these rules entirely.
+    match /uploaded_pdf_reports/{reportId} {
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null
+                  && resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // Admin role flags. A signed-in user may only read their own role doc
+    // (used client-side purely for UI routing). All writes happen via the
+    // adminSetUserRole Cloud Function (Admin SDK bypasses these rules).
+    match /admin_roles/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Admin broadcast notification audit log. Written only by the
+    // adminSendBroadcastNotification Cloud Function (Admin SDK). Not
+    // exposed to clients directly.
+    match /admin_notification_log/{logId} {
+      allow read, write: if false;
+    }
+
+    // Everything else is denied by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
