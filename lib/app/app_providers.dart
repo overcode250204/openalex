@@ -9,8 +9,8 @@ import '../services/admin/admin_role_service.dart';
 import '../services/admin/admin_service.dart';
 import '../services/admin/no_op_admin_role_service.dart';
 import '../services/admin/no_op_admin_service.dart';
-import '../services/firebase/firebase_admin_service.dart';
 import '../services/firebase/firestore_admin_role_service.dart';
+import '../services/http/http_admin_service.dart';
 import '../viewmodels/admin/admin_dashboard_view_model.dart';
 import '../viewmodels/admin/admin_notifications_view_model.dart';
 import '../viewmodels/admin/admin_remote_config_view_model.dart';
@@ -137,7 +137,7 @@ abstract final class AppProviders {
         create: (_) =>
             adminService ??
             (authService == null
-                ? FirebaseAdminService()
+                ? HttpAdminService(baseUrl: _adminApiBaseUrl())
                 : const NoOpAdminService()),
       ),
       Provider<AdminRoleService>(
@@ -259,6 +259,14 @@ abstract final class AppProviders {
       return dotenv.env['OPENROUTER_MODEL'] ?? OpenRouterService.defaultModel;
     } catch (_) {
       return OpenRouterService.defaultModel;
+    }
+  }
+
+  static String _adminApiBaseUrl() {
+    try {
+      return dotenv.env['ADMIN_API_BASE_URL'] ?? '';
+    } catch (_) {
+      return '';
     }
   }
 
