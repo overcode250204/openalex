@@ -41,54 +41,50 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDF4z-nOORZNHfFqCGnvrYCzCnaKX_NSgY',
-    appId: '1:489601979984:web:0bc8ce715baedebc19a355',
-    messagingSenderId: '489601979984',
-    projectId: 'openalex-34f8f',
-    authDomain: 'openalex-34f8f.firebaseapp.com',
-    storageBucket: 'openalex-34f8f.firebasestorage.app',
-    measurementId: 'G-C4G798XKT2',
+    apiKey: 'AIzaSyAT39IKn9DMlkZ_CF98Kig9Moh7vyAzpkY',
+    appId: '1:487010272344:web:5e942fb5ea1cf92c1a362d',
+    messagingSenderId: '487010272344',
+    projectId: 'openalex-asm',
+    authDomain: 'openalex-asm.firebaseapp.com',
+    storageBucket: 'openalex-asm.firebasestorage.app',
+    measurementId: 'G-MMKVBFB443',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCh7nq-zBftPY47xGKv6xqjSIB1hfKcGcs',
-    appId: '1:489601979984:android:b3c8eeb15fd8b80919a355',
-    messagingSenderId: '489601979984',
-    projectId: 'openalex-34f8f',
-    storageBucket: 'openalex-34f8f.firebasestorage.app',
+    apiKey: 'AIzaSyBdcsI40yfulXH_ls3DacmMdP62Ifq-Y4c',
+    appId: '1:487010272344:android:35366332f6a114441a362d',
+    messagingSenderId: '487010272344',
+    projectId: 'openalex-asm',
+    storageBucket: 'openalex-asm.firebasestorage.app',
   );
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCb0_IB6KA-IYDrdqJ1VAuVErIIAmJqXfk',
-    appId: '1:489601979984:ios:f9686b54e9d2e95e19a355',
-    messagingSenderId: '489601979984',
-    projectId: 'openalex-34f8f',
-    storageBucket: 'openalex-34f8f.firebasestorage.app',
-    androidClientId:
-        '489601979984-62mu6ri1ij6k8bhdvkkv01n2d9sipa8p.apps.googleusercontent.com',
-    iosClientId:
-        '489601979984-ke3v643g3gflp57h52okp6i0vt21a2h3.apps.googleusercontent.com',
+    apiKey: 'AIzaSyDcnuUhXIDkaKxoJmjzT7yeXf_zmzkQav8',
+    appId: '1:487010272344:ios:1e3a520268152d081a362d',
+    messagingSenderId: '487010272344',
+    projectId: 'openalex-asm',
+    storageBucket: 'openalex-asm.firebasestorage.app',
+    androidClientId: '487010272344-spmp1j6gbrs6qvak67a5q2ov54fnjfhf.apps.googleusercontent.com',
+    iosClientId: '487010272344-7m7g9oc8bdftp0ou64nrl178ualvq284.apps.googleusercontent.com',
     iosBundleId: 'com.example.openalex',
   );
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyCb0_IB6KA-IYDrdqJ1VAuVErIIAmJqXfk',
-    appId: '1:489601979984:ios:f9686b54e9d2e95e19a355',
-    messagingSenderId: '489601979984',
-    projectId: 'openalex-34f8f',
-    storageBucket: 'openalex-34f8f.firebasestorage.app',
-    androidClientId:
-        '489601979984-62mu6ri1ij6k8bhdvkkv01n2d9sipa8p.apps.googleusercontent.com',
-    iosClientId:
-        '489601979984-ke3v643g3gflp57h52okp6i0vt21a2h3.apps.googleusercontent.com',
+    apiKey: 'AIzaSyDcnuUhXIDkaKxoJmjzT7yeXf_zmzkQav8',
+    appId: '1:487010272344:ios:1e3a520268152d081a362d',
+    messagingSenderId: '487010272344',
+    projectId: 'openalex-asm',
+    storageBucket: 'openalex-asm.firebasestorage.app',
+    androidClientId: '487010272344-spmp1j6gbrs6qvak67a5q2ov54fnjfhf.apps.googleusercontent.com',
+    iosClientId: '487010272344-7m7g9oc8bdftp0ou64nrl178ualvq284.apps.googleusercontent.com',
     iosBundleId: 'com.example.openalex',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDF4z-nOORZNHfFqCGnvrYCzCnaKX_NSgY',
-    appId: '1:489601979984:web:54fd6f729c5cd16c19a355',
-    messagingSenderId: '489601979984',
-    projectId: 'openalex-34f8f',
-    authDomain: 'openalex-34f8f.firebaseapp.com',
-    storageBucket: 'openalex-34f8f.firebasestorage.app',
-    measurementId: 'G-S690C2SVRC',
+    apiKey: 'AIzaSyAT39IKn9DMlkZ_CF98Kig9Moh7vyAzpkY',
+    appId: '1:487010272344:web:af68811496f912b91a362d',
+    messagingSenderId: '487010272344',
+    projectId: 'openalex-asm',
+    authDomain: 'openalex-asm.firebaseapp.com',
+    storageBucket: 'openalex-asm.firebasestorage.app',
+    measurementId: 'G-ZXEZCL7E41',
   );
 }

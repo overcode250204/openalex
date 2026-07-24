@@ -1,117 +1,45 @@
 {
   "project_info": {
-    "project_number": "489601979984",
-    "project_id": "openalex-34f8f",
-    "storage_bucket": "openalex-34f8f.firebasestorage.app"
+    "project_number": "487010272344",
+    "project_id": "openalex-asm",
+    "storage_bucket": "openalex-asm.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:489601979984:android:1ba307851b7559ba19a355",
-        "android_client_info": {
-          "package_name": "com.PRM393.openalex"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "489601979984-4419hccstvn5aaeprf41u7slbvbjrjsd.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCh7nq-zBftPY47xGKv6xqjSIB1hfKcGcs"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "489601979984-4419hccstvn5aaeprf41u7slbvbjrjsd.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "489601979984-ke3v643g3gflp57h52okp6i0vt21a2h3.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.openalex"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:489601979984:android:b3c8eeb15fd8b80919a355",
+        "mobilesdk_app_id": "1:487010272344:android:35366332f6a114441a362d",
         "android_client_info": {
           "package_name": "com.example.openalex"
         }
       },
       "oauth_client": [
         {
-          "client_id": "489601979984-svrel9vusdd812vmagujqbjef0pjd0fk.apps.googleusercontent.com",
+          "client_id": "487010272344-spmp1j6gbrs6qvak67a5q2ov54fnjfhf.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.openalex",
-            "certificate_hash": "bf508ec2d3330851ecd5f8e267c959fcceb08c70"
+            "certificate_hash": "e9ab215b7001aea9c3a5e0629b58fc9f9b763cac"
           }
         },
         {
-          "client_id": "489601979984-4419hccstvn5aaeprf41u7slbvbjrjsd.apps.googleusercontent.com",
+          "client_id": "487010272344-92ulk38mtdh5ccios52i18k3ao59a3sn.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyCh7nq-zBftPY47xGKv6xqjSIB1hfKcGcs"
+          "current_key": "AIzaSyBdcsI40yfulXH_ls3DacmMdP62Ifq-Y4c"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "489601979984-4419hccstvn5aaeprf41u7slbvbjrjsd.apps.googleusercontent.com",
+              "client_id": "487010272344-92ulk38mtdh5ccios52i18k3ao59a3sn.apps.googleusercontent.com",
               "client_type": 3
             },
             {
-              "client_id": "489601979984-ke3v643g3gflp57h52okp6i0vt21a2h3.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.openalex"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:489601979984:android:cf7eb95fa2e93a2119a355",
-        "android_client_info": {
-          "package_name": "com.prm393.openalex"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "489601979984-4419hccstvn5aaeprf41u7slbvbjrjsd.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCh7nq-zBftPY47xGKv6xqjSIB1hfKcGcs"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "489601979984-4419hccstvn5aaeprf41u7slbvbjrjsd.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "489601979984-ke3v643g3gflp57h52okp6i0vt21a2h3.apps.googleusercontent.com",
+              "client_id": "487010272344-7m7g9oc8bdftp0ou64nrl178ualvq284.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
                 "bundle_id": "com.example.openalex"
