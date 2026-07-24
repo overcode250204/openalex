@@ -71,4 +71,37 @@ abstract final class AppKeys {
       Key('uploaded_report_open_button_$id');
   static Key publicationAiPromptChip(String id) =>
       Key('publication_ai_prompt_chip_$id');
+
+  static const adminShellScreen = Key('admin_shell_screen');
+  static const adminOverviewScreen = Key('admin_overview_screen');
+  static const adminUsersScreen = Key('admin_users_screen');
+  static const adminRemoteConfigScreen = Key('admin_remote_config_screen');
+  static const adminNotificationsScreen = Key('admin_notifications_screen');
+  static const adminReportsScreen = Key('admin_reports_screen');
+  static const adminNavOverview = Key('admin_nav_overview');
+  static const adminNavUsers = Key('admin_nav_users');
+  static const adminNavRemoteConfig = Key('admin_nav_remote_config');
+  static const adminNavNotifications = Key('admin_nav_notifications');
+  static const adminNavReports = Key('admin_nav_reports');
+  static const adminMaxJournalsField = Key('admin_max_journals_field');
+  static const adminMaxKeywordsField = Key('admin_max_keywords_field');
+  static const adminRemoteConfigSaveButton = Key(
+    'admin_remote_config_save_button',
+  );
+  static const adminNotificationTitleField = Key(
+    'admin_notification_title_field',
+  );
+  static const adminNotificationBodyField = Key(
+    'admin_notification_body_field',
+  );
+  static const adminNotificationSendButton = Key(
+    'admin_notification_send_button',
+  );
+
+  static Key adminUserItem(String uid) => Key('admin_user_item_$uid');
+  static Key adminUserDisableToggle(String uid) =>
+      Key('admin_user_disable_toggle_$uid');
+  static Key adminUserRoleToggle(String uid) =>
+      Key('admin_user_role_toggle_$uid');
+  static Key adminReportItem(String id) => Key('admin_report_item_$id');
 }

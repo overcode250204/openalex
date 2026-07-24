@@ -1,0 +1,20 @@
+{
+  "name": "admin-server",
+  "description": "Standalone REST backend for the ScholarTrend Admin Dashboard — same operations as functions/index.js, hosted outside Firebase so it does not require the Blaze plan.",
+  "version": "1.0.0",
+  "engines": {
+    "node": ">=18"
+  },
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "firebase-admin": "^12.7.0"
+  },
+  "private": true
+}
