@@ -15,7 +15,7 @@ abstract class AuthService {
 
 class FirebaseAuthService implements AuthService {
   static const _webClientId =
-      '489601979984-4419hccstvn5aaeprf41u7slbvbjrjsd.apps.googleusercontent.com';
+      '487010272344-92ulk38mtdh5ccios52i18k3ao59a3sn.apps.googleusercontent.com';
 
   FirebaseAuthService({FirebaseAuth? firebaseAuth, GoogleSignIn? googleSignIn})
     : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
